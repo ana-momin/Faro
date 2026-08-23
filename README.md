@@ -1,8 +1,8 @@
-# Alpha X
+# Faro
 
-Alpha X is a **human-led public X signal workspace**. It turns a monitoring goal into editable query criteria, reads matching public posts, and brings the findings with the clearest fit to the front of a review queue. It does **not** automate outreach, messages, posting, or any other external action.
+Faro is a **human-led public X signal workspace**. It turns a monitoring goal into editable query criteria, reads matching public posts, and brings the findings with the clearest fit to the front of a review queue. It does **not** automate outreach, messages, posting, or any other external action.
 
-## How Alpha X prioritizes findings
+## How Faro prioritizes findings
 
 | Signal dimension | What the score looks for | Why it matters |
 | --- | --- | --- |
@@ -13,17 +13,17 @@ Alpha X is a **human-led public X signal workspace**. It turns a monitoring goal
 | Specificity and freshness | Concrete context, recency, and bounded engagement support. | Makes the queue more actionable without overvaluing popularity. |
 | Noise controls | Exclusions, promotional phrases, and low-context content. | Pushes generic promotion and thin mentions down the queue. |
 
-> **Human-control boundary.** Alpha X provides an advisory relevance score and evidence. A person chooses whether to approve or reject a finding, and neither decision triggers communication.
+> **Human-control boundary.** Faro provides an advisory relevance score and evidence. A person chooses whether to approve or reject a finding, and neither decision triggers communication.
 
 ## Setup
 
 Set `X_API_BEARER_TOKEN` in the project’s secure secret settings for the official X path. The token is read only by server-side code. X provides a Filtered Stream endpoint for near-real-time posts matching rules and a Recent Search endpoint for polling; endpoint access and consumption are determined by the X account’s current plan.[1][2]
 
-When the official account is not entitled to retrieve posts, configure `TWITTERAPI_IO_KEY` as the alternative public-data path. Alpha X then uses TwitterAPI.io Advanced Search server-side, sends the saved query and durable page cursor, normalizes author/content/timestamp/engagement fields, and saves direct `x.com` links for human review. TwitterAPI.io documents `X-API-Key` authentication, a required query, and cursor-based pagination for that endpoint.[4]
+When the official account is not entitled to retrieve posts, configure `TWITTERAPI_IO_KEY` as the alternative public-data path. Faro then uses TwitterAPI.io Advanced Search server-side, sends the saved query and durable page cursor, normalizes author/content/timestamp/engagement fields, and saves direct `x.com` links for human review. TwitterAPI.io documents `X-API-Key` authentication, a required query, and cursor-based pagination for that endpoint.[4]
 
 Recent Search is the autoscale-safe fallback and the workspace shows the active source plus status and latency. On persistent Reserved Hosting, set both `X_FILTERED_STREAM_ENABLED=true` and `SIGNALFORGE_PERSISTENT_WORKER=true` after verifying the necessary X API access. The worker maintains Filtered Stream ingestion through the same normalization and relevance path.[3]
 
-The built-in model is **`gpt-5-mini`**. It is called on the server only for structured signal suggestions and context-aware intent interpretation. The model receives the monitoring goal, monitored terms, exclusions, and categories, and is bounded by a 12-second timeout. If it is unavailable or disabled with `SIGNALFORGE_DISABLE_LLM=true`, Alpha X uses its deterministic relevance profile instead.
+The built-in model is **`gpt-5-mini`**. It is called on the server only for structured signal suggestions and context-aware intent interpretation. The model receives the monitoring goal, monitored terms, exclusions, and categories, and is bounded by a 12-second timeout. If it is unavailable or disabled with `SIGNALFORGE_DISABLE_LLM=true`, Faro uses its deterministic relevance profile instead.
 
 ## Using the review workspace
 
@@ -41,7 +41,7 @@ Run `pnpm check` for type checking and `pnpm test` for the test suite. Tests cov
 
 ## Privacy and safety
 
-Alpha X stores the X bearer token only as a server-side secret. It is designed for public-post discovery and manual assessment, not surveillance of private content. Review decisions are internal labels; they never invoke posting, messaging, outreach, or an external workflow.
+Faro stores the X bearer token only as a server-side secret. It is designed for public-post discovery and manual assessment, not surveillance of private content. Review decisions are internal labels; they never invoke posting, messaging, outreach, or an external workflow.
 
 ## References
 

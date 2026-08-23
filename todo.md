@@ -43,3 +43,8 @@
 - [x] Add and run unit tests for personalized relevance scoring and update setup documentation to describe the new ranking behavior.
 - [x] Re-run quality checks, verify desktop and mobile UI, and create a final Alpha X checkpoint.
 - [x] Create and wire a minimal Alpha X favicon so the new identity appears in browser chrome as well as the dashboard.
+- [x] Replace the current Alpha X mark with the distinct, simple Faro wordmark inspired only by the supplied reference’s restraint.
+- [x] Update the favicon and managed application title to match the simplified Faro identity.
+- [x] Simplify dashboard visual density, typography, and navigation so the Faro signal-review workflow is easier to scan.
+- [x] Streamline finding selection, filtering, and detail review to reduce cognitive load while retaining score evidence and human-only controls.
+- [ ] Verify the Faro identity and clean workspace on desktop and mobile, then create a final checkpoint.

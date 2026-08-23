@@ -1,8 +1,8 @@
-# Alpha X Submission Demonstration
+# Faro Submission Demonstration
 
 ## Product access
 
-Alpha X is an authenticated, responsive X signal-review workspace. Its source code is contained in the project checkpoint, and the hosted project can be published from the project interface. The application deliberately supports **review only**: it cannot send outreach, post, reply, or message anyone.
+Faro is an authenticated, responsive X signal-review workspace. Its source code is contained in the project checkpoint, and the hosted project can be published from the project interface. The application deliberately supports **review only**: it cannot send outreach, post, reply, or message anyone.
 
 ## Required natural-language demonstration
 
@@ -21,4 +21,4 @@ Alpha X is an authenticated, responsive X signal-review workspace. Its source co
 | [Natural-language rule capture](/manus-storage/signalforge-natural-language-rule_c2048444.webp) | The plain-English intent resolves to an editable rule that preserves high-signal multi-word concepts. |
 | [Live-result review capture](/manus-storage/signalforge-live-review-controls_04506c3d.webp) | A live result exposes a direct X link, transparent scoring detail, and human-only Approve/Reject controls. |
 
-> **Human-control boundary.** Alpha X indexes and ranks public posts for a person to review. It never writes to X, initiates outreach, posts, replies, follows accounts, or sends direct messages.
+> **Human-control boundary.** Faro indexes and ranks public posts for a person to review. It never writes to X, initiates outreach, posts, replies, follows accounts, or sends direct messages.

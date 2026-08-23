@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rankOpportunity } from "./ranking";
 
-describe("Alpha X personalized relevance scoring", () => {
+describe("Faro personalized relevance scoring", () => {
   const profile = {
     includeTerms: ["custom AI workflows", "AI workflows"],
     excludeTerms: ["giveaway", "job"],
