@@ -55,4 +55,4 @@
 - [x] Reduce per-finding text density while preserving task, urgency, confidence, timestamp, direct X link, and human approval/rejection controls.
 - [x] Show the full timestamp in the focused opportunity detail panel.
 - [x] Always surface urgency when a `Timing signal` is detected, without restoring text-heavy score explanations.
-- [ ] Verify the visual-first Faro experience on desktop and mobile, run quality checks, and create a final checkpoint.
+- [x] Verify the visual-first Faro experience on desktop and mobile, run quality checks, and create a final checkpoint.
