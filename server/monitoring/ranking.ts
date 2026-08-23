@@ -12,6 +12,9 @@ export type RankedPostInput = {
 export type ScoreComponent = { label: string; points: number };
 
 const HELP_PATTERNS = ["looking for", "need help", "recommend", "who can", "hire", "anyone know", "seeking", "need someone", "can anyone", "any suggestions"];
+const TASK_REQUEST_PATTERNS = ["need someone to", "looking for someone", "looking to hire", "need help with", "can someone help", "can someone build", "recommend someone", "anyone who can", "need an expert", "need a freelancer"];
+const SERVICE_TASK_PATTERNS = ["automation", "workflow", "integration", "ai agent", "agent", "ai video", "ugc video", "video", "content", "zapier", "n8n", "dashboard", "implementation", "setup", "build"];
+const URGENCY_PATTERNS = ["asap", "urgent", "this week", "today", "tomorrow", "by friday", "right away", "quickly"];
 const DECISION_PATTERNS = ["our team", "my team", "our business", "my business", "our company", "client", "clients", "founder", "agency", "small business", "budget", "project", "for us"];
 const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my"];
 const GENERIC_GOAL_WORDS = new Set(["people", "asking", "help", "building", "build", "looking", "someone", "with", "from", "that", "this", "their", "about", "small", "business", "public", "posts", "for", "and", "the", "a", "an", "to", "of", "in"]);
@@ -55,14 +58,18 @@ export function rankOpportunity(input: RankedPostInput) {
   else if (coveredGoalTokens >= 1) components.push({ label: "Partial desired outcome context", points: 5 });
 
   const explicitAsk = hasAny(body, HELP_PATTERNS);
-  if (explicitAsk) components.push({ label: "Explicit help-seeking language", points: 24 });
+  const directTaskRequest = hasAny(body, TASK_REQUEST_PATTERNS);
+  if (explicitAsk || directTaskRequest) components.push({ label: "Explicit help-seeking language", points: directTaskRequest ? 30 : 22 });
+
+  if (hasAny(body, SERVICE_TASK_PATTERNS)) components.push({ label: "Defined task or service need", points: 10 });
+  if (hasAny(body, URGENCY_PATTERNS)) components.push({ label: "Timing signal", points: 6 });
 
   if (hasAny(body, DECISION_PATTERNS)) components.push({ label: "Buyer or decision-maker context", points: 8 });
 
   const hasSpecificity = /\d|\?|\bfor (my|our|a)\b|\bworkflow\b|\bproject\b/.test(body);
   if (hasSpecificity) components.push({ label: "Specific usable context", points: 6 });
 
-  if (hasAny(body, PROMOTIONAL_PATTERNS) && !explicitAsk) components.push({ label: "Promotional rather than request-led", points: -20 });
+  if (hasAny(body, PROMOTIONAL_PATTERNS) && !explicitAsk) components.push({ label: "Promotional rather than request-led", points: -30 });
   if (body.trim().length < 55 || /^https?:\/\//.test(body.trim())) components.push({ label: "Low-context post", points: -12 });
 
   const ageHours = Math.max(0, (Date.now() - input.postedAt.getTime()) / 3_600_000);
@@ -86,9 +93,10 @@ export function deterministicIntent(body: string, includeTerms: string[], goal =
   const explicitAsk = hasAny(normalized, HELP_PATTERNS);
   const desiredOutcomeTokens = goalCoverage(normalized, goal);
   const promotional = hasAny(normalized, PROMOTIONAL_PATTERNS);
-  const isActive = explicitAsk && matchedTerms.length > 0;
+  const directTaskRequest = hasAny(normalized, TASK_REQUEST_PATTERNS);
+  const isActive = (explicitAsk || directTaskRequest) && matchedTerms.length > 0;
   const isRelevant = matchedTerms.length > 0 || desiredOutcomeTokens >= 2;
-  const confidence = Math.min(0.94, 0.16 + matchedTerms.length * 0.15 + (explicitAsk ? 0.3 : 0) + Math.min(0.15, desiredOutcomeTokens * 0.05) - (promotional && !explicitAsk ? 0.08 : 0));
+  const confidence = Math.min(0.94, 0.16 + matchedTerms.length * 0.15 + ((explicitAsk || directTaskRequest) ? 0.3 : 0) + Math.min(0.15, desiredOutcomeTokens * 0.05) - (promotional && !explicitAsk ? 0.08 : 0));
   return {
     label: isActive ? "Active help-seeking" : isRelevant ? "Potentially relevant" : "Low-intent mention",
     confidence: Math.max(0.05, Math.round(confidence * 100) / 100),

@@ -34,4 +34,20 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.score).toBeLessThan(45);
     expect(result.components.map(component => component.label)).toContain("Promotional rather than request-led");
   });
+
+  it("brings an urgent, explicitly scoped video task to the top of the queue", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI video", "UGC video", "automation"],
+      excludeTerms: ["giveaway", "job"],
+      goal: "People seeking help producing practical AI product videos and automation",
+      body: "Need someone to build an AI UGC video for our product launch this week. We have the brief and budget ready.",
+      postedAt: new Date(),
+      engagement: { reply_count: 1 },
+      aiConfidence: 0.92,
+    });
+
+    expect(result.score).toBeGreaterThanOrEqual(80);
+    expect(result.components.map(component => component.label)).toContain("Defined task or service need");
+    expect(result.components.map(component => component.label)).toContain("Timing signal");
+  });
 });

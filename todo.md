@@ -48,3 +48,11 @@
 - [x] Simplify dashboard visual density, typography, and navigation so the Faro signal-review workflow is easier to scan.
 - [x] Streamline finding selection, filtering, and detail review to reduce cognitive load while retaining score evidence and human-only controls.
 - [x] Verify the Faro identity and clean workspace on desktop and mobile, then create a final checkpoint.
+- [x] Add plug-and-play task-intent presets for custom AI workflows, automation, AI video, and related help-seeking opportunities.
+- [x] Strengthen real-time high-intent ranking so explicit task requests and buyer context appear ahead of generic mentions or promotion.
+- [x] Make live-source state and refresh behavior visible through minimal icons, compact status indicators, and direct controls.
+- [x] Replace text-heavy dashboard sections with a light, visual-first command surface built from icon-led controls, concise cards, and an opportunity feed.
+- [x] Reduce per-finding text density while preserving task, urgency, confidence, timestamp, direct X link, and human approval/rejection controls.
+- [x] Show the full timestamp in the focused opportunity detail panel.
+- [x] Always surface urgency when a `Timing signal` is detected, without restoring text-heavy score explanations.
+- [ ] Verify the visual-first Faro experience on desktop and mobile, run quality checks, and create a final checkpoint.
