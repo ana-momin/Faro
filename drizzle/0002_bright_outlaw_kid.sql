@@ -1,0 +1,1 @@
+ALTER TABLE `monitor_syncs` MODIFY COLUMN `source` enum('filtered_stream','recent_search','twitterapi_io','demo') NOT NULL DEFAULT 'recent_search';

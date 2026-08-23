@@ -16,6 +16,11 @@ export type RecentSearchResult = {
   nextToken?: string;
 };
 
+export type PublicSearchResult = RecentSearchResult & {
+  source: "recent_search" | "twitterapi_io";
+  latencyLabel: string;
+};
+
 export function dedupePosts(posts: XApiPost[]) {
   const seen = new Set<string>();
   return posts.filter(post => {
@@ -91,6 +96,81 @@ export async function fetchRecentSearch(query: string, cursor?: { newestId?: str
     newestId: payload.meta?.newest_id,
     nextToken: payload.meta?.next_token,
   } satisfies RecentSearchResult;
+}
+
+type TwitterApiIoTweet = {
+  id?: string;
+  tweetId?: string;
+  text?: string;
+  fullText?: string;
+  createdAt?: string;
+  created_at?: string;
+  lang?: string;
+  likeCount?: number;
+  replyCount?: number;
+  retweetCount?: number;
+  quoteCount?: number;
+  author?: { id?: string; userName?: string; username?: string; name?: string };
+};
+
+function twitterApiIoKey() {
+  return process.env.TWITTERAPI_IO_KEY;
+}
+
+function twitterApiIoQuery(query: string) {
+  return query.replaceAll("-is:retweet", "-filter:retweets");
+}
+
+export async function fetchTwitterApiIoSearch(query: string, cursor?: string | null): Promise<PublicSearchResult> {
+  const apiKey = twitterApiIoKey();
+  if (!apiKey) throw new XApiError(401, "TwitterAPI.io key is not configured.");
+  const params = new URLSearchParams({ query: twitterApiIoQuery(query), queryType: "Latest", cursor: cursor ?? "" });
+  const response = await fetch(`https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`, {
+    headers: { "X-API-Key": apiKey },
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new XApiError(response.status, `TwitterAPI.io: ${body.slice(0, 600) || `HTTP ${response.status}.`}`);
+  }
+  const payload = (await response.json()) as { tweets?: TwitterApiIoTweet[]; next_cursor?: string; nextCursor?: string };
+  const users: XApiUser[] = [];
+  const posts: XApiPost[] = [];
+  for (const tweet of payload.tweets ?? []) {
+    const id = tweet.id ?? tweet.tweetId;
+    const text = tweet.text ?? tweet.fullText;
+    if (!id || !text) continue;
+    const authorId = tweet.author?.id;
+    if (authorId) users.push({ id: authorId, username: tweet.author?.userName ?? tweet.author?.username, name: tweet.author?.name });
+    posts.push({
+      id,
+      text,
+      author_id: authorId,
+      created_at: tweet.createdAt ?? tweet.created_at,
+      lang: tweet.lang,
+      public_metrics: {
+        like_count: Number(tweet.likeCount ?? 0),
+        reply_count: Number(tweet.replyCount ?? 0),
+        repost_count: Number(tweet.retweetCount ?? 0),
+        quote_count: Number(tweet.quoteCount ?? 0),
+      },
+    });
+  }
+  return {
+    posts,
+    users,
+    newestId: posts[0]?.id,
+    nextToken: payload.next_cursor ?? payload.nextCursor,
+    source: "twitterapi_io",
+    latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
+  };
+}
+
+export async function fetchPublicPosts(query: string, cursor?: { newestId?: string | null; nextToken?: string | null }): Promise<PublicSearchResult> {
+  if (twitterApiIoKey()) {
+    return fetchTwitterApiIoSearch(query, cursor?.nextToken);
+  }
+  const result = await fetchRecentSearch(query, cursor);
+  return { ...result, ...recentSearchStatus(filteredStreamRequested()) };
 }
 
 export async function upsertFilteredStreamRule(value: string, tag: string) {

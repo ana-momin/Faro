@@ -43,18 +43,33 @@ export function validateXQuery(query: string): QueryValidation {
 }
 
 export function deterministicSuggestion(goal: string) {
-  const usefulWords = goal
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, " ")
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "want"].includes(word));
-  const includeTerms = uniqueTerms(usefulWords).slice(0, 5);
+  const normalizedGoal = goal.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+  const phrasePatterns = [
+    /custom ai workflows?/,
+    /ai workflows?/,
+    /ai-generated ugc videos?/,
+    /ugc videos?/,
+    /video creation/,
+    /workflow automation/,
+    /automation/,
+  ];
+  const extractedPhrases = phrasePatterns
+    .filter(pattern => pattern.test(normalizedGoal))
+    .map(pattern => normalizedGoal.match(pattern)?.[0] ?? "");
+  const usefulWords = normalizedGoal
+    .split(" ")
+    .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
+  const includeTerms = uniqueTerms(extractedPhrases.length ? extractedPhrases : usefulWords).slice(0, 5);
   const actionTerms = ["looking for", "need help", "recommend", "hire"];
+  const topicClause = includeTerms.length > 1
+    ? `(${includeTerms.map(quoteTerm).join(" OR ")})`
+    : quoteTerm(includeTerms[0] ?? "automation");
+  const intentClause = `(${actionTerms.map(quoteTerm).join(" OR ")})`;
   return {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],
     excludeTerms: ["job", "giveaway"],
     categories: ["service request"],
-    xQuery: buildXQuery([...includeTerms, ...actionTerms], ["job", "giveaway"]),
+    xQuery: `${topicClause} ${intentClause} -job -giveaway -is:retweet`,
     rationale: "Deterministic keyword extraction was used because the AI suggestion service was unavailable.",
     model: "deterministic fallback",
     fallback: true,

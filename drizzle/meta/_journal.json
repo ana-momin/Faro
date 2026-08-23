@@ -15,6 +15,13 @@
       "when": 1787510827253,
       "tag": "0001_quiet_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787512321174,
+      "tag": "0002_bright_outlaw_kid",
+      "breakpoints": true
     }
   ]
 }

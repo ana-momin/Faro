@@ -26,6 +26,8 @@ describe("AI query suggestion fallback", () => {
       expect(suggestion.fallback).toBe(true);
       expect(suggestion.model).toBe("deterministic fallback");
       expect(suggestion.xQuery).toContain("-is:retweet");
+      expect(suggestion.includeTerms).toContain("custom ai workflow");
+      expect(suggestion.xQuery).toContain('("custom ai workflow" OR "ai workflow") ("looking for" OR "need help" OR recommend OR hire)');
     } finally {
       if (previous === undefined) delete process.env.SIGNALFORGE_DISABLE_LLM;
       else process.env.SIGNALFORGE_DISABLE_LLM = previous;
@@ -73,7 +75,7 @@ describe("ingestion resilience", () => {
 
   it("reports payment and rate-limit states without misrepresenting the source", () => {
     expect(classifySyncFailure(new XApiError(402, "payment required"))).toEqual({ status: "payment_required", label: "X API credit required" });
-    expect(classifySyncFailure(new XApiError(429, "rate limited"))).toEqual({ status: "rate_limited", label: "X rate limit active" });
+    expect(classifySyncFailure(new XApiError(429, "rate limited"))).toEqual({ status: "rate_limited", label: "X API rate limit active" });
     expect(recentSearchStatus(true)).toEqual({ source: "recent_search", latencyLabel: "Recent Search fallback; stream rule configured" });
   });
 });

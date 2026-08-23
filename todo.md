@@ -16,9 +16,20 @@
 - [x] Run type checks and tests, verify visual states on desktop and mobile, and capture final demo evidence.
 - [x] Capture authenticated desktop and mobile demo evidence showing saved criteria, ranked posts, and human-review detail actions, including the approved sample and payment-required X source state.
 - [x] Verify empty, demo-feed, and X payment-required or rate-limited sync states through the live interface.
-- [ ] Create a final checkpoint for publishing after all completed items are marked done.
+- [x] Create a final checkpoint for publishing after all completed items are marked done.
 - [x] Implement persistent Filtered Stream consumption for enabled reserved-hosting environments and accurately report stream source state.
 - [x] Reuse stored Recent Search pagination cursors, add bounded 429 retry timing, and accurately label fallback latency.
 - [x] Add deterministic query-suggestion fallback coverage for disabled and unavailable LLM calls.
 - [x] Add a mocked unavailable-model test proving `suggestCriteria` falls back deterministically when the model call throws.
 - [x] Add an integration-style sync test proving mocked X payment/rate-limit failures persist the correct sync health status.
+- [x] Add an in-app natural-language-to-results demo flow with clearly identified outcome data and direct X links when live data is available.
+- [x] Surface a submission-readiness checklist that distinguishes live X results from labeled demonstration data and explains the manual-review boundary.
+- [x] Obtain and validate an X API account or approved alternative data source that can return real public X posts under the account’s active entitlement.
+- [x] Capture a required demo artifact showing a natural-language query and resulting post feed, then update the setup guide with submission steps.
+- [ ] Re-run quality checks and create a revised final checkpoint after the submission-brief changes.
+- [x] Preserve and display alternative-provider credit or rate-limit failures instead of masking them with a second official-X fallback attempt.
+- [x] Ensure a malformed or unclassifiable individual provider post cannot prevent successful rows and the live source-health record from being persisted.
+- [x] Bound LLM suggestion latency so a slow model call resolves to the deterministic query fallback rather than leaving the natural-language workflow in a pending state.
+- [x] Preserve high-signal multi-word concepts such as “custom AI workflow” in deterministic natural-language query fallbacks.
+- [x] Capture and save revised demo evidence showing a natural-language input, generated rule, successful live sync, labeled live versus demo rows, direct X link, and manual review controls.
+- [x] Link the saved revised demo artifact from the submission walkthrough for reproducible reviewer evidence.

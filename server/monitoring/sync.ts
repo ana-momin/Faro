@@ -1,11 +1,12 @@
 import * as db from "../db";
 import { persistNormalizedPost } from "./ingest";
-import { XApiError, consumeFilteredStream, dedupePosts, fetchRecentSearch, filteredStreamRequested, filteredStreamWorkerEnabled, recentSearchStatus, upsertFilteredStreamRule } from "./xClient";
+import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule } from "./xClient";
 
 export function classifySyncFailure(error: unknown) {
   if (error instanceof XApiError) {
-    if (error.status === 402) return { status: "payment_required" as const, label: "X API credit required" };
-    if (error.status === 429) return { status: "rate_limited" as const, label: "X rate limit active" };
+    const provider = error.message.startsWith("TwitterAPI.io:") ? "TwitterAPI.io" : "X API";
+    if (error.status === 402) return { status: "payment_required" as const, label: `${provider} credit required` };
+    if (error.status === 429) return { status: "rate_limited" as const, label: `${provider} rate limit active` };
   }
   return { status: "error" as const, label: "Sync needs attention" };
 }
@@ -20,28 +21,27 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
       await upsertFilteredStreamRule(monitor.xQuery, `signalforge-${monitor.id}`);
     }
     const continuingPage = Boolean(previous?.nextToken);
-    const result = await fetchRecentSearch(monitor.xQuery, continuingPage
+    const result = await fetchPublicPosts(monitor.xQuery, continuingPage
       ? { nextToken: previous?.nextToken }
       : { newestId: previous?.newestPostId },
     );
     const users = new Map(result.users.map(user => [user.id, user]));
-    for (const xPost of dedupePosts(result.posts)) {
-      await persistNormalizedPost(monitor, xPost, users);
-    }
-    const source = recentSearchStatus(filteredStreamRequested());
+    const settled = await Promise.allSettled(dedupePosts(result.posts).map(xPost => persistNormalizedPost(monitor, xPost, users)));
+    const rejected = settled.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
+    const inserted = settled.length - rejected.length;
     await db.recordSync(monitor.id, {
-      source: source.source,
-      status: "healthy",
-      latencyLabel: source.latencyLabel,
+      source: result.source,
+      status: rejected.length ? "degraded" : "healthy",
+      latencyLabel: rejected.length ? `${result.latencyLabel} · ${rejected.length} post${rejected.length === 1 ? "" : "s"} skipped` : result.latencyLabel,
       newestPostId: result.newestId ?? previous?.newestPostId ?? null,
       nextToken: result.nextToken ?? null,
       lastSyncedAt: new Date(),
       lastSuccessAt: new Date(),
-      lastError: null,
+      lastError: rejected.length ? rejected.map(outcome => outcome.reason instanceof Error ? outcome.reason.message : "Post normalization failed").join("; ").slice(0, 1000) : null,
       lastDurationMs: Date.now() - start,
       retryCount: 0,
     });
-    return { inserted: result.posts.length, source: "recent_search" as const };
+    return { inserted, source: result.source };
   } catch (error) {
     const state = classifySyncFailure(error);
     await db.recordSync(monitor.id, {

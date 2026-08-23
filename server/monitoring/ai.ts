@@ -14,6 +14,25 @@ type SuggestedCriteria = {
   fallback: boolean;
 };
 
+function modelTimeoutMs() {
+  const configured = Number(process.env.SIGNALFORGE_LLM_TIMEOUT_MS ?? 12_000);
+  return Number.isFinite(configured) ? Math.max(250, Math.min(configured, 30_000)) : 12_000;
+}
+
+async function withModelTimeout<T>(operation: Promise<T>): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("Language model response timed out.")), modelTimeoutMs());
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 function asTerms(value: unknown, limit: number) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string").map(item => item.trim()).filter(Boolean).slice(0, limit)
@@ -23,7 +42,7 @@ function asTerms(value: unknown, limit: number) {
 export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> {
   if (process.env.SIGNALFORGE_DISABLE_LLM === "true") return deterministicSuggestion(goal);
   try {
-    const response = await invokeLLM({
+    const response = await withModelTimeout(invokeLLM({
       model: DISCLOSED_MODEL,
       messages: [
         {
@@ -51,7 +70,7 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
           },
         },
       },
-    });
+    }));
     const content = response.choices[0]?.message.content;
     const result = typeof content === "string" ? JSON.parse(content) : null;
     const xQuery = typeof result?.xQuery === "string" ? result.xQuery : "";
@@ -73,7 +92,7 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
 export async function classifyPostIntent(body: string, includeTerms: string[]) {
   if (process.env.SIGNALFORGE_DISABLE_LLM === "true") return deterministicIntent(body, includeTerms);
   try {
-    const response = await invokeLLM({
+    const response = await withModelTimeout(invokeLLM({
       model: DISCLOSED_MODEL,
       messages: [
         {
@@ -99,7 +118,7 @@ export async function classifyPostIntent(body: string, includeTerms: string[]) {
           },
         },
       },
-    });
+    }));
     const content = response.choices[0]?.message.content;
     const result = typeof content === "string" ? JSON.parse(content) : null;
     if (!result || typeof result.confidence !== "number" || typeof result.label !== "string") return deterministicIntent(body, includeTerms);

@@ -48,7 +48,7 @@ export const monitorSyncs = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     monitorId: int("monitorId").notNull(),
-    source: mysqlEnum("source", ["filtered_stream", "recent_search", "demo"]).default("recent_search").notNull(),
+    source: mysqlEnum("source", ["filtered_stream", "recent_search", "twitterapi_io", "demo"]).default("recent_search").notNull(),
     status: mysqlEnum("status", ["idle", "healthy", "degraded", "rate_limited", "payment_required", "error"]).default("idle").notNull(),
     latencyLabel: varchar("latencyLabel", { length: 80 }).default("Not synced").notNull(),
     newestPostId: varchar("newestPostId", { length: 64 }),
