@@ -47,4 +47,4 @@
 - [x] Update the favicon and managed application title to match the simplified Faro identity.
 - [x] Simplify dashboard visual density, typography, and navigation so the Faro signal-review workflow is easier to scan.
 - [x] Streamline finding selection, filtering, and detail review to reduce cognitive load while retaining score evidence and human-only controls.
-- [ ] Verify the Faro identity and clean workspace on desktop and mobile, then create a final checkpoint.
+- [x] Verify the Faro identity and clean workspace on desktop and mobile, then create a final checkpoint.
