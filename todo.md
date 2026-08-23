@@ -1,0 +1,24 @@
+# Project TODO
+
+- [x] Define database tables for monitoring criteria, normalized posts, review decisions, ingestion state, and durable sync health.
+- [x] Add server-side configuration for X API credentials, Filtered Stream capability, Recent Search fallback, and rate-limit-safe requests.
+- [x] Implement validated keyword and natural-language monitoring criteria with include/exclude terms and X query-rule suggestions.
+- [x] Implement public post normalization, deduplication, persistence, direct X links, author metadata, timestamps, engagement, and matched-rule attribution.
+- [x] Implement idempotent cursor-based ingestion, transient retry behavior, source/latency reporting, and last-sync health status.
+- [x] Add built-in LLM structured query suggestions and nuanced post-intent classification using a disclosed server-side model with deterministic fallback.
+- [x] Add transparent rule-based opportunity scoring with an explanation of each score component.
+- [x] Build a responsive authenticated dashboard with saved searches, live-feed states, filters, post details, approve/reject feedback, and CSV export.
+- [x] Apply the minimalist Scandinavian visual direction with a pale cool-gray canvas, bold black type, thin hierarchy subtitles, and restrained pastel geometric accents.
+- [x] Ensure the product never automates outreach, posting, or messaging and labels all actions as human review only.
+- [x] Add clearly labeled demo criteria and sample data without fabricating reviews, ratings, testimonials, or outreach activity.
+- [x] Write unit and integration tests for query validation, deduplication, ranking, query suggestion fallback, and X API fallback behavior.
+- [x] Write setup and usage documentation, including credential configuration, model disclosure, source/latency behavior, and manual review boundaries.
+- [x] Run type checks and tests, verify visual states on desktop and mobile, and capture final demo evidence.
+- [x] Capture authenticated desktop and mobile demo evidence showing saved criteria, ranked posts, and human-review detail actions, including the approved sample and payment-required X source state.
+- [x] Verify empty, demo-feed, and X payment-required or rate-limited sync states through the live interface.
+- [ ] Create a final checkpoint for publishing after all completed items are marked done.
+- [x] Implement persistent Filtered Stream consumption for enabled reserved-hosting environments and accurately report stream source state.
+- [x] Reuse stored Recent Search pagination cursors, add bounded 429 retry timing, and accurately label fallback latency.
+- [x] Add deterministic query-suggestion fallback coverage for disabled and unavailable LLM calls.
+- [x] Add a mocked unavailable-model test proving `suggestCriteria` falls back deterministically when the model call throws.
+- [x] Add an integration-style sync test proving mocked X payment/rate-limit failures persist the correct sync health status.

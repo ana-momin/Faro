@@ -7,7 +7,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { sdk } from "./sdk";
 import { serveStatic, setupVite } from "./vite";
+import { startFilteredStreamWorker, syncAllActiveMonitors } from "../monitoring/sync";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +38,19 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.post("/api/scheduled/ingest", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
+      const result = await syncAllActiveMonitors();
+      return res.json({ ok: true, ...result });
+    } catch (error) {
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : "Unknown scheduled ingestion error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",
@@ -60,6 +75,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    startFilteredStreamWorker().catch(error => console.error("[SignalForge] Filtered Stream worker stopped:", error));
   });
 }
 

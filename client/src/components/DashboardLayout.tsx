@@ -21,15 +21,14 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { Activity, LogOut, PanelLeft, ShieldCheck } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: Activity, label: "Listening workspace", path: "/" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -157,7 +156,7 @@ function DashboardLayoutContent({
           className="border-r-0"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center">
+          <SidebarHeader className="h-20 justify-center">
             <div className="flex items-center gap-3 px-2 transition-all w-full">
               <button
                 onClick={toggleSidebar}
@@ -167,16 +166,21 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#88b9d8] bg-[#e4f2fb]">
+                    <span className="h-2 w-2 rounded-full bg-[#1c435c]" />
+                    <span className="absolute inset-1 rounded-full border border-[#8abfe2]" />
                   </span>
+                  <span className="font-extrabold tracking-[-0.05em] truncate">SIGNALFORGE</span>
                 </div>
               ) : null}
             </div>
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
+            <div className="px-4 pt-5 pb-2 group-data-[collapsible=icon]:hidden">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Human review</p>
+            </div>
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
                 const isActive = location === item.path;
@@ -200,6 +204,10 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3">
+            <div className="mb-3 flex items-center gap-2 rounded-xl bg-[#dcecf9]/70 px-3 py-2 text-[11px] text-[#29435d] group-data-[collapsible=icon]:justify-center">
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              <span className="group-data-[collapsible=icon]:hidden">No outreach automation</span>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -255,7 +263,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </SidebarInset>
     </>
   );

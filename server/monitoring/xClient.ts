@@ -1,0 +1,162 @@
+export type XApiPost = {
+  id: string;
+  text: string;
+  author_id?: string;
+  created_at?: string;
+  lang?: string;
+  public_metrics?: Record<string, number>;
+};
+
+export type XApiUser = { id: string; username?: string; name?: string };
+
+export type RecentSearchResult = {
+  posts: XApiPost[];
+  users: XApiUser[];
+  newestId?: string;
+  nextToken?: string;
+};
+
+export function dedupePosts(posts: XApiPost[]) {
+  const seen = new Set<string>();
+  return posts.filter(post => {
+    if (seen.has(post.id)) return false;
+    seen.add(post.id);
+    return true;
+  });
+}
+
+export function recentSearchStatus(streamEnabled: boolean) {
+  return {
+    source: "recent_search" as const,
+    latencyLabel: streamEnabled ? "Recent Search fallback; stream rule configured" : "Recent Search fallback",
+  };
+}
+
+export class XApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "XApiError";
+  }
+}
+
+const X_API_BASE = "https://api.x.com/2";
+
+function bearerToken() {
+  const token = process.env.X_API_BEARER_TOKEN;
+  if (!token) throw new XApiError(401, "X API token is not configured.");
+  return token;
+}
+
+async function xRequest(path: string, init: RequestInit = {}, attempt = 0): Promise<Response> {
+  const response = await fetch(`${X_API_BASE}${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${bearerToken()}`, ...(init.headers ?? {}) },
+  });
+
+  const transient = response.status === 429 || response.status >= 500;
+  if (transient && attempt < 2) {
+    const retryAfterHeader = Number(response.headers.get("retry-after") || 0);
+    const retryAfterMs = retryAfterHeader > 0 ? Math.min(retryAfterHeader * 1000, 4_000) : 600 * (attempt + 1);
+    await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+    return xRequest(path, init, attempt + 1);
+  }
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new XApiError(response.status, body.slice(0, 600) || `X API returned HTTP ${response.status}.`);
+  }
+  return response;
+}
+
+export async function fetchRecentSearch(query: string, cursor?: { newestId?: string | null; nextToken?: string | null }) {
+  const params = new URLSearchParams({
+    query,
+    max_results: "25",
+    expansions: "author_id",
+    "tweet.fields": "author_id,created_at,lang,public_metrics",
+    "user.fields": "id,name,username",
+  });
+  if (cursor?.newestId) params.set("since_id", cursor.newestId);
+  if (cursor?.nextToken) params.set("next_token", cursor.nextToken);
+
+  const response = await xRequest(`/tweets/search/recent?${params.toString()}`);
+  const payload = (await response.json()) as {
+    data?: XApiPost[];
+    includes?: { users?: XApiUser[] };
+    meta?: { newest_id?: string; next_token?: string };
+  };
+  return {
+    posts: payload.data ?? [],
+    users: payload.includes?.users ?? [],
+    newestId: payload.meta?.newest_id,
+    nextToken: payload.meta?.next_token,
+  } satisfies RecentSearchResult;
+}
+
+export async function upsertFilteredStreamRule(value: string, tag: string) {
+  const current = await xRequest("/tweets/search/stream/rules");
+  const existing = (await current.json()) as { data?: Array<{ id: string; value: string; tag?: string }> };
+  if (existing.data?.some(rule => rule.value === value)) return { configured: true, created: false };
+
+  await xRequest("/tweets/search/stream/rules", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ add: [{ value, tag }] }),
+  });
+  return { configured: true, created: true };
+}
+
+/**
+ * Reserved-hosting integration point. A persistent worker can call this and
+ * write each streamed post through the same normalizer used by Recent Search.
+ * It is intentionally never started on autoscale hosting.
+ */
+export async function openFilteredStream(signal: AbortSignal) {
+  return xRequest(
+    "/tweets/search/stream?expansions=author_id&tweet.fields=author_id,created_at,lang,public_metrics&user.fields=id,name,username",
+    { signal },
+  );
+}
+
+export function filteredStreamRequested() {
+  return process.env.X_FILTERED_STREAM_ENABLED === "true";
+}
+
+export function filteredStreamWorkerEnabled() {
+  return filteredStreamRequested() && process.env.SIGNALFORGE_PERSISTENT_WORKER === "true";
+}
+
+export type FilteredStreamEvent = {
+  data?: XApiPost;
+  includes?: { users?: XApiUser[] };
+  matching_rules?: Array<{ id?: string; tag?: string }>;
+};
+
+export async function consumeFilteredStream(
+  signal: AbortSignal,
+  onEvent: (event: FilteredStreamEvent) => Promise<void>,
+) {
+  const response = await openFilteredStream(signal);
+  if (!response.body) throw new Error("Filtered Stream returned no response body.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (!signal.aborted) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const payload = line.trim();
+      if (!payload || payload.startsWith(":")) continue;
+      try {
+        await onEvent(JSON.parse(payload) as FilteredStreamEvent);
+      } catch (error) {
+        if (error instanceof SyntaxError) continue;
+        throw error;
+      }
+    }
+  }
+}
