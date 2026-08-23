@@ -14,6 +14,13 @@ type SuggestedCriteria = {
   fallback: boolean;
 };
 
+export type MonitorIntentContext = {
+  goal: string;
+  includeTerms: string[];
+  excludeTerms?: string[];
+  categories?: string[];
+};
+
 function modelTimeoutMs() {
   const configured = Number(process.env.SIGNALFORGE_LLM_TIMEOUT_MS ?? 12_000);
   return Number.isFinite(configured) ? Math.max(250, Math.min(configured, 30_000)) : 12_000;
@@ -47,7 +54,7 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
       messages: [
         {
           role: "system",
-          content: "You turn a social-listening goal into a compact, safe X search suggestion. Target only public posts. Do not infer personal traits. Do not propose outreach, posting, or messaging.",
+          content: "You turn a social-listening goal into a compact, safe X search suggestion. Target only public posts. Prioritize the expressed need, desired outcome, and specific high-signal phrases. Do not infer personal traits. Do not propose outreach, posting, or messaging.",
         },
         { role: "user", content: `Listening goal: ${goal}` },
       ],
@@ -89,17 +96,18 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
   }
 }
 
-export async function classifyPostIntent(body: string, includeTerms: string[]) {
-  if (process.env.SIGNALFORGE_DISABLE_LLM === "true") return deterministicIntent(body, includeTerms);
+export async function classifyPostIntent(body: string, monitor: MonitorIntentContext) {
+  const fallback = () => deterministicIntent(body, monitor.includeTerms, monitor.goal);
+  if (process.env.SIGNALFORGE_DISABLE_LLM === "true") return fallback();
   try {
     const response = await withModelTimeout(invokeLLM({
       model: DISCLOSED_MODEL,
       messages: [
         {
           role: "system",
-          content: "Classify only the expressed intent in this public social post. Do not infer sensitive traits or identity. This is for human review only; never recommend autonomous outreach.",
+          content: "Classify only the expressed intent in this public social post relative to the supplied listening goal. Prioritize concrete need, topic fit, buyer or decision-maker context, and useful specificity. Penalize generic promotion or low-context mentions. Do not infer sensitive traits or identity. This is for human review only; never recommend autonomous outreach.",
         },
-        { role: "user", content: `Monitored terms: ${includeTerms.join(", ")}\n\nPost: ${body}` },
+        { role: "user", content: `Listening goal: ${monitor.goal}\nMonitored terms: ${monitor.includeTerms.join(", ")}\nExcluded terms: ${(monitor.excludeTerms ?? []).join(", ") || "none"}\nCategories: ${(monitor.categories ?? []).join(", ") || "none"}\n\nPost: ${body}` },
       ],
       response_format: {
         type: "json_schema",
@@ -121,7 +129,7 @@ export async function classifyPostIntent(body: string, includeTerms: string[]) {
     }));
     const content = response.choices[0]?.message.content;
     const result = typeof content === "string" ? JSON.parse(content) : null;
-    if (!result || typeof result.confidence !== "number" || typeof result.label !== "string") return deterministicIntent(body, includeTerms);
+    if (!result || typeof result.confidence !== "number" || typeof result.label !== "string") return fallback();
     return {
       label: result.label,
       confidence: Math.max(0, Math.min(1, result.confidence)),
@@ -130,6 +138,6 @@ export async function classifyPostIntent(body: string, includeTerms: string[]) {
       fallback: false,
     };
   } catch {
-    return deterministicIntent(body, includeTerms);
+    return fallback();
   }
 }

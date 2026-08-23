@@ -33,3 +33,13 @@
 - [x] Preserve high-signal multi-word concepts such as “custom AI workflow” in deterministic natural-language query fallbacks.
 - [x] Capture and save revised demo evidence showing a natural-language input, generated rule, successful live sync, labeled live versus demo rows, direct X link, and manual review controls.
 - [x] Link the saved revised demo artifact from the submission walkthrough for reproducible reviewer evidence.
+- [x] Rename all user-facing product identity from SignalForge to Alpha X, including metadata and documentation.
+- [x] Create and apply a minimal original Alpha X logo that works in the dashboard and browser chrome.
+- [x] Remove the CSV export control and its frontend export workflow from the review workspace.
+- [x] Improve personalized findings by deriving a per-monitor relevance profile from the user’s intent, include terms, exclusions, and stated outcome.
+- [x] Upgrade ranking to prioritize topic fit, expressed need, buyer or decision-maker signals, specificity, freshness, and usable post context while penalizing promotional, generic, or low-context posts.
+- [x] Improve ranking explanations and review filters so people can immediately see why each finding matches their monitoring goal.
+- [x] Refine Alpha X visual hierarchy, review states, and mobile interaction design for a more focused and polished workflow.
+- [x] Add and run unit tests for personalized relevance scoring and update setup documentation to describe the new ranking behavior.
+- [x] Re-run quality checks, verify desktop and mobile UI, and create a final Alpha X checkpoint.
+- [x] Create and wire a minimal Alpha X favicon so the new identity appears in browser chrome as well as the dashboard.

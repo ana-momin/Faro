@@ -4,6 +4,7 @@ import * as db from "../db";
 import { suggestCriteria } from "../monitoring/ai";
 import { seedDemo } from "../monitoring/demo";
 import { validateXQuery } from "../monitoring/query";
+import { rankOpportunity } from "../monitoring/ranking";
 import { syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
 
@@ -17,8 +18,23 @@ export const monitoringRouter = router({
         db.listMonitorsWithSync(ctx.user.id),
         db.listPostsForUser(ctx.user.id, input?.monitorId),
       ]);
-      const pending = posts.filter(({ post }) => post.reviewStatus === "pending").length;
-      return { monitors, posts, summary: { total: posts.length, pending, approved: posts.filter(({ post }) => post.reviewStatus === "approved").length } };
+      const rescoredPosts = posts
+        .map(({ post, monitorName, monitor }) => {
+          const ranking = rankOpportunity({
+            body: post.body,
+            postedAt: new Date(post.postedAt),
+            engagement: post.engagement,
+            includeTerms: monitor.includeTerms,
+            excludeTerms: monitor.excludeTerms,
+            goal: monitor.goal,
+            categories: monitor.categories,
+            aiConfidence: post.aiIntent.confidence,
+          });
+          return { post: { ...post, ruleScore: ranking.score, scoreExplanation: ranking.components }, monitorName, monitor };
+        })
+        .sort((left, right) => right.post.ruleScore - left.post.ruleScore || right.post.postedAt.getTime() - left.post.postedAt.getTime());
+      const pending = rescoredPosts.filter(({ post }) => post.reviewStatus === "pending").length;
+      return { monitors, posts: rescoredPosts, summary: { total: rescoredPosts.length, pending, approved: rescoredPosts.filter(({ post }) => post.reviewStatus === "approved").length } };
     }),
 
   suggest: protectedProcedure
@@ -74,6 +90,4 @@ export const monitoringRouter = router({
     }),
 
   seedDemo: protectedProcedure.mutation(async ({ ctx }) => seedDemo(ctx.user.id)),
-
-  exportPosts: protectedProcedure.query(({ ctx }) => db.listPostsForUser(ctx.user.id)),
 });

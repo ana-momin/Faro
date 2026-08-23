@@ -146,7 +146,7 @@ export async function listPostsForUser(userId: number, monitorId?: number) {
   const conditions = [eq(monitoringCriteria.userId, userId)];
   if (monitorId) conditions.push(eq(listenedPosts.monitorId, monitorId));
   return db
-    .select({ post: listenedPosts, monitorName: monitoringCriteria.name })
+    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria })
     .from(listenedPosts)
     .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
     .where(and(...conditions))
