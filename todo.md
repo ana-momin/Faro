@@ -26,7 +26,7 @@
 - [x] Surface a submission-readiness checklist that distinguishes live X results from labeled demonstration data and explains the manual-review boundary.
 - [x] Obtain and validate an X API account or approved alternative data source that can return real public X posts under the account’s active entitlement.
 - [x] Capture a required demo artifact showing a natural-language query and resulting post feed, then update the setup guide with submission steps.
-- [ ] Re-run quality checks and create a revised final checkpoint after the submission-brief changes.
+- [x] Re-run quality checks and create a revised final checkpoint after the submission-brief changes.
 - [x] Preserve and display alternative-provider credit or rate-limit failures instead of masking them with a second official-X fallback attempt.
 - [x] Ensure a malformed or unclassifiable individual provider post cannot prevent successful rows and the live source-health record from being persisted.
 - [x] Bound LLM suggestion latency so a slow model call resolves to the deterministic query fallback rather than leaving the natural-language workflow in a pending state.
