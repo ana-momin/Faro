@@ -113,3 +113,6 @@
 - [x] Remove visible scrollbars from Faro AI’s intentional scroll surfaces without preventing keyboard, touch, or mouse-wheel scrolling.
 - [x] Add focused coverage, verify desktop/mobile visual states, run checks, and save a final checkpoint.
 - [x] Save the verified premium Faro AI product and wide scrollbar-free review update as a final checkpoint.
+- [x] Remove the active brief, qualified-now, and agent-runs metric strip from Discover without changing underlying review behavior.
+- [x] Verify the simplified Discover layout and save the update as a checkpoint.
+- [x] Save the verified simplified Discover layout as a final checkpoint.

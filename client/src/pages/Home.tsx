@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea";
 import { buildReviewDialogContent, personalizedGreeting } from "@/lib/discoverAgent";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleAlert, Compass, ExternalLink, Loader2, Radar, RefreshCw, Search, Sparkles, Target, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleAlert, Compass, ExternalLink, Loader2, Radar, RefreshCw, Search, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -51,7 +51,6 @@ export default function Home() {
   const allQualified = useMemo(() => (overview.data?.posts ?? []).filter(({ post }) => post.source !== "demo" && post.ruleScore >= 55), [overview.data?.posts]);
   const activeQualified = useMemo(() => allQualified.filter(({ monitor }) => !activeBrief || monitor.id === activeBrief.monitor.id), [allQualified, activeBrief]);
   const qualified = activeQualified.length ? activeQualified : allQualified;
-  const monitored = activeBrief ? 1 : 0;
   const greeting = personalizedGreeting(user?.name);
 
   function runAgent(event: FormEvent<HTMLFormElement>) {
@@ -76,7 +75,6 @@ export default function Home() {
       <section className="mt-7"><div><p className="text-sm font-extrabold tracking-[-0.03em]">Qualified requests</p><p className="mt-1 text-[10px] text-[#9a8a7b]">Open a post for the full context and Faro AI’s read.</p></div>
         {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#eadfd2] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#b6a697]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 xl:grid-cols-2">{qualified.map(({ post }) => <XPostCard key={post.id} post={post} pending={review.isPending} onSelect={() => setSelectedPost(post)} onReview={decision => review.mutate({ postId: post.id, decision })} />)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#eadfd2] bg-[#fffdfa] px-5 text-center"><Search className="h-5 w-5 text-[#b7a799]" /><p className="mt-3 text-sm font-bold">No qualified requests yet.</p><p className="mt-1 max-w-md text-[10px] text-[#9d8e80]">{activeBrief?.sync?.status === "payment_required" ? "Your live X provider needs account credit before Faro can fetch fresh posts." : "Check the live source for fresh provider requests. Topic chatter stays out."}</p></div>}</section>
 
-      <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"><Metric icon={Radar} value={String(monitored)} label="active brief" /><Metric icon={Target} value={String(qualified.length)} label="qualified now" /><Metric icon={Bot} value="On demand" label="agent runs" /></section>
     </div>
     <PostReviewDialog post={selectedPost} pending={review.isPending} onClose={() => setSelectedPost(null)} onReview={decision => selectedPost && review.mutate({ postId: selectedPost.id, decision })} />
   </DashboardLayout>;
@@ -100,8 +98,4 @@ function AgentOutcome({ result }: { result: { syncError: string | null; sourceSt
     ? result.sourceStatus === "payment_required" ? "Live X source needs account credit before Faro can fetch posts." : `${result.sourceLabel}. Faro saved the brief, but could not complete a live source check.`
     : result.sync?.inserted ? `${result.sync.inserted} live posts were checked. Qualified requests appear below.` : "Live X source checked. No new public posts matched this brief yet.";
   return <div className={`mt-5 flex items-center gap-2 rounded-2xl px-3 py-2.5 text-[11px] font-semibold ${failed ? "bg-[#fff0e9] text-[#a55136]" : "bg-[#eaf4e9] text-[#2f7147]"}`}>{failed ? <CircleAlert className="h-4 w-4 shrink-0" /> : <CheckCircle2 className="h-4 w-4 shrink-0" />}{message}</div>;
-}
-
-function Metric({ icon: Icon, value, label }: { icon: typeof Radar; value: string; label: string }) {
-  return <div className="flex items-center gap-2 rounded-2xl border border-[#eadfd2] bg-white px-3 py-3"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#fbf2e5]"><Icon className="h-3.5 w-3.5 text-[#9c5a43]" /></span><div className="min-w-0"><p className="truncate text-xs font-bold leading-none">{value}</p><p className="mt-1 truncate text-[9px] text-[#9a8a7b]">{label}</p></div></div>;
 }
