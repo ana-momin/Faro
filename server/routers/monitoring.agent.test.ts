@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   listMonitorsWithSync: vi.fn(),
   suggestCriteria: vi.fn(),
   syncMonitorRecord: vi.fn(),
+  classifySyncFailure: vi.fn(),
   updateMonitorStatus: vi.fn(),
 }));
 
@@ -16,7 +17,7 @@ vi.mock("../db", () => ({
   updateMonitorStatus: mocks.updateMonitorStatus,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
-vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord }));
+vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
 
 import { monitoringRouter } from "./monitoring";
 
@@ -51,7 +52,7 @@ describe("monitoring.agentStart", () => {
     }));
     expect(mocks.updateMonitorStatus).toHaveBeenCalledWith(13, 7, "paused");
     expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42 });
-    expect(result).toMatchObject({ monitorId: 42, humanReviewOnly: true, syncError: null });
+    expect(result).toMatchObject({ monitorId: 42, humanReviewOnly: true, syncError: null, sourceStatus: "healthy" });
   });
 
   it("keeps the saved brief and reports sync trouble without taking external action", async () => {
@@ -60,10 +61,11 @@ describe("monitoring.agentStart", () => {
     mocks.createMonitor.mockResolvedValueOnce(43);
     mocks.getMonitorForUser.mockResolvedValueOnce({ id: 43 });
     mocks.syncMonitorRecord.mockRejectedValueOnce(new Error("source unavailable"));
+    mocks.classifySyncFailure.mockReturnValueOnce({ status: "error", label: "Sync needs attention" });
 
     const caller = monitoringRouter.createCaller({ user } as any);
     const result = await caller.agentStart({ brief: "Operators who need a provider for AI video production" });
 
-    expect(result).toMatchObject({ monitorId: 43, humanReviewOnly: true, sync: null, syncError: "source unavailable" });
+    expect(result).toMatchObject({ monitorId: 43, humanReviewOnly: true, sync: null, syncError: "source unavailable", sourceStatus: "error" });
   });
 });

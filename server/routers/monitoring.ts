@@ -5,7 +5,7 @@ import { suggestCriteria } from "../monitoring/ai";
 import { seedDemo } from "../monitoring/demo";
 import { requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
-import { syncMonitorRecord } from "../monitoring/sync";
+import { classifySyncFailure, syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const terms = z.array(z.string().trim().min(1).max(80)).max(20);
@@ -65,9 +65,10 @@ export const monitoringRouter = router({
       if (!monitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Faro could not save this brief." });
       try {
         const sync = await syncMonitorRecord(monitor);
-        return { monitorId, criteria, sync, syncError: null, humanReviewOnly: true };
+        return { monitorId, criteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, humanReviewOnly: true };
       } catch (error) {
-        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", humanReviewOnly: true };
+        const sourceState = classifySyncFailure(error);
+        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, humanReviewOnly: true };
       }
     }),
 
