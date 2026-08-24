@@ -80,4 +80,4 @@
 - [x] Save a final checkpoint for the verified Faro agent outcome and warm light desk repair.
 - [x] Update the browser title and visible sidebar brand label to Faro AI.
 - [x] Right-align the sidebar collapse control while preserving compact-sidebar access.
-- [ ] Save a final checkpoint for the verified Faro AI branding and right-aligned sidebar control update.
+- [x] Save a final checkpoint for the verified Faro AI branding and right-aligned sidebar control update.
