@@ -124,3 +124,7 @@
 - [x] Rebuild the Faro AI site as a clean two-to-three section landing experience with a beautiful background and focused navigation to Discover.
 - [x] Add focused regression coverage, verify desktop/mobile presentation, and save a final checkpoint.
 - [x] Save the verified minimal Faro AI product introduction as a final checkpoint.
+- [x] Audit the Faro AI landing’s interactive options and empty hero-side space.
+- [x] Add lightweight interactive demand-discovery content and a clean hero-side visual without restoring 3D graphics.
+- [x] Add focused coverage, verify desktop/mobile interactions, and save a final checkpoint.
+- [x] Save the verified interactive Faro AI landing refinements as a final checkpoint.
