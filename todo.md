@@ -120,3 +120,7 @@
 - [x] Redesign Profile as a warmer, more personal Faro AI member space with clear human-led workflow context.
 - [x] Preserve sign-out/session controls and add focused coverage, responsive verification, and a final checkpoint.
 - [x] Save the verified personalized Faro AI Profile experience as a final checkpoint.
+- [x] Audit the Faro AI product-introduction content and remove excess copy, sections, and 3D-style visual treatments.
+- [x] Rebuild the Faro AI site as a clean two-to-three section landing experience with a beautiful background and focused navigation to Discover.
+- [x] Add focused regression coverage, verify desktop/mobile presentation, and save a final checkpoint.
+- [x] Save the verified minimal Faro AI product introduction as a final checkpoint.

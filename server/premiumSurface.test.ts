@@ -18,8 +18,10 @@ describe("Faro premium interaction surfaces", () => {
     expect(styleSource).toContain("*::-webkit-scrollbar");
   });
 
-  it("adds the proof-led signal receipt section to the product experience", () => {
-    expect(introSource).toContain("<SignalProof");
-    expect(introSource).toContain("Built around proof, not pretty noise.");
+  it("keeps the product site focused and free of prior 3D-style signal components", () => {
+    expect(introSource).toContain("Find the people");
+    expect(introSource).toContain("A quiet path to the right request.");
+    expect(introSource).not.toContain("SignalOrbital");
+    expect(introSource).not.toContain("SignalProof");
   });
 });
