@@ -42,6 +42,34 @@ export const monitoringRouter = router({
     .input(z.object({ goal: z.string().trim().min(12).max(800) }))
     .mutation(({ input }) => suggestCriteria(input.goal)),
 
+  agentStart: protectedProcedure
+    .input(z.object({ brief: z.string().trim().min(12).max(800) }))
+    .mutation(async ({ ctx, input }) => {
+      const criteria = await suggestCriteria(input.brief);
+      const previousMonitors = await db.listMonitorsWithSync(ctx.user.id);
+      await Promise.all(previousMonitors
+        .filter(({ monitor }) => monitor.status === "active")
+        .map(({ monitor }) => db.updateMonitorStatus(monitor.id, ctx.user.id, "paused")));
+      const monitorId = await db.createMonitor({
+        userId: ctx.user.id,
+        name: `Faro Agent · ${input.brief.slice(0, 42)}`,
+        goal: input.brief,
+        xQuery: criteria.xQuery,
+        includeTerms: criteria.includeTerms,
+        excludeTerms: criteria.excludeTerms,
+        categories: ["service request", "human review", "agent-assisted"],
+        status: "active",
+      });
+      const monitor = await db.getMonitorForUser(monitorId, ctx.user.id);
+      if (!monitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Faro could not save this brief." });
+      try {
+        const sync = await syncMonitorRecord(monitor);
+        return { monitorId, criteria, sync, syncError: null, humanReviewOnly: true };
+      } catch (error) {
+        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", humanReviewOnly: true };
+      }
+    }),
+
   create: protectedProcedure
     .input(z.object({
       name: z.string().trim().min(3).max(120),

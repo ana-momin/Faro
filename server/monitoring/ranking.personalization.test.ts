@@ -93,6 +93,48 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("Non-service context");
   });
 
+  it("rejects a job opening that uses the same service vocabulary", () => {
+    const result = rankOpportunity({
+      ...profile,
+      body: "Hiring: AI automation expert. We need someone to build and maintain automations across Zapier and n8n. Pay: $8/hr. Apply now.",
+      postedAt: new Date(),
+      engagement: {},
+      aiConfidence: 0.98,
+      aiLabel: "Active help-seeking",
+    });
+
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("Non-service context");
+  });
+
+  it("requires a concrete delivery scope or provider before accepting a direct-sounding ask", () => {
+    const result = rankOpportunity({
+      ...profile,
+      body: "I need someone who is hungry like me to work on YouTube automation again.",
+      postedAt: new Date(),
+      engagement: {},
+      aiConfidence: 0.9,
+      aiLabel: "Active help-seeking",
+    });
+
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
+  });
+
+  it("rejects networking language that asks for a person but not a delivered service", () => {
+    const result = rankOpportunity({
+      ...profile,
+      body: "Looking for someone with the technical fluency to understand AI workflows and automation and explore what is possible.",
+      postedAt: new Date(),
+      engagement: {},
+      aiConfidence: 0.88,
+      aiLabel: "Active help-seeking",
+    });
+
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
+  });
+
   it("ranks a genuine provider request above a topic-only discussion", () => {
     const providerRequest = rankOpportunity({
       ...profile,

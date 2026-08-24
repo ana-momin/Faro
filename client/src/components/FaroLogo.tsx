@@ -11,7 +11,7 @@ export default function FaroLogo({ compact = false, className = "" }: FaroLogoPr
       <span className="h-7 w-7 shrink-0 overflow-hidden rounded-[9px] bg-[#bd5e45]">
         <img src={FARO_MASCOT_URL} alt="" className="h-full w-full object-contain" />
       </span>
-      {!compact && <span className="text-[17px] font-extrabold lowercase tracking-[-0.075em] text-[#111214]">faro</span>}
+      {!compact && <span className="text-[17px] font-extrabold tracking-[-0.075em] text-[#111214]">Faro</span>}
     </div>
   );
 }

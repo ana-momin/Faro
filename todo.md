@@ -63,3 +63,9 @@
 - [x] Add focused tests proving service-seeking posts outrank keyword-only posts and non-service contexts are demoted.
 - [x] Replace the overlapping preset cards with one simple listening setup path and a clearer first-use feed workflow.
 - [x] Save a final checkpoint for the verified service-seeking ranking and simplified listening workflow.
+- [x] Audit current sidebar, sign-out state, profile controls, routing, and existing agentic service-discovery paths.
+- [x] Replace the Workspace-only navigation with a concise Faro product navigation spanning 3–4 purpose-built pages.
+- [x] Build a unified AI-assisted service-discovery command flow that helps create, refine, sync, rank, and review X service requests without autonomous outreach.
+- [x] Redesign the signed-out and profile experiences with clear, visual-first account states and Faro capitalization.
+- [x] Refine the overall interface into a minimal icon-led system with purposeful controls, reduced copy, and cohesive sidebar formatting.
+- [ ] Save a final checkpoint for the verified unified Faro agent, navigation, profile, and service-intent revision.

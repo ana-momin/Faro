@@ -2,195 +2,62 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import {
-  ArrowUpRight,
-  Bot,
-  Check,
-  CircleCheck,
-  CircleX,
-  Lightbulb,
-  ListFilter,
-  Loader2,
-  Plus,
-  Radio,
-  RefreshCw,
-  Search,
-  Settings2,
-  Sparkles,
-  ThumbsDown,
-  ThumbsUp,
-  Workflow,
-  X,
-  Zap,
-} from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Bot, Compass, Loader2, Radar, Search, Sparkles, Target, Zap } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
-type FeedStatus = "all" | "pending" | "approved" | "rejected";
-const DEFAULT_LISTENING_GOAL = "People looking to hire a provider for custom AI workflows, automation, AI video, or related implementation work.";
+const DEFAULT_BRIEF = "Find founders and operators who need a provider to build custom AI workflows, automate operations, or produce practical AI video.";
 
-const scoreTone = (score: number) =>
-  score >= 80 ? "bg-[#dff5e6] text-[#17643c]" : score >= 60 ? "bg-[#edf2ee] text-[#313b34]" : "bg-[#f3f4f2] text-[#777a76]";
-const sourceIcon = (source?: string | null) => (source === "filtered_stream" ? Radio : source === "twitterapi_io" ? Zap : Search);
-const compactNumber = (value: number) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value || 0);
+const scoreTone = (score: number) => score >= 80 ? "bg-[#dff5e6] text-[#17643c]" : "bg-[#f2f3f0] text-[#30322e]";
 
 export default function Home() {
   const utils = trpc.useUtils();
-  const [filter, setFilter] = useState<FeedStatus>("pending");
-  const [minimumScore, setMinimumScore] = useState(60);
-  const [activeMonitorId, setActiveMonitorId] = useState<number | null>(null);
-  const [focused, setFocused] = useState(false);
-  const [showCreator, setShowCreator] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [listeningGoal, setListeningGoal] = useState(DEFAULT_LISTENING_GOAL);
-
-  const overviewInput = useMemo(() => (activeMonitorId ? { monitorId: activeMonitorId } : undefined), [activeMonitorId]);
-  const overview = trpc.monitoring.overview.useQuery(overviewInput, { refetchInterval: 30_000 });
-  const monitors = overview.data?.monitors ?? [];
-  const allPosts = overview.data?.posts ?? [];
-  const activeMonitor = monitors.find(({ monitor }) => monitor.id === activeMonitorId)?.monitor;
-  const activeSync = monitors.find(({ monitor }) => monitor.id === activeMonitorId)?.sync;
-  const SourceIcon = sourceIcon(activeSync?.source);
-  const posts = useMemo(
-    () => allPosts.filter(({ post }) => (filter === "all" || post.reviewStatus === filter) && post.ruleScore >= minimumScore),
-    [allPosts, filter, minimumScore],
-  );
-  const selected = posts.find(({ post }) => post.id === selectedId) ?? posts[0] ?? null;
-  const qualifiedRequests = allPosts.filter(({ post }) => post.ruleScore >= 60).length;
-
-  useEffect(() => {
-    if (!focused && monitors.length) {
-      setActiveMonitorId(monitors[0].monitor.id);
-      setFocused(true);
-    }
-  }, [focused, monitors]);
-
-  const invalidate = () => utils.monitoring.overview.invalidate();
-  const sync = trpc.monitoring.sync.useMutation({
+  const [, setLocation] = useLocation();
+  const [brief, setBrief] = useState(DEFAULT_BRIEF);
+  const overview = trpc.monitoring.overview.useQuery(undefined, { refetchInterval: 30_000 });
+  const agent = trpc.monitoring.agentStart.useMutation({
     onSuccess: result => {
-      toast.success(`${result.inserted} new opportunities checked.`);
-      invalidate();
-    },
-    onError: () => {
-      toast.error("Live source needs attention.");
-      invalidate();
-    },
-  });
-  const create = trpc.monitoring.create.useMutation({
-    onSuccess: result => {
-      setActiveMonitorId(result.monitorId);
-      setFocused(true);
-      setShowCreator(false);
-      toast.success("Live signal ready.");
-      sync.mutate({ monitorId: result.monitorId });
-      invalidate();
-    },
-  });
-  const suggest = trpc.monitoring.suggest.useMutation();
-  const review = trpc.monitoring.review.useMutation({
-    onSuccess: () => {
-      toast.success("Saved.");
-      invalidate();
+      utils.monitoring.overview.invalidate();
+      toast.success(result.syncError ? "Faro mapped and saved the brief." : "Faro mapped the brief and checked X.");
     },
     onError: error => toast.error(error.message),
   });
 
-  async function createMonitor(event: FormEvent<HTMLFormElement>) {
+  const activeBrief = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
+  const qualified = useMemo(() => (overview.data?.posts ?? []).filter(({ post, monitor }) => post.source !== "demo" && (!activeBrief || monitor.id === activeBrief.monitor.id) && post.ruleScore >= 60).slice(0, 4), [overview.data?.posts, activeBrief]);
+  const monitored = activeBrief ? 1 : 0;
+
+  function runAgent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    try {
-      const criteria = await suggest.mutateAsync({ goal: listeningGoal });
-      await create.mutateAsync({
-        name: "Service requests",
-        goal: listeningGoal,
-        xQuery: criteria.xQuery,
-        includeTerms: criteria.includeTerms,
-        excludeTerms: criteria.excludeTerms,
-        categories: ["service request", "human review"],
-      });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not start this listening brief.");
-    }
+    agent.mutate({ brief });
   }
 
-  return (
-    <DashboardLayout>
-      <div className="mx-auto max-w-[1380px] pb-8">
-        <header className="flex items-center justify-between border-b border-[#e9eae7] pb-5">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#111214] text-white"><Radio className="h-4 w-4" /></span>
-            <div>
-              <h1 className="text-lg font-bold tracking-[-0.05em]">Live opportunities</h1>
-              <p className="text-[11px] text-[#858780]">X task requests · human review</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <IconButton icon={RefreshCw} label="Sync active signal" loading={sync.isPending} onClick={() => activeMonitorId && sync.mutate({ monitorId: activeMonitorId })} disabled={!activeMonitorId || sync.isPending} />
-            <Button className="h-9 rounded-xl bg-[#111214] px-3 text-xs hover:bg-[#292a27]" onClick={() => setShowCreator(true)}><Plus className="mr-1.5 h-3.5 w-3.5" />Listening brief</Button>
-          </div>
-        </header>
+  return <DashboardLayout>
+    <div className="mx-auto max-w-6xl pb-8">
+      <header className="flex items-center justify-between border-b border-[#e8e9e5] pb-5">
+        <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#111214] text-white"><Compass className="h-4 w-4" /></span><div><h1 className="text-xl font-extrabold tracking-[-0.055em]">Discover</h1><p className="text-[11px] text-[#858780]">Service demand on X, sorted for human review.</p></div></div>
+        <button onClick={() => setLocation("/review")} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e3e4df] text-[#4e514b] transition hover:bg-white" title="Open review queue"><ArrowUpRight className="h-4 w-4" /></button>
+      </header>
 
-        {(!monitors.length || showCreator) && <section className="mt-5 rounded-2xl border border-[#e1e3df] bg-white p-4 shadow-[0_10px_28px_rgba(18,18,18,0.05]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#f1f3f0]"><Settings2 className="h-4 w-4" /></span><div><p className="text-sm font-bold">What kind of service request should Faro find?</p><p className="text-[10px] text-[#858780]">Faro looks for people who want a provider, not topic chatter.</p></div></div>
-            <IconButton icon={X} label="Close signal editor" onClick={() => setShowCreator(false)} />
-          </div>
-          <form onSubmit={createMonitor} className="mt-4 grid gap-3">
-            <label className="grid gap-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#8b8d86]">Listening brief<Textarea value={listeningGoal} onChange={event => setListeningGoal(event.target.value)} className="min-h-20 text-sm" placeholder="Example: founders who need an agency to automate client intake" /></label>
-            <div className="flex items-center justify-between gap-3"><p className="max-w-xl text-[10px] leading-4 text-[#858780]">Describe the outcome and the provider they need. Faro maps the search and filters out courses, hiring, co-founder, and generic AI posts.</p><Button type="submit" disabled={create.isPending || suggest.isPending} className="h-9 shrink-0 rounded-lg bg-[#111214] px-4 text-xs">{create.isPending || suggest.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Start listening</>}</Button></div>
-          </form>
-        </section>}
+      <section className="mt-6 overflow-hidden rounded-[28px] bg-[#171916] p-5 text-white sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#a8dfb8]"><span className="h-1.5 w-1.5 rounded-full bg-[#67c886]" />Faro Agent</div><h2 className="mt-2 max-w-xl text-2xl font-extrabold tracking-[-0.055em] sm:text-3xl">Describe the client you want to find.</h2></div><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 text-[#b7efc6]"><Radar className="h-5 w-5" /></span></div>
+        <form onSubmit={runAgent} className="mt-6"><Textarea value={brief} onChange={event => setBrief(event.target.value)} className="min-h-24 resize-none border-white/10 bg-white/8 text-sm leading-6 text-white placeholder:text-white/40 focus-visible:ring-[#78cf94]" placeholder="Who should Faro find?" /><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-4 text-[10px] text-white/55"><AgentStep icon={Target} label="Maps intent" /><AgentStep icon={Search} label="Checks X" /><AgentStep icon={Zap} label="Filters noise" /></div><Button type="submit" disabled={agent.isPending || brief.trim().length < 12} className="h-10 rounded-xl bg-[#dff5e6] px-4 text-xs font-bold text-[#174c2c] hover:bg-white">{agent.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Run Faro</>}</Button></div></form>
+        {agent.data && <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5 text-[10px] text-white/70"><Bot className="h-3.5 w-3.5 text-[#9ee2ae]" />{agent.data.syncError ? "Brief saved — source sync needs attention." : "Brief mapped, source checked, results ready for review."}</div>}
+      </section>
 
-        <section className={`mt-4 grid gap-4 ${selected ? "xl:grid-cols-[minmax(0,1fr)_370px]" : ""}`}>
-          <div className="overflow-hidden rounded-2xl border border-[#e5e6e2] bg-white">
-            <div className="flex items-center justify-between border-b border-[#ecece9] p-3 sm:p-4">
-              <div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${activeSync?.status === "healthy" ? "bg-[#4ca96f]" : "bg-[#c4c7c1]"}`} /><select className="h-8 max-w-[190px] rounded-lg border-0 bg-transparent px-1 text-sm font-bold focus:ring-0" value={activeMonitorId ?? ""} onChange={event => { setActiveMonitorId(event.target.value ? Number(event.target.value) : null); setSelectedId(null); setFocused(true); }}><option value="">All signals</option>{monitors.map(({ monitor }) => <option key={monitor.id} value={monitor.id}>{monitor.name}</option>)}</select></div>
-              <div className="flex items-center gap-1"><IconButton icon={ListFilter} label="All" active={filter === "all"} onClick={() => setFilter("all")} /><IconButton icon={Lightbulb} label="Needs review" active={filter === "pending"} onClick={() => setFilter("pending")} /><IconButton icon={CircleCheck} label="Approved" active={filter === "approved"} onClick={() => setFilter("approved")} /><IconButton icon={CircleX} label="Rejected" active={filter === "rejected"} onClick={() => setFilter("rejected")} /><select aria-label="Minimum relevance" className="ml-1 h-8 rounded-lg border border-[#e1e2de] bg-[#fafaf8] px-2 text-[10px] font-semibold" value={minimumScore} onChange={event => setMinimumScore(Number(event.target.value))}><option value={0}>All</option><option value={60}>60+</option><option value={80}>80+</option></select></div>
-            </div>
-            <div className="divide-y divide-[#eff0ed]">
-              {overview.isLoading && <div className="grid min-h-72 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-[#949790]" /></div>}
-              {!overview.isLoading && !posts.length && <EmptyFeed onAdd={() => setShowCreator(true)} />}
-              {posts.map(({ post, monitorName }) => <button key={post.id} onClick={() => setSelectedId(post.id)} className={`grid w-full gap-3 px-3 py-3 text-left transition sm:grid-cols-[38px_1fr_auto] sm:px-4 ${selected?.post.id === post.id ? "bg-[#f7f9f6]" : "hover:bg-[#fafbf9]"}`}>
-                <span className={`grid h-9 w-9 place-items-center rounded-xl text-[11px] font-bold ${scoreTone(post.ruleScore)}`}>{post.ruleScore}</span>
-                <div className="min-w-0"><div className="flex items-center gap-2"><span className="text-xs font-bold">{post.authorHandle ? `@${post.authorHandle}` : post.authorName || "Unknown"}</span><span className="text-[10px] text-[#9b9d96]">{new Date(post.postedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>{post.aiIntent.label === "Active help-seeking" && <span className="rounded-full bg-[#dff5e6] px-1.5 py-0.5 text-[9px] font-bold text-[#17643c]">ASKING</span>}</div><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#353733]">{post.body}</p><div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[#969891]"><Zap className="h-3 w-3" />{monitorName}{post.source === "demo" && <span className="rounded-full bg-[#f6e8eb] px-1.5 py-0.5 text-[9px] text-[#8b5560]">SAMPLE</span>}</div></div>
-                <span className="pt-1 text-[9px] font-semibold uppercase text-[#a0a29c]">{post.reviewStatus}</span>
-              </button>)}
-            </div>
-          </div>
-          {selected && <aside className="rounded-2xl border border-[#e5e6e2] bg-white p-4"><OpportunityPanel item={selected} goal={activeMonitor?.goal ?? ""} onReview={decision => review.mutate({ postId: selected.post.id, decision })} pending={review.isPending} /></aside>}
-        </section>
+      <section className="mt-7"><div className="flex items-center justify-between"><div><p className="text-sm font-extrabold tracking-[-0.03em]">Qualified now</p><p className="mt-1 text-[10px] text-[#8d8f88]">Requests with an actual service need.</p></div><button onClick={() => setLocation("/review")} className="text-[11px] font-bold text-[#277449]">Review queue</button></div>
+        {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#e7e8e4] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#9ca097]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 md:grid-cols-2">{qualified.map(({ post, monitorName }) => <button key={post.id} onClick={() => setLocation("/review")} className="flex items-start gap-3 rounded-2xl border border-[#e7e8e4] bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#b7d9bf] hover:shadow-[0_12px_24px_rgba(27,33,27,0.05)]"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-extrabold ${scoreTone(post.ruleScore)}`}>{post.ruleScore}</span><div className="min-w-0"><div className="flex items-center gap-2"><span className="text-xs font-bold">{post.authorHandle ? `@${post.authorHandle}` : post.authorName || "Unknown"}</span><span className="text-[9px] text-[#999b95]">{monitorName}</span></div><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#343633]">{post.body}</p></div></button>)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dfe1dc] bg-white px-5 text-center"><Search className="h-5 w-5 text-[#a9aca5]" /><p className="mt-3 text-sm font-bold">Nothing worth your time yet.</p><p className="mt-1 text-[10px] text-[#969890]">Faro keeps topical chatter out.</p></div>}</section>
 
-        <section className="mt-4 grid grid-cols-3 gap-2 sm:gap-3"><LiveChip icon={SourceIcon} value={activeSync?.status === "healthy" ? "Live" : "Paused"} label={activeSync?.latencyLabel ?? "No source"} /><LiveChip icon={Lightbulb} value={String(qualifiedRequests)} label="qualified asks" /><LiveChip icon={Workflow} value={String(monitors.length)} label="signals" /></section>
-      </div>
-    </DashboardLayout>
-  );
+      <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"><Metric icon={Radar} value={String(monitored)} label="active briefs" /><Metric icon={Target} value={String(qualified.length)} label="qualified now" /><Metric icon={Bot} value="On demand" label="agent runs" /></section>
+    </div>
+  </DashboardLayout>;
 }
 
-function IconButton({ icon: Icon, label, onClick, active = false, loading = false, disabled = false }: { icon: typeof RefreshCw; label: string; onClick: () => void; active?: boolean; loading?: boolean; disabled?: boolean }) {
-  return <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled} className={`grid h-8 w-8 place-items-center rounded-lg transition ${active ? "bg-[#111214] text-white" : "text-[#767871] hover:bg-[#f1f2ef]"} disabled:opacity-40`}><Icon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>;
+function AgentStep({ icon: Icon, label }: { icon: typeof Target; label: string }) {
+  return <span className="flex items-center gap-1.5"><Icon className="h-3.5 w-3.5 text-[#a8dfb8]" />{label}</span>;
 }
 
-function LiveChip({ icon: Icon, value, label }: { icon: typeof Zap; value: string; label: string }) {
-  return <div className="flex items-center gap-2 rounded-xl border border-[#e5e6e2] bg-white px-3 py-2.5"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#f2f4f1]"><Icon className="h-3.5 w-3.5" /></span><div className="min-w-0"><p className="text-xs font-bold leading-none">{value}</p><p className="mt-1 truncate text-[9px] text-[#90928b]">{label}</p></div></div>;
-}
-
-function EmptyFeed({ onAdd }: { onAdd: () => void }) {
-  return <div className="grid min-h-72 place-items-center p-6 text-center"><div><Search className="mx-auto h-5 w-5 text-[#b4b6b0]" /><p className="mt-3 text-sm font-semibold">No service requests yet.</p><p className="mt-1 text-[10px] text-[#94968f]">Topic chatter and sales posts stay out of this feed.</p><Button variant="outline" className="mt-3 h-8 rounded-lg text-xs" onClick={onAdd}>Start listening brief</Button></div></div>;
-}
-
-function OpportunityPanel({ item, goal, onReview, pending }: { item: { post: any; monitorName: string }; goal: string; onReview: (decision: "approved" | "rejected") => void; pending: boolean }) {
-  const { post, monitorName } = item;
-  const engagement = Object.values(post.engagement as Record<string, number>).reduce((sum: number, value: unknown) => sum + Number(value || 0), 0);
-  const positiveReasons = (post.scoreExplanation as Array<{ label: string; points: number }>).filter(component => component.points > 0);
-  const timingReason = positiveReasons.find(component => component.label === "Timing signal");
-  const shortReasons = positiveReasons.filter(component => component.label !== "Timing signal").slice(0, timingReason ? 2 : 3);
-  const visibleReasons = timingReason ? [timingReason, ...shortReasons] : shortReasons;
-
-  return <div>
-    <div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className={`grid h-9 w-9 place-items-center rounded-xl text-xs font-bold ${scoreTone(post.ruleScore)}`}>{post.ruleScore}</span><div><p className="text-xs font-bold">Opportunity</p><p className="text-[10px] text-[#969891]">{monitorName}</p></div></div><span className="text-[10px] text-[#969891]">{compactNumber(engagement)} engage</span></div>
-    <div className="mt-4 rounded-xl bg-[#f5f6f3] p-3"><p className="text-xs font-bold">{post.authorHandle ? `@${post.authorHandle}` : post.authorName || "Unknown"}</p><p className="mt-2 text-sm leading-6 text-[#343633]">{post.body}</p><p className="mt-2 text-[10px] text-[#8c8f88]">{new Date(post.postedAt).toLocaleString()}</p></div>
-    {goal && <div className="mt-3 flex items-center gap-2 text-[10px] text-[#73766f]"><Search className="h-3.5 w-3.5" /><span className="line-clamp-1">{goal}</span></div>}
-    <div className="mt-4 flex flex-wrap gap-1.5">{visibleReasons.map(reason => <span key={reason.label} className={`rounded-full px-2 py-1 text-[9px] font-semibold ${reason.label === "Timing signal" ? "bg-[#fff1d9] text-[#9c5d09]" : "bg-[#edf5ef] text-[#39704b]"}`}>{reason.label === "Explicit help-seeking language" ? "Asked for help" : reason.label === "Timing signal" ? "Time-sensitive" : reason.label}</span>)}</div>
-    <div className="mt-5 flex items-center gap-2">{post.postUrl && <a href={post.postUrl} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-lg border border-[#dedfda]" title="Open on X"><ArrowUpRight className="h-4 w-4" /></a>}{post.reviewStatus === "pending" ? <><Button className="h-9 flex-1 rounded-lg bg-[#187144] text-xs hover:bg-[#135f38]" onClick={() => onReview("approved")} disabled={pending}><ThumbsUp className="mr-1.5 h-3.5 w-3.5" />Keep</Button><Button variant="outline" className="h-9 rounded-lg px-3 text-[#9c443d]" onClick={() => onReview("rejected")} disabled={pending} title="Dismiss"><ThumbsDown className="h-3.5 w-3.5" /></Button></> : <span className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#f0f1ef] text-xs font-semibold text-[#666862]"><Check className="mr-1.5 h-3.5 w-3.5" />{post.reviewStatus}</span>}</div>
-    <div className="mt-4 flex items-center gap-2 text-[9px] text-[#a1a39c]"><Bot className="h-3 w-3" />{post.aiIntent.label} · {Math.round(post.aiIntent.confidence * 100)}%</div>
-  </div>;
+function Metric({ icon: Icon, value, label }: { icon: typeof Radar; value: string; label: string }) {
+  return <div className="flex items-center gap-2 rounded-2xl border border-[#e7e8e4] bg-white px-3 py-3"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#f1f3ef]"><Icon className="h-3.5 w-3.5" /></span><div className="min-w-0"><p className="truncate text-xs font-bold leading-none">{value}</p><p className="mt-1 truncate text-[9px] text-[#8d8f88]">{label}</p></div></div>;
 }
