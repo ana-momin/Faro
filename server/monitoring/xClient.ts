@@ -144,10 +144,15 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
   const apiKey = twitterApiIoKey();
   if (!apiKey) throw new XApiError(401, "TwitterAPI.io key is not configured.");
   const params = new URLSearchParams({ query: twitterApiIoQuery(query), queryType: "Latest", cursor: cursor ?? "" });
-  await waitForTwitterApiIoRequestSlot();
-  const response = await fetch(`https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`, {
-    headers: { "X-API-Key": apiKey },
-  });
+  const request = async (attempt = 0): Promise<Response> => {
+    await waitForTwitterApiIoRequestSlot();
+    const response = await fetch(`https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`, {
+      headers: { "X-API-Key": apiKey },
+    });
+    if (response.status === 429 && attempt < 1) return request(attempt + 1);
+    return response;
+  };
+  const response = await request();
   if (!response.ok) {
     const body = await response.text();
     throw new XApiError(response.status, `TwitterAPI.io: ${body.slice(0, 600) || `HTTP ${response.status}.`}`);

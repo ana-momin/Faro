@@ -1,5 +1,6 @@
-export type FeedPost = { id: number; source: string; ruleScore: number; reviewStatus: "pending" | "approved" | "rejected"; body?: string; authorName?: string | null; authorHandle?: string | null; authorAvatarUrl?: string | null };
+export type FeedPost = { id: number; xPostId?: string | null; source: string; ruleScore: number; reviewStatus: "pending" | "approved" | "rejected"; body?: string; postedAt?: string | Date | null; authorName?: string | null; authorHandle?: string | null; authorAvatarUrl?: string | null };
 export type FeedItem = { post: FeedPost; monitor: { id: number } };
+export type FeedTimeFilter = "all" | "today" | "this_week" | "last_week" | "this_month";
 
 const CONCRETE_BUYER_ACTION = "(looking for (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:ai )?expert|an? consultant)|looking to hire|need(?:s)? (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:ai )?expert|an? consultant|a team)|need(?:s)? (?:help|a hand) (?:building|automating|implementing|setting up|creating|integrating)|seeking (?:a provider|an? (?:ai )?expert)|can someone (?:build|set up|implement)|who can (?:build|help us)|recommend (?:someone|a freelancer|an? agency)|does anyone know an? (?:developer|agency|freelancer|consultant)|anyone know an? (?:developer|agency|freelancer)|recommendations for an? (?:developer|agency|freelancer)|looking to outsource|hire (?:a |an ))";
 const CONCRETE_BUYER_REQUEST = new RegExp(`\\b(i(?:'m| am)?|we(?:'re| are)?|our (?:team|company|business)|my (?:team|business|company)|our|my)\\b.{0,90}${CONCRETE_BUYER_ACTION}\\b`, "i");
@@ -20,11 +21,40 @@ export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorI
 }
 
 export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {
-  return items.filter(({ post }) => post.source !== "demo" && post.ruleScore >= 50 && isConcreteBuyerRequest(post));
+  const seen = new Set<string>();
+  return items.filter(({ post }) => {
+    if (post.source === "demo" || post.ruleScore < 50 || !isConcreteBuyerRequest(post)) return false;
+    const key = post.xPostId ? `x:${post.xPostId}` : `saved:${post.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function getDiscoverPreview<T>(items: T[], limit = 10) {
   return items.slice(0, Math.max(1, limit));
+}
+
+export function filterFeedByTime<T extends FeedItem>(items: T[], filter: FeedTimeFilter, now = new Date()) {
+  if (filter === "all") return items;
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(dayStart);
+  weekStart.setDate(dayStart.getDate() - ((dayStart.getDay() + 6) % 7));
+  const nextWeekStart = new Date(weekStart);
+  nextWeekStart.setDate(weekStart.getDate() + 7);
+  const lastWeekStart = new Date(weekStart);
+  lastWeekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  return items.filter(({ post }) => {
+    if (!post.postedAt) return false;
+    const postedAt = new Date(post.postedAt);
+    if (Number.isNaN(postedAt.getTime())) return false;
+    if (filter === "today") return postedAt >= dayStart;
+    if (filter === "this_week") return postedAt >= weekStart && postedAt < nextWeekStart;
+    if (filter === "last_week") return postedAt >= lastWeekStart && postedAt < weekStart;
+    return postedAt >= monthStart;
+  });
 }
 
 export function getRequestCategory(post: { body?: string }) {

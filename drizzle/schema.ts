@@ -53,7 +53,7 @@ export const monitorSyncs = mysqlTable(
     status: mysqlEnum("status", ["idle", "healthy", "degraded", "rate_limited", "payment_required", "error"]).default("idle").notNull(),
     latencyLabel: varchar("latencyLabel", { length: 80 }).default("Not synced").notNull(),
     newestPostId: varchar("newestPostId", { length: 64 }),
-    nextToken: varchar("nextToken", { length: 512 }),
+    nextToken: text("nextToken"),
     lastSyncedAt: timestamp("lastSyncedAt"),
     lastSuccessAt: timestamp("lastSuccessAt"),
     lastError: text("lastError"),

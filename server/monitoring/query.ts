@@ -101,16 +101,20 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return discoveryTerms([...terms, ...expansions]);
 }
 
-const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "need a hand with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency" OR "does anyone know a developer" OR "does anyone know an agency" OR "does anyone know a freelancer" OR "recommendations for a developer" OR "recommendations for an agency")';
+const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for an agency" OR "looking for a creator" OR "looking for an expert" OR "looking for someone to" OR "need a developer" OR "need an agency" OR "need a creator" OR "need someone to")';
+const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know a developer" OR "does anyone know an agency" OR "recommend a developer" OR "recommend an agency" OR "looking to outsource")';
+const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "need someone to automate" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent")';
 
-const SECONDARY_SERVICE_REQUEST_QUERY = '("need help building" OR "need help automating" OR "need help creating" OR "can someone build" OR "can someone automate" OR "can someone implement" OR "who can build" OR "who can help us" OR "anyone know a developer" OR "anyone know an agency" OR "recommend someone" OR "looking to outsource" OR "need a team to" OR "does anyone know someone")';
-const TERTIARY_SERVICE_REQUEST_QUERY = '("want to automate" OR "want help automating" OR "need automation" OR "need an automation" OR "need a workflow" OR "need an AI workflow" OR "need an AI agent" OR "could use help automating" OR "help me automate" OR "help us automate" OR "automation help")';
+function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
+  const topics = discoveryTerms(includeTerms).slice(0, 5);
+  const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
+  const exclusions = uniqueTerms(excludeTerms).slice(0, 8).map(term => `-${quoteTerm(term)}`).join(" ");
+  const query = [topicClause, buyerSignals, exclusions, "-is:retweet"].filter(Boolean).join(" ");
+  return query.length <= 1024 ? query : `${quoteTerm(topics[0] ?? "automation")} ${buyerSignals} -is:retweet`;
+}
 
 export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
-  const topics = uniqueTerms(includeTerms).slice(0, 8);
-  const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
-  const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
-  return [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+  return buildBoundedDemandQuery(includeTerms, excludeTerms, PRIMARY_SERVICE_REQUEST_QUERY);
 }
 
 /**
@@ -120,18 +124,15 @@ export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: st
  * search at two TwitterAPI.io calls and continuation pages at one call.
  */
 export function buildCoverageQueries(includeTerms: string[], excludeTerms: string[] = []) {
-  const topics = discoveryTerms(includeTerms);
-  const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
-  const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
-  const primary = [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
-  const secondary = [topicClause, SECONDARY_SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
-  const tertiary = [topicClause, TERTIARY_SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+  const primary = buildBoundedDemandQuery(includeTerms, excludeTerms, PRIMARY_SERVICE_REQUEST_QUERY);
+  const secondary = buildBoundedDemandQuery(includeTerms, excludeTerms, SECONDARY_SERVICE_REQUEST_QUERY);
+  const tertiary = buildBoundedDemandQuery(includeTerms, excludeTerms, TERTIARY_SERVICE_REQUEST_QUERY);
   return Array.from(new Set([primary, secondary, tertiary]));
 }
 
 export function requireServiceRequestQuery(query: string) {
   const normalized = query.trim();
-  if (!normalized) return SERVICE_REQUEST_QUERY;
+  if (!normalized) return PRIMARY_SERVICE_REQUEST_QUERY;
   if (/looking for (someone|a freelancer|an agency|a developer|a tester|a designer|a creator|an editor)|need (someone|a freelancer|an agency|a developer|a tester|a designer)|need a hand with|looking to hire|seeking a provider|does anyone know a (developer|agency|freelancer)|recommendations for an? (developer|agency|freelancer)/.test(normalized)) return normalized;
-  return `${normalized} ${SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
+  return `${normalized} ${PRIMARY_SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
 }

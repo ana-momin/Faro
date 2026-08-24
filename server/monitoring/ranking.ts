@@ -16,6 +16,7 @@ const DIRECT_SERVICE_REQUEST_PATTERNS = ["looking for someone", "looking for a f
 const CONCRETE_HELP_REQUEST_PATTERN = /\bneed(?:s)? (?:help|a hand) (?:with )?(?:building|automating|implementing|setting up|creating|integrating|developing|designing|an? ai (?:agent|workflow|automation)|automation|a workflow)\b/;
 const SERVICE_DELIVERY_PATTERNS = ["build", "map", "implement", "set up", "setup", "automate", "integrate", "configure", "develop", "create", "produce", "edit", "manage", "design", "launch", "maintain", "streamline", "install", "test", "qa", "validate", "research", "audit", "debug", "ship", "publish", "post", "submit", "enter"];
 const PROVIDER_PATTERNS = ["freelancer", "agency", "consultant", "expert", "specialist", "developer", "builder", "contractor", "service provider", "vendor"];
+const BUYER_PROVIDER_REQUEST_PATTERN = /\b(?:looking for|need(?:s)?|seeking|want(?:s)? to hire|hire|recommend(?:ations)?|can anyone recommend|does anyone know|anyone know|who can help)\b.{0,70}\b(?:freelancer|agency|consultant|expert|specialist|developer|builder|contractor|service provider|vendor)\b/;
 const BUYER_REQUEST_WITH_LOCAL_SCOPE_PATTERN = /\b(?:looking for (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:ai )?expert|an? consultant)|need(?:s)? (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:ai )?expert|an? consultant|help|a hand|a team)|can someone|who can|recommend (?:someone|a freelancer|an? agency)|does anyone know an? (?:developer|agency|freelancer|consultant)|anyone know an? (?:developer|agency|freelancer)|recommendations for an? (?:developer|agency|freelancer)|looking to outsource)\b.{0,160}\b(?:build|map|implement|set up|setup|automate|integrate|configure|develop|create|produce|edit|manage|design|maintain|streamline|install|test|qa|validate|research|audit|debug|ship|publish|post|submit|enter)\b/;
 const URGENCY_PATTERNS = ["asap", "urgent", "this week", "today", "tomorrow", "by friday", "right away", "quickly"];
 const DECISION_PATTERNS = ["our team", "my team", "our business", "my business", "our company", "client", "clients", "founder", "agency", "small business", "budget", "project", "for us"];
@@ -67,7 +68,7 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const providerRequest = hasAny(body, PROVIDER_PATTERNS);
   const requestHasLocalScope = BUYER_REQUEST_WITH_LOCAL_SCOPE_PATTERN.test(body);
   const buyerContext = hasAny(body, DECISION_PATTERNS);
-  const directBuyerRequest = directRequest && (buyerContext || DIRECT_BUYER_SUBJECT_PATTERN.test(body) || OPENING_BUYER_ASK_PATTERN.test(body));
+  const directBuyerRequest = (directRequest && (buyerContext || DIRECT_BUYER_SUBJECT_PATTERN.test(body) || OPENING_BUYER_ASK_PATTERN.test(body))) || BUYER_PROVIDER_REQUEST_PATTERN.test(body);
   const nonServiceContext = hasAny(body, NON_SERVICE_CONTEXT_PATTERNS);
   const promotionalContext = hasAny(body, PROMOTIONAL_PATTERNS);
   const selfDescribedDelivery = SELF_PROVIDER_OFFER_PATTERN.test(body) && !/(looking for|need someone|needs someone|seeking|recommend)/.test(body);

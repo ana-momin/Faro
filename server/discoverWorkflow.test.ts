@@ -18,7 +18,7 @@ describe("Faro Discover and Review workflow wiring", () => {
   });
 
   it("explains when a live search returned posts that did not meet service-request qualification", () => {
-    expect(homeSource).toContain("Faro screened {screened} stored public posts for this search");
+    expect(homeSource).toContain("Faro screened ${screened} stored public posts for this search");
     expect(homeSource).toContain("filtered as noise, not lost");
     expect(homeSource).toContain("getAllQualifiedPosts(overview.data?.posts ?? [])");
   });

@@ -39,7 +39,9 @@ describe("AI query suggestion fallback", () => {
   it("broadens workflow searches with service-delivery language while retaining the original concept", () => {
     const terms = expandServiceDiscoveryTerms("Find providers for a custom AI workflow", ["custom ai workflow"]);
     expect(terms).toEqual(expect.arrayContaining(["custom ai workflow", "automation", "ai agent"]));
-    expect(buildServiceDemandQuery(terms, ["job"])).toContain('("looking for someone" OR "looking for a freelancer"');
+    const query = buildServiceDemandQuery(terms, ["job"]);
+    expect(query).toContain('(\"looking for a developer\" OR \"looking for an agency\"');
+    expect(query.length).toBeLessThanOrEqual(1024);
   });
 });
 
@@ -105,6 +107,18 @@ describe("opportunity ranking", () => {
       goal: "Find people looking for someone to build AI automation",
       categories: ["service request"],
     })).toBe(false);
+  });
+
+  it("keeps a flexible first-person request for an automation specialist before model classification", () => {
+    expect(isPotentialBuyerOpportunity({
+      body: "Can anyone recommend an automation specialist for our sales team?",
+      postedAt: new Date(),
+      engagement: {},
+      includeTerms: ["automation"],
+      excludeTerms: [],
+      goal: "Find people looking for someone to build AI automation",
+      categories: ["service request"],
+    })).toBe(true);
   });
 });
 

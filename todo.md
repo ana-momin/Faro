@@ -203,3 +203,15 @@
 - [x] Add regression coverage for multi-signal search, cursor continuation, deduplication, and user-visible empty/error/result outcomes.
 - [x] Run and manually inspect three controlled real TwitterAPI.io briefs; record API calls, raw posts, deduplicated posts, qualified posts, displayed opportunities, and source limitations.
 - [x] Document root cause and measured live results, verify the final workflow, and save a published checkpoint.
+- [x] Replace the TwitterAPI.io key securely using the user-provided refreshed credential and validate server-side availability.
+- [x] Run paced real buyer-demand searches with the refreshed provider balance and inspect whether qualified posts persist; concluded with the user-imposed zero-call stop after excessive testing.
+- [x] Verify Feed visibility, document the refreshed-provider outcome, and save a published checkpoint.
+- [x] Inspect representative raw posts from the refreshed TwitterAPI.io search results to diagnose why all buyer candidates were filtered.
+- [x] Refine real-source query coverage and the buyer-only gate from observed request language without admitting offers, jobs, or generic discussion.
+- [x] Halted by user direction: do not re-run persisted monitors or make any further provider call until an explicit approved call limit exists.
+- [x] Expand monitor cursor storage safely so successful TwitterAPI.io pages with long provider cursors can record sync state and continue pagination.
+- [x] Stop all live TwitterAPI.io work and make no additional provider request without explicit user approval and a pre-agreed call limit.
+- [x] Document the refreshed-key test activity and credit-budget breach using only local records; do not make any further provider calls.
+- [x] Inspect saved Feed rendering, duplicate rows, local pagination, post-length handling, and timestamp data without contacting the X provider.
+- [x] Show ten unique saved posts initially, reveal the next ten locally, collapse long post text behind a See more control, and add professional local time filters.
+- [x] Add Feed regression coverage, verify desktop and mobile presentation without a source call, and checkpoint the update.

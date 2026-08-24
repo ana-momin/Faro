@@ -1,0 +1,1 @@
+ALTER TABLE `monitor_syncs` MODIFY COLUMN `nextToken` text;

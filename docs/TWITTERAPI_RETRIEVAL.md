@@ -39,6 +39,10 @@ No further live calls were made after the credit response. This preserves the us
 
 Faro AI cannot guarantee multiple qualified opportunities for every brief: X may have no current first-party buyer requests matching a narrow topic, and the provider’s page composition is outside Faro AI’s control. The current provider account also requires sufficient credits to complete the remaining live validations. When credits are available, re-run the same three briefs; Faro AI will pace calls and record the exact raw, deduplicated, qualified, persisted, and displayed counts.
 
+## Credit safety stop — 24 August 2026
+
+After a refreshed provider key was supplied, testing exceeded the intended budget. All temporary live-test runners were removed and all active provider work was stopped. **No further TwitterAPI.io request may be made unless the user gives explicit written approval and a fixed maximum call count.** Feed pagination, duplicate suppression, time filters, and post expansion operate entirely on already-saved rows and never contact the provider.
+
 ## Reference
 
 [1]: https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search "TwitterAPI.io — Tweet Advanced Search"

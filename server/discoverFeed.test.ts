@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest } from "../client/src/lib/discoverFeed";
+import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest } from "../client/src/lib/discoverFeed";
 
 const item = (id: number, monitorId: number, score: number, source = "twitterapi.io", body = "Looking to hire someone to automate our sales workflow") => ({ post: { id, source, ruleScore: score, body, reviewStatus: "pending" as const }, monitor: { id: monitorId } });
 
@@ -54,6 +54,24 @@ describe("Faro Discover feed selection", () => {
   it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
     const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
     expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);
+  });
+
+  it("deduplicates saved posts by provider X post ID before local Feed paging", () => {
+    const first = item(20, 10, 82);
+    const second = item(21, 11, 86);
+    const duplicateFirst = { ...first, post: { ...first.post, xPostId: "same-x-post" } };
+    const duplicateSecond = { ...second, post: { ...second.post, xPostId: "same-x-post" } };
+    expect(getAllQualifiedPosts([duplicateFirst, duplicateSecond]).map(row => row.post.id)).toEqual([20]);
+  });
+
+  it("filters qualified saved posts by professional local time windows", () => {
+    const now = new Date("2026-08-24T12:00:00.000Z");
+    const thisWeekBase = item(22, 10, 82);
+    const lastWeekBase = item(23, 10, 82);
+    const thisWeek = { ...thisWeekBase, post: { ...thisWeekBase.post, postedAt: "2026-08-24T10:00:00.000Z" } };
+    const lastWeek = { ...lastWeekBase, post: { ...lastWeekBase.post, postedAt: "2026-08-17T10:00:00.000Z" } };
+    expect(filterFeedByTime([thisWeek, lastWeek], "this_week", now).map(row => row.post.id)).toEqual([22]);
+    expect(filterFeedByTime([thisWeek, lastWeek], "last_week", now).map(row => row.post.id)).toEqual([23]);
   });
 
   it("labels practical buyer-request work by task category", () => {
