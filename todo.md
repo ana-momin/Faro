@@ -128,3 +128,9 @@
 - [x] Add lightweight interactive demand-discovery content and a clean hero-side visual without restoring 3D graphics.
 - [x] Add focused coverage, verify desktop/mobile interactions, and save a final checkpoint.
 - [x] Save the verified interactive Faro AI landing refinements as a final checkpoint.
+- [x] Audit Discover fetching, post synchronization, retired Review components, and current query contracts without triggering provider searches.
+- [x] Reintroduce a dedicated Review workspace for full post context and human-only decisions, synchronized with a compact Discover preview feed.
+- [x] Improve Discover’s data-dense preview UI, loading/empty/error states, and navigation into Review without exposing unnecessary post detail.
+- [x] Add regression coverage, verify desktop/mobile behavior, run checks, and save a final checkpoint.
+- [x] Add a clear Discover overview-fetch error state with retry guidance and recovery action.
+- [x] Save the verified Faro AI Discover and Review workflow rebuild as a final checkpoint.

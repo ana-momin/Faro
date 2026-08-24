@@ -3,14 +3,16 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+const reviewSource = readFileSync(resolve(process.cwd(), "client/src/pages/ReviewQueue.tsx"), "utf8");
 const introSource = readFileSync(resolve(process.cwd(), "client/src/pages/ProductIntro.tsx"), "utf8");
 const styleSource = readFileSync(resolve(process.cwd(), "client/src/index.css"), "utf8");
 
 describe("Faro premium interaction surfaces", () => {
-  it("uses a wide, hidden-scrollbar full-post review surface", () => {
-    expect(homeSource).toContain("lg:max-w-[1180px]");
-    expect(homeSource).toContain("scrollbar-none");
-    expect(homeSource).toContain("Review the full signal");
+  it("uses a dedicated, fixed-height hidden-scrollbar full-post review surface", () => {
+    expect(homeSource).toContain("Review all {total} qualified requests");
+    expect(reviewSource).toContain("xl:max-h-[calc(100vh-5rem)]");
+    expect(reviewSource).toContain("scrollbar-none");
+    expect(reviewSource).toContain("Review qualified requests");
   });
 
   it("keeps application scrolling usable while hiding visible scrollbar chrome", () => {

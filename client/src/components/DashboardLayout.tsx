@@ -14,6 +14,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: Compass, label: "Discover", path: "/" },
+  { icon: Inbox, label: "Review", path: "/review" },
   { icon: Radar, label: "Signals", path: "/signals" },
   { icon: UserRound, label: "Profile", path: "/profile" },
 ];
