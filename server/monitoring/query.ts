@@ -101,14 +101,15 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return discoveryTerms([...terms, ...expansions]);
 }
 
-const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "need a developer to" OR "need someone to build" OR "need someone to automate" OR "need an automation expert")';
+const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for someone to build" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "need a developer to" OR "need someone to build" OR "need someone to automate" OR "need an automation expert")';
 const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend a developer" OR "can anyone recommend an automation" OR "does anyone know a developer" OR "does anyone know an automation expert" OR "recommend an automation consultant" OR "looking to outsource")';
 const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "need someone to automate" OR "need someone to build" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent")';
+const OBSERVED_PROVIDER_NOISE_TERMS = ["job", "hiring", "full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
 
 function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
   const topics = discoveryTerms(includeTerms).slice(0, 5);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
-  const exclusions = uniqueTerms(excludeTerms).slice(0, 8).map(term => `-${quoteTerm(term)}`).join(" ");
+  const exclusions = uniqueTerms([...OBSERVED_PROVIDER_NOISE_TERMS, ...excludeTerms]).slice(0, 12).map(term => `-${quoteTerm(term)}`).join(" ");
   const query = [topicClause, buyerSignals, exclusions, "-is:retweet"].filter(Boolean).join(" ");
   return query.length <= 1024 ? query : `${quoteTerm(topics[0] ?? "automation")} ${buyerSignals} -is:retweet`;
 }

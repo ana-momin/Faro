@@ -51,6 +51,11 @@ describe("Faro Discover feed selection", () => {
     expect(getAllQualifiedPosts([needsSomeone, expertRequest]).map(row => row.post.id)).toEqual([14, 15]);
   });
 
+  it("keeps a semantically confirmed concrete buyer request visible when its wording is flexible", () => {
+    const flexible = { ...item(16, 10, 78, "twitterapi.io", "Imma need someone to build an AI app for hearing aids to translate languages in real time."), post: { ...item(16, 10, 78).post, aiIntent: { label: "Active help-seeking", confidence: 0.91 } } };
+    expect(getAllQualifiedPosts([flexible]).map(row => row.post.id)).toEqual([16]);
+  });
+
   it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
     const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
     expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);

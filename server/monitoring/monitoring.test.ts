@@ -40,7 +40,7 @@ describe("AI query suggestion fallback", () => {
     const terms = expandServiceDiscoveryTerms("Find providers for a custom AI workflow", ["custom ai workflow"]);
     expect(terms).toEqual(expect.arrayContaining(["custom ai workflow", "automation", "ai agent"]));
     const query = buildServiceDemandQuery(terms, ["job"]);
-    expect(query).toContain('(\"looking for a developer\" OR \"looking for an automation expert\"');
+    expect(query).toContain('"looking for a developer" OR "looking for someone to build" OR "looking for an automation expert"');
     expect(query.length).toBeLessThanOrEqual(1024);
   });
 });
@@ -117,6 +117,18 @@ describe("opportunity ranking", () => {
       includeTerms: ["automation"],
       excludeTerms: [],
       goal: "Find people looking for someone to build AI automation",
+      categories: ["service request"],
+    })).toBe(true);
+  });
+
+  it("keeps flexible provider language for semantic classification while still excluding hard noise", () => {
+    expect(isPotentialBuyerOpportunity({
+      body: "I would love a developer to build an AI app for hearing aids to translate languages in real time.",
+      postedAt: new Date(),
+      engagement: {},
+      includeTerms: ["AI app", "developer"],
+      excludeTerms: [],
+      goal: "Find buyers looking for a developer to build an AI-enabled product",
       categories: ["service request"],
     })).toBe(true);
   });

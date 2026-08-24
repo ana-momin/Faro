@@ -230,3 +230,7 @@
 - [x] Prioritize current-month saved buyer requests in Feed while retaining older qualified posts only as a fallback.
 - [x] Keep completed AI and keyword Search results visible in the Search workspace instead of redirecting users to Feed.
 - [x] Add regression coverage, validate locally without a provider call, document the credit-safe policy, and checkpoint the update.
+- [x] Define and agree the measurable buyer-discovery core plan, including credit budget, result-quality targets, and staged evaluation before additional live searches.
+- [x] Execute the approved four-call calibration batch only: two briefs × two buyer-signal families, stopping after four calls or two consecutive zero-buyer outcomes.
+- [x] Build an auditable call ledger and semantic buyer-assessment harness before live calibration; record raw, rejected, buyer, duplicate, and review outcomes per call.
+- [x] Use the calibration evidence to update query families and qualification rules offline, validate locally, document results, and checkpoint the core discovery improvement.

@@ -28,6 +28,7 @@ const NON_SERVICE_CONTEXT_PATTERNS = ["book a call", "dm me", "follow for", "we 
 const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops"];
 const SERVICE_OFFER_PATTERNS = ["i offer", "we offer", "my services", "our services", "available for hire", "available to hire", "hire me", "book me", "dm for", "dm me for", "i can build", "we can build", "i build ai", "we build ai", "i build automation", "we build automation", "i help businesses", "we help businesses", "i help founders", "we help founders", "reach out if you need", "contact me for"];
 const SELF_PROVIDER_OFFER_PATTERN = /\b(i am|i'm|we are|we're)\b.{0,100}\b(build(?:s|ing)?|help(?:s|ing)?|offer(?:s|ing)?|deliver(?:s|ing)?|speciali[sz](?:e|es|ing)|work with|provide(?:s|ing)?)\b/;
+const QUESTION_LED_PROVIDER_OFFER_PATTERN = /\b(?:need|looking for)\b.{0,120}\?\s*(?:hire|contact|dm|message)\b/;
 const GENERIC_GOAL_WORDS = new Set(["people", "asking", "help", "building", "build", "looking", "someone", "with", "from", "that", "this", "their", "about", "small", "business", "public", "posts", "for", "and", "the", "a", "an", "to", "of", "in"]);
 
 function tokens(value: string) {
@@ -74,14 +75,15 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const nonServiceContext = hasAny(body, NON_SERVICE_CONTEXT_PATTERNS);
   const promotionalContext = hasAny(body, PROMOTIONAL_PATTERNS);
   const selfDescribedDelivery = SELF_PROVIDER_OFFER_PATTERN.test(body) && !/(looking for|need someone|needs someone|seeking|recommend)/.test(body);
-  const serviceOffer = hasAny(body, SERVICE_OFFER_PATTERNS) || selfDescribedDelivery || /\bwhat i do\b|\bwhat we do\b/.test(body);
+  const serviceOffer = hasAny(body, SERVICE_OFFER_PATTERNS) || selfDescribedDelivery || QUESTION_LED_PROVIDER_OFFER_PATTERN.test(body) || /\bwhat i do\b|\bwhat we do\b/.test(body);
   const jobSeeking = JOB_SEEKER_PATTERN.test(body);
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
   const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
   const concreteBuyerRequest = directBuyerRequest && (!/need(?:s)? help with/.test(body) || concreteHelpRequest);
-  const serviceSeeking = !nonServiceContext && !jobSeeking && !serviceOffer && hasRelevantNeed && concreteBuyerRequest && (requestHasLocalScope || SPECIALIST_REQUEST_SCOPE_PATTERN.test(body));
+  const semanticBuyerConfirmation = modelConfirmedServiceNeed && hasRelevantNeed && deliveryScope;
+  const serviceSeeking = !nonServiceContext && !jobSeeking && !serviceOffer && hasRelevantNeed && (concreteBuyerRequest && (requestHasLocalScope || SPECIALIST_REQUEST_SCOPE_PATTERN.test(body)) || semanticBuyerConfirmation);
 
-  return { concepts, goalMatches, directRequest, directBuyerRequest, concreteBuyerRequest, deliveryScope, providerRequest, requestHasLocalScope, buyerContext, nonServiceContext, promotionalContext, serviceOffer, jobSeeking, modelConfirmedServiceNeed, serviceSeeking };
+  return { concepts, goalMatches, directRequest, directBuyerRequest, concreteBuyerRequest, deliveryScope, providerRequest, requestHasLocalScope, buyerContext, nonServiceContext, promotionalContext, serviceOffer, jobSeeking, modelConfirmedServiceNeed, semanticBuyerConfirmation, serviceSeeking };
 }
 
 export function rankOpportunity(input: RankedPostInput) {
@@ -148,7 +150,14 @@ export function rankOpportunity(input: RankedPostInput) {
  * work during a controlled source sync.
  */
 export function isPotentialBuyerOpportunity(input: Omit<RankedPostInput, "aiConfidence" | "aiLabel">) {
-  return rankOpportunity({ ...input, aiConfidence: 0, aiLabel: "Low-intent mention" }).score > 0;
+  const body = input.body.toLowerCase();
+  const hasExcludedTerm = input.excludeTerms.some(term => body.includes(term.toLowerCase()));
+  if (hasExcludedTerm) return false;
+  const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal);
+  const flexibleBuyerLanguage = /\b(?:would love|could really use|trying to find|hoping to find|want)\b.{0,90}\b(?:freelancer|agency|consultant|expert|specialist|developer|builder|contractor|service provider|vendor)\b/.test(body);
+  const plausibleBuyerLanguage = assessment.directRequest || assessment.providerRequest || flexibleBuyerLanguage;
+  const relevantEnough = assessment.concepts.length > 0 || assessment.goalMatches > 0;
+  return !assessment.nonServiceContext && !assessment.jobSeeking && !assessment.serviceOffer && relevantEnough && plausibleBuyerLanguage;
 }
 
 export function deterministicIntent(body: string, includeTerms: string[], goal = "") {

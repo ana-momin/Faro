@@ -49,6 +49,22 @@ Local inspection found many previously saved raw X rows but only a small number 
 
 The buyer gate now also requires a defined delivery task for general provider requests, which removes generic “looking for a developer” announcements. It preserves concrete build, automation, implementation, testing, repair, migration, and automation-specialist requests. The Feed presents the Faro summary, confidence, evidence, and manual Keep/Dismiss controls directly inside the clicked post detail view; the separate Review route has been removed.
 
+## Approved four-call calibration — 24 August 2026
+
+The user explicitly approved a one-time calibration ceiling of four TwitterAPI.io calls: two briefs, each tested with a direct-demand and a recommendation-demand signal family. The runner paused 5.5 seconds between calls, would have stopped after two consecutive zero-buyer outcomes, and did not use pagination, automatic retries, or hidden follow-up calls.
+
+| Brief and signal family | Source calls | Raw posts | Hard-noise rejects | Semantic buyer confirmations | Decision |
+|---|---:|---:|---:|---:|---|
+| AI automation · direct provider need | 1 | 16 | 4 | 8 | Retain, but use stronger job/promotion exclusions and manual review. |
+| AI automation · recommendation request | 1 | 20 | 4 | 0 | Retire from normal searches; it produced education, generic discussion, and noise. |
+| AI product development · direct provider need | 1 | 8 | 2 | 2 | Retain as a lower-volume, concrete-build family with promotion exclusions. |
+| AI product development · recommendation request | 1 | 1 | 0 | 1 | Keep only as an optional future calibration family; sample size is too small for normal use. |
+| **Total** | **4** | **45** | **10** | **11** | No additional calibration call is authorized by this batch. |
+
+Manual inspection showed that semantic confirmation alone was still too permissive for some job notices and question-led service advertisements. Faro therefore now excludes observed job, hiring, compensation, training, and promotion noise from the direct query family; rejects question-led provider ads; lets plausible flexible buyer wording reach semantic classification; and preserves a high-confidence semantic buyer confirmation in Feed only when the post also states a concrete delivery task. The calibration runner did **not** persist its sample to the product Feed, preventing experimental rows from appearing as production opportunities.
+
+Normal user-initiated searches remain capped at one protected provider request. The next safe product validation is one deliberate manual search using the refined direct-demand query, followed by manual Keep/Dismiss review of every returned opportunity.
+
 ## Reference
 
 [1]: https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search "TwitterAPI.io — Tweet Advanced Search"

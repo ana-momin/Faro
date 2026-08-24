@@ -197,6 +197,36 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("Service offer rather than buyer request");
   });
 
+  it("rejects a question-led provider promotion that imitates a buyer request", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI integration", "automation"],
+      excludeTerms: [],
+      goal: "Find buyers looking for AI product development and automation help",
+      body: "Need someone to build AI models and algorithms? Hire an AI Engineer to integrate LLMs into your software.",
+      postedAt: new Date(),
+      engagement: {},
+      aiLabel: "Active help-seeking",
+      aiConfidence: 0.95,
+    });
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("Service offer rather than buyer request");
+  });
+
+  it("accepts a flexible first-person buyer request when semantic intent confirms a concrete delivery task", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI app", "automation", "developer"],
+      excludeTerms: [],
+      goal: "Find buyers looking for a developer to build an AI-enabled product",
+      body: "I would love a developer to build an AI app for hearing aids to translate languages in real time.",
+      postedAt: new Date(),
+      engagement: {},
+      aiLabel: "Active help-seeking",
+      aiConfidence: 0.91,
+    });
+    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.components.map(component => component.label)).toContain("Model-confirmed service request");
+  });
+
   it("rejects generic commentary about people needing AI help without a buyer asking for a provider", () => {
     const result = rankOpportunity({
       includeTerms: ["AI", "automation"],

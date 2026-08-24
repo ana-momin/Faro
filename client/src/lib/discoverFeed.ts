@@ -12,7 +12,9 @@ export function isConcreteBuyerRequest(post: FeedPost) {
   if (!post.body) return false;
   if (/\b(?:looking for|seeking|open to)\b.{0,45}\b(?:role|position|employment|job|work)\b/i.test(post.body)) return false;
   const buyerAsk = CONCRETE_BUYER_REQUEST.test(post.body) || OPENING_BUYER_REQUEST.test(post.body);
-  return buyerAsk && DELIVERY_SCOPE.test(post.body);
+  const intent = (post as FeedPost & { aiIntent?: { label?: string; confidence?: number } }).aiIntent;
+  const semanticBuyer = intent?.label === "Active help-seeking" && (intent.confidence ?? 0) >= 0.8;
+  return DELIVERY_SCOPE.test(post.body) && (buyerAsk || semanticBuyer);
 }
 
 export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorId?: number, fallbackToAll = true) {
