@@ -89,3 +89,7 @@
 - [x] Upgrade the Run Faro control and synchronize visual search-progress stages with the live request lifecycle.
 - [x] Limit long review posts to a compact excerpt and highlight the relevant service-request phrases.
 - [x] Save a final checkpoint for the verified Faro AI sidebar, search-progress, and compact post-card refinements.
+- [x] Remove nested interactive elements from selectable X post cards while preserving review actions.
+- [x] Ensure keyboard activation only selects a post when focus is on the outer card, not inner review controls.
+- [x] Add a regression test for keyboard interaction on nested post-card actions.
+- [ ] Save a final checkpoint for the verified accessible Faro AI post-card DOM repair.
