@@ -60,7 +60,7 @@ export function deterministicSuggestion(goal: string) {
     .split(" ")
     .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
   const includeTerms = expandServiceDiscoveryTerms(goal, extractedPhrases.length ? extractedPhrases : usefulWords);
-  const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking for a developer", "looking for a tester", "looking for a designer", "looking for a creator", "looking for an editor", "need someone", "need a freelancer", "need an agency", "need a developer", "need a tester", "need a designer", "need an expert", "need help with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "can someone build", "can someone automate", "who can build", "seeking a provider"];
+  const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking for a developer", "looking for a tester", "looking for a designer", "looking for a creator", "looking for an editor", "need someone", "need a freelancer", "need an agency", "need a developer", "need a tester", "need a designer", "need an expert", "need help with", "need a hand with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "does anyone know a developer", "does anyone know an agency", "does anyone know a freelancer", "recommendations for a developer", "recommendations for an agency", "can someone build", "can someone automate", "who can build", "seeking a provider"];
   const topicClause = includeTerms.length > 1
     ? `(${includeTerms.map(quoteTerm).join(" OR ")})`
     : quoteTerm(includeTerms[0] ?? "automation");
@@ -90,7 +90,7 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return uniqueTerms([...terms, ...expansions]).slice(0, 8);
 }
 
-const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency")';
+const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "need a hand with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency" OR "does anyone know a developer" OR "does anyone know an agency" OR "does anyone know a freelancer" OR "recommendations for a developer" OR "recommendations for an agency")';
 
 export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
   const topics = uniqueTerms(includeTerms).slice(0, 8);
@@ -102,6 +102,6 @@ export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: st
 export function requireServiceRequestQuery(query: string) {
   const normalized = query.trim();
   if (!normalized) return SERVICE_REQUEST_QUERY;
-  if (/looking for (someone|a freelancer|an agency|a developer|a tester|a designer|a creator|an editor)|need (someone|a freelancer|an agency|a developer|a tester|a designer)|looking to hire|seeking a provider/.test(normalized)) return normalized;
+  if (/looking for (someone|a freelancer|an agency|a developer|a tester|a designer|a creator|an editor)|need (someone|a freelancer|an agency|a developer|a tester|a designer)|need a hand with|looking to hire|seeking a provider|does anyone know a (developer|agency|freelancer)|recommendations for an? (developer|agency|freelancer)/.test(normalized)) return normalized;
   return `${normalized} ${SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
 }

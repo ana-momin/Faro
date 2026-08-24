@@ -39,6 +39,12 @@ describe("Faro Discover feed selection", () => {
     expect(isConcreteBuyerRequest(networkingAsk.post)).toBe(false);
   });
 
+  it("keeps a concrete developer recommendation request available in the broader Feed", () => {
+    const recommendation = item(13, 10, 50, "twitterapi.io", "Does anyone know a developer who can automate our client intake with AI?");
+    expect(isConcreteBuyerRequest(recommendation.post)).toBe(true);
+    expect(getAllQualifiedPosts([recommendation]).map(row => row.post.id)).toEqual([13]);
+  });
+
   it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
     const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
     expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);

@@ -259,4 +259,18 @@ describe("Faro personalized relevance scoring", () => {
     expect(serviceRequest.score).toBeGreaterThanOrEqual(55);
     expect(jobOpening.score).toBe(0);
   });
+
+  it("accepts a concrete recommendation request for a developer without requiring a first-person phrasing", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI", "automation", "developer"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers seeking an AI automation developer",
+      body: "Does anyone know a developer who can automate our client intake with AI? We need to launch the workflow this month.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.components.map(component => component.label)).toContain("Direct service request");
+  });
 });

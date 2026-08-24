@@ -182,3 +182,7 @@
 - [x] Organize repository metadata and write a polished formal README with concise visual guidance.
 - [x] Validate the project, review the final repository diff, and create a clean release commit.
 - [x] Push the completed Faro AI repository to the user’s new GitHub repository named Faro.
+- [x] Audit strict Feed qualification safeguards and current Feed header elements that limit useful post coverage.
+- [x] Broaden concrete help-seeking matching while retaining exclusions for service offers, jobs, promotions, networking, and generic discussion.
+- [x] Simplify Feed into a clean posts-only social surface without extra top icons, “Buyer requests,” or “Request feed” copy.
+- [x] Add broader-intent and simplified-Feed regression coverage, verify desktop/mobile layouts, run checks, and save a final checkpoint.
