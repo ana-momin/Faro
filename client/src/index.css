@@ -122,6 +122,14 @@
     font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.018em;
   }
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -170,6 +178,11 @@
   .soft-grid {
     background-image: linear-gradient(oklch(0.55 0.02 250 / 8%) 1px, transparent 1px), linear-gradient(90deg, oklch(0.55 0.02 250 / 8%) 1px, transparent 1px);
     background-size: 30px 30px;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   @media (min-width: 640px) {

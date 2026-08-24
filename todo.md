@@ -107,3 +107,9 @@
 - [x] Add focused route/navigation coverage, verify desktop and mobile animation states, run checks, and save a final checkpoint.
 - [x] Add regression coverage for the `/faro` route and sidebar/mobile Faro brand navigation wiring.
 - [x] Save the verified Faro AI animated product-introduction experience as a final checkpoint.
+- [x] Audit Faro AI’s product-introduction composition, Discover post-review dialog width, and current scrollbar behavior.
+- [x] Upgrade the Faro AI product introduction with a more distinctive premium visual system and stronger product-proof storytelling.
+- [x] Rebuild the Discover full-post review dialog as a wider, scrollbar-free, desktop-first review surface while preserving mobile usability.
+- [x] Remove visible scrollbars from Faro AI’s intentional scroll surfaces without preventing keyboard, touch, or mouse-wheel scrolling.
+- [x] Add focused coverage, verify desktop/mobile visual states, run checks, and save a final checkpoint.
+- [x] Save the verified premium Faro AI product and wide scrollbar-free review update as a final checkpoint.
