@@ -223,3 +223,6 @@
 - [x] Refine buyer-request coverage and qualification from stored evidence without admitting offers, jobs, promotions, networking, or generic discussion.
 - [x] Move the Feed content left, open clicked posts in an embedded detail view with Faro summary and confidence, and remove the separate Review route.
 - [x] Add regression coverage, verify desktop/mobile behavior without an X-source call, and checkpoint the discovery and embedded-detail update.
+- [x] Inspect the current Feed alignment and clicked-post detail overlay without a source call.
+- [x] Re-center the Feed and refine the post-detail overlay hierarchy, analysis presentation, and manual actions.
+- [x] Verify desktop and mobile presentation without a source call, add any needed regression coverage, and checkpoint the visual refinement.
