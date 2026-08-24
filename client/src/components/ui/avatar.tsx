@@ -34,11 +34,13 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
+  delayMs = 150,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
+      delayMs={delayMs}
       className={cn(
         "bg-muted flex size-full items-center justify-center rounded-full",
         className

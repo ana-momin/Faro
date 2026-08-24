@@ -1,4 +1,3 @@
-import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { getDiscoverPreview, getQualifiedPosts, getRequestCategory } from "@/lib/discoverFeed";
 import { trpc } from "@/lib/trpc";
@@ -61,13 +60,13 @@ export default function Home() {
     </>;
   }
 
-  return <DashboardLayout><div className="mx-auto max-w-6xl pb-10">
+  return <div className="mx-auto max-w-6xl pb-10">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#eadfd2] pb-6">
       <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f1d7b9] text-[#8f4e38]"><Compass className="h-5 w-5" /></span><div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#a25d47]">Live buyer demand</p><h1 className="mt-1 text-2xl font-extrabold tracking-[-0.06em]">Top matching requests</h1></div></div>
       <Button onClick={() => setLocation("/search")} className="h-10 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]"><Search className="mr-2 h-3.5 w-3.5" />New search</Button>
     </header>
     {content}
-  </div></DashboardLayout>;
+  </div>;
 }
 
 function BuyerRequestList({ items, hasMore, onMore, onOpen }: { items: any[]; hasMore: boolean; onMore: () => void; onOpen: (postId: number) => void }) {

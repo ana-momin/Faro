@@ -7,8 +7,9 @@ const appSource = readFileSync(resolve(process.cwd(), "client/src/App.tsx"), "ut
 const sidebarSource = readFileSync(resolve(process.cwd(), "client/src/components/DashboardLayout.tsx"), "utf8");
 
 describe("Faro product-introduction navigation", () => {
-  it("registers the dedicated product route", () => {
-    expect(appSource).toContain('<Route path={"/faro"} component={ProductIntro} />');
+  it("registers the dedicated product route outside the persistent workspace shell", () => {
+    expect(appSource).toContain('if (pathname === "/faro") return <ProductIntro />');
+    expect(appSource).toContain("<DashboardLayout>");
     expect(PRODUCT_INTRO_PATH).toBe("/faro");
   });
 

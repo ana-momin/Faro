@@ -159,3 +159,7 @@
 - [x] Implement cache-first page rendering, faster navigation, and immediate feedback for controlled search initiation.
 - [x] Optimize shared data fetching and loading states without adding automatic source checks or weakening buyer-only qualification.
 - [x] Add performance-focused regression coverage, verify desktop/mobile responsiveness, run checks, and save a final checkpoint.
+- [x] Audit navigation remounts, sidebar sizing state, and avatar/logo rendering that cause visible flicker.
+- [x] Remove the adjustable sidebar control and enforce a fixed standard sidebar width across section changes.
+- [x] Keep Faro branding and the member profile image stable while navigating between sections.
+- [x] Add sidebar stability regression coverage, verify desktop/mobile navigation, run checks, and save a final checkpoint.

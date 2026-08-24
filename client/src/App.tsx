@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import DashboardLayout from "@/components/DashboardLayout";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -11,18 +12,23 @@ import ReviewQueue from "./pages/ReviewQueue";
 import Search from "./pages/Search";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
+  const [location] = useLocation();
+  const pathname = location.split("?")[0];
+
+  if (pathname === "/faro") return <ProductIntro />;
+  if (!pathname || !["/", "/search", "/review", "/profile"].includes(pathname)) return <NotFound />;
+
+  // The workspace shell remains mounted while only its page content changes.
+  // This keeps the Faro mark, member image, and fixed sidebar stable in motion.
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/faro"} component={ProductIntro} />
-      <Route path={"/search"} component={Search} />
-      <Route path={"/review"} component={ReviewQueue} />
-      <Route path={"/profile"} component={Profile} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <DashboardLayout>
+      <Switch>
+        <Route path={"/"} component={Home} />
+        <Route path={"/search"} component={Search} />
+        <Route path={"/review"} component={ReviewQueue} />
+        <Route path={"/profile"} component={Profile} />
+      </Switch>
+    </DashboardLayout>
   );
 }
 

@@ -22,4 +22,18 @@ describe("Faro buyer-demand workflow", () => {
     expect(sidebar).not.toContain('label: "Signals"');
     expect(app).not.toContain('path={"/signals"}');
   });
+
+  it("keeps one fixed workspace shell mounted across section changes", () => {
+    const app = readFileSync(new URL("../client/src/App.tsx", import.meta.url), "utf8");
+    const sidebar = readFileSync(new URL("../client/src/components/DashboardLayout.tsx", import.meta.url), "utf8");
+    const avatar = readFileSync(new URL("../client/src/components/ui/avatar.tsx", import.meta.url), "utf8");
+    const logo = readFileSync(new URL("../client/src/components/FaroLogo.tsx", import.meta.url), "utf8");
+
+    expect(app).toContain("<DashboardLayout>");
+    expect(sidebar).toContain('collapsible="offcanvas"');
+    expect(sidebar).not.toContain("toggleSidebar");
+    expect(sidebar).not.toContain("cursor-col-resize");
+    expect(avatar).toContain("delayMs = 150");
+    expect(logo).toContain('loading="eager"');
+  });
 });
