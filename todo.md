@@ -78,3 +78,6 @@
 - [x] Make agent runs report actual live-source outcomes and add a visual progress state that distinguishes planning, source check, qualification, success, and source failure.
 - [x] Update the tab title to a concise Faro tagline, move the sidebar collapse control above the account area, remove the redundant human-review rail, and apply a warm light desk theme.
 - [x] Save a final checkpoint for the verified Faro agent outcome and warm light desk repair.
+- [x] Update the browser title and visible sidebar brand label to Faro AI.
+- [x] Right-align the sidebar collapse control while preserving compact-sidebar access.
+- [ ] Save a final checkpoint for the verified Faro AI branding and right-aligned sidebar control update.
