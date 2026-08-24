@@ -93,3 +93,11 @@
 - [x] Ensure keyboard activation only selects a post when focus is on the outer card, not inner review controls.
 - [x] Add a regression test for keyboard interaction on nested post-card actions.
 - [x] Save a final checkpoint for the verified accessible Faro AI post-card DOM repair.
+- [x] Audit warm navigation styling, Discover post interaction contracts, and available authenticated-user data.
+- [x] Remove the Faro desk pseudo-option, apply a cohesive light-brown active navigation state, and retire the redundant Review page from navigation.
+- [x] Add a dynamic, time-aware Faro AI greeting using the authenticated user’s name.
+- [x] Turn Discover into the complete post-review workspace with a full-post dialog, larger human actions, and an agent summary panel.
+- [x] Add focused coverage for the agent-summary and dialog content helpers, verify desktop/mobile UX, run checks, and save a final checkpoint.
+- [x] Show the full qualified Discover review feed so the unified workspace replaces the retired Review page.
+- [x] Add dialog-content helper coverage and save a final verified Faro AI Discover checkpoint.
+- [x] Save the verified unified Faro AI Discover workspace as a final checkpoint.

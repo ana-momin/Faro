@@ -1,20 +1,24 @@
-import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/_core/hooks/useAuth";
 import XPostCard from "@/components/XPostCard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { buildReviewDialogContent, personalizedGreeting } from "@/lib/discoverAgent";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleAlert, Compass, Loader2, Radar, RefreshCw, Search, Sparkles, Target } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bot, CheckCircle2, CircleAlert, Compass, ExternalLink, Loader2, Radar, RefreshCw, Search, Sparkles, Target, ThumbsDown, ThumbsUp } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useLocation } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
 
 const DEFAULT_BRIEF = "Find founders and operators who need a provider to build custom AI workflows, automate operations, or produce practical AI video.";
 
 export default function Home() {
   const utils = trpc.useUtils();
-  const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [brief, setBrief] = useState(DEFAULT_BRIEF);
   const [searchStep, setSearchStep] = useState<1 | 2 | null>(null);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
   const overview = trpc.monitoring.overview.useQuery(undefined, { refetchInterval: 30_000 });
   const agent = trpc.monitoring.agentStart.useMutation({
     onSuccess: result => {
@@ -46,8 +50,9 @@ export default function Home() {
   const activeBrief = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
   const allQualified = useMemo(() => (overview.data?.posts ?? []).filter(({ post }) => post.source !== "demo" && post.ruleScore >= 55), [overview.data?.posts]);
   const activeQualified = useMemo(() => allQualified.filter(({ monitor }) => !activeBrief || monitor.id === activeBrief.monitor.id), [allQualified, activeBrief]);
-  const qualified = (activeQualified.length ? activeQualified : allQualified).slice(0, 4);
+  const qualified = activeQualified.length ? activeQualified : allQualified;
   const monitored = activeBrief ? 1 : 0;
+  const greeting = personalizedGreeting(user?.name);
 
   function runAgent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,8 +62,8 @@ export default function Home() {
   return <DashboardLayout>
     <div className="mx-auto max-w-6xl pb-8">
       <header className="flex items-center justify-between border-b border-[#eadfd2] pb-5">
-        <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#3d2e25] text-white"><Compass className="h-4 w-4" /></span><div><h1 className="text-xl font-extrabold tracking-[-0.055em]">Discover</h1><p className="text-[11px] text-[#8c7d70]">Service demand on X, sorted for human review.</p></div></div>
-        <div className="flex items-center gap-2"><button onClick={() => activeBrief && sync.mutate({ monitorId: activeBrief.monitor.id })} disabled={!activeBrief || sync.isPending} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e8dacc] bg-white text-[#765d4a] transition hover:bg-[#fff8ef] disabled:opacity-40" title="Check live source"><RefreshCw className={`h-4 w-4 ${sync.isPending ? "animate-spin" : ""}`} /></button><button onClick={() => setLocation("/review")} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e8dacc] bg-white text-[#765d4a] transition hover:bg-[#fff8ef]" title="Open review queue"><ArrowUpRight className="h-4 w-4" /></button></div>
+        <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f1d7b9] text-[#8f4e38]"><Compass className="h-4 w-4" /></span><div><p className="text-[11px] font-bold text-[#a25d47]">{greeting}</p><h1 className="mt-0.5 text-xl font-extrabold tracking-[-0.055em]">Discover requests</h1></div></div>
+        <button onClick={() => activeBrief && sync.mutate({ monitorId: activeBrief.monitor.id })} disabled={!activeBrief || sync.isPending} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e8dacc] bg-white text-[#765d4a] transition hover:bg-[#fff8ef] disabled:opacity-40" title="Check live source"><RefreshCw className={`h-4 w-4 ${sync.isPending ? "animate-spin" : ""}`} /></button>
       </header>
 
       <section className="mt-6 overflow-hidden rounded-[28px] border border-[#ead9c4] bg-[#fbf2e5] p-5 text-[#38291f] shadow-[0_16px_35px_rgba(105,68,38,0.06)] sm:p-7">
@@ -68,12 +73,20 @@ export default function Home() {
         {agent.data && !agent.isPending && <AgentOutcome result={agent.data} />}
       </section>
 
-      <section className="mt-7"><div className="flex items-center justify-between"><div><p className="text-sm font-extrabold tracking-[-0.03em]">Qualified now</p><p className="mt-1 text-[10px] text-[#9a8a7b]">Requests with an actual service need.</p></div><button onClick={() => setLocation("/review")} className="text-[11px] font-bold text-[#9f563f]">Review queue</button></div>
-        {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#eadfd2] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#b6a697]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 xl:grid-cols-2">{qualified.map(({ post }) => <XPostCard key={post.id} post={post} pending={review.isPending} onSelect={() => setLocation("/review")} onReview={decision => review.mutate({ postId: post.id, decision })} />)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#eadfd2] bg-[#fffdfa] px-5 text-center"><Search className="h-5 w-5 text-[#b7a799]" /><p className="mt-3 text-sm font-bold">No qualified requests yet.</p><p className="mt-1 max-w-md text-[10px] text-[#9d8e80]">{activeBrief?.sync?.status === "payment_required" ? "Your live X provider needs account credit before Faro can fetch fresh posts." : "Check the live source for fresh provider requests. Topic chatter stays out."}</p></div>}</section>
+      <section className="mt-7"><div><p className="text-sm font-extrabold tracking-[-0.03em]">Qualified requests</p><p className="mt-1 text-[10px] text-[#9a8a7b]">Open a post for the full context and Faro AI’s read.</p></div>
+        {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#eadfd2] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#b6a697]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 xl:grid-cols-2">{qualified.map(({ post }) => <XPostCard key={post.id} post={post} pending={review.isPending} onSelect={() => setSelectedPost(post)} onReview={decision => review.mutate({ postId: post.id, decision })} />)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#eadfd2] bg-[#fffdfa] px-5 text-center"><Search className="h-5 w-5 text-[#b7a799]" /><p className="mt-3 text-sm font-bold">No qualified requests yet.</p><p className="mt-1 max-w-md text-[10px] text-[#9d8e80]">{activeBrief?.sync?.status === "payment_required" ? "Your live X provider needs account credit before Faro can fetch fresh posts." : "Check the live source for fresh provider requests. Topic chatter stays out."}</p></div>}</section>
 
       <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"><Metric icon={Radar} value={String(monitored)} label="active brief" /><Metric icon={Target} value={String(qualified.length)} label="qualified now" /><Metric icon={Bot} value="On demand" label="agent runs" /></section>
     </div>
+    <PostReviewDialog post={selectedPost} pending={review.isPending} onClose={() => setSelectedPost(null)} onReview={decision => selectedPost && review.mutate({ postId: selectedPost.id, decision })} />
   </DashboardLayout>;
+}
+
+function PostReviewDialog({ post, pending, onClose, onReview }: { post: any; pending: boolean; onClose: () => void; onReview: (decision: "approved" | "rejected") => void }) {
+  const dialogContent = post ? buildReviewDialogContent(post) : null;
+  const agentRead = dialogContent?.agentRead;
+  const initial = dialogContent?.authorLabel.trim().charAt(0).toUpperCase() || "F";
+  return <Dialog open={Boolean(post)} onOpenChange={open => !open && onClose()}><DialogContent className="max-w-4xl border-[#ead9c4] bg-[#fffdfa] p-0 sm:rounded-[28px]" showCloseButton><div className="grid max-h-[82vh] overflow-y-auto md:grid-cols-[minmax(0,1fr)_290px]"><section className="p-5 sm:p-7"><DialogHeader><DialogTitle className="sr-only">Full X post review</DialogTitle><DialogDescription className="sr-only">Full post context and Faro AI assessment.</DialogDescription></DialogHeader><div className="flex items-center gap-3"><Avatar className="h-11 w-11"><AvatarImage src={post?.authorAvatarUrl || undefined} alt="" /><AvatarFallback className="bg-[#f8e4c8] font-bold text-[#9c573f]">{initial}</AvatarFallback></Avatar><div className="min-w-0"><p className="truncate text-sm font-extrabold">{dialogContent?.authorLabel}</p><p className="truncate text-[11px] text-[#9a8a7b]">{dialogContent?.handleLabel}</p></div></div><article className="mt-6 whitespace-pre-wrap text-[15px] leading-7 text-[#3b2d23]">{dialogContent?.fullPost}</article><p className="mt-5 text-[11px] text-[#9a8a7b]">{post && new Date(post.postedAt).toLocaleString()}</p><div className="mt-6 flex flex-wrap gap-2"><a href={post?.postUrl || "https://x.com"} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-xl border border-[#e5d3bd] bg-white px-4 text-xs font-bold text-[#794b36] hover:bg-[#fbf2e5]"><ExternalLink className="mr-2 h-4 w-4" />Open in X</a>{post?.reviewStatus === "pending" ? <><Button disabled={pending} onClick={() => onReview("approved")} className="h-11 rounded-xl bg-[#b85f45] px-5 text-xs font-extrabold text-white hover:bg-[#9f4d36]"><ThumbsUp className="mr-2 h-4 w-4" />Keep request</Button><Button disabled={pending} onClick={() => onReview("rejected")} variant="outline" className="h-11 rounded-xl border-[#eed5cc] px-4 text-xs font-bold text-[#a14941] hover:bg-[#fff4f0]"><ThumbsDown className="mr-2 h-4 w-4" />Dismiss</Button></> : <span className="inline-flex h-11 items-center rounded-xl bg-[#f1e2d0] px-4 text-xs font-bold text-[#8f4e38]">Already {post?.reviewStatus}</span>}</div></section><aside className="border-t border-[#eadfd2] bg-[#fbf2e5] p-5 md:border-l md:border-t-0 sm:p-7"><div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#a25d47]"><Bot className="h-3.5 w-3.5" />Faro AI read</div><p className="mt-4 text-base font-extrabold tracking-[-0.03em] text-[#4b2e21]">{agentRead?.confidence}</p><p className="mt-3 text-sm leading-6 text-[#765845]">{agentRead?.summary}</p><div className="mt-6 space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a17860]">Why it surfaced</p>{agentRead?.evidence.map(reason => <div key={reason.label} className="flex items-center justify-between rounded-xl border border-[#ead9c4] bg-white/70 px-3 py-2"><span className="text-[11px] font-semibold text-[#6e4a38]">{reason.label}</span><span className="text-[10px] font-extrabold text-[#a25d47]">+{reason.points}</span></div>)}</div></aside></div></DialogContent></Dialog>;
 }
 
 function SearchProgress({ step }: { step: 1 | 2 }) {
