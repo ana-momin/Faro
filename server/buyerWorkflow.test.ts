@@ -19,5 +19,7 @@ describe("Faro buyer-demand workflow", () => {
     expect(search).toContain("Keyword search");
     expect(app).toContain('path={"/search"}');
     expect(sidebar).toContain('label: "Search"');
+    expect(sidebar).not.toContain('label: "Signals"');
+    expect(app).not.toContain('path={"/signals"}');
   });
 });

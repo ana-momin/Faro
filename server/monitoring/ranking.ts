@@ -61,9 +61,8 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const serviceOffer = hasAny(body, SERVICE_OFFER_PATTERNS) || selfDescribedDelivery || /\bwhat i do\b|\bwhat we do\b/.test(body);
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
   const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
-  const modelAssistedServiceSeeking = modelConfirmedServiceNeed && providerRequest && (deliveryScope || buyerContext);
   const concreteBuyerRequest = directBuyerRequest && (!/need(?:s)? help with/.test(body) || concreteHelpRequest);
-  const serviceSeeking = !nonServiceContext && !serviceOffer && hasRelevantNeed && ((concreteBuyerRequest && (deliveryScope || providerRequest)) || modelAssistedServiceSeeking);
+  const serviceSeeking = !nonServiceContext && !serviceOffer && hasRelevantNeed && concreteBuyerRequest && (deliveryScope || providerRequest);
 
   return { concepts, goalMatches, directRequest, directBuyerRequest, concreteBuyerRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, serviceOffer, modelConfirmedServiceNeed, serviceSeeking };
 }

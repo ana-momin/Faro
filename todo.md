@@ -150,3 +150,8 @@
 - [x] Add editable profile-photo storage and display it consistently in Profile and the dashboard account area.
 - [x] Add regression coverage, verify desktop/mobile workflows, run checks, and save a final checkpoint.
 - [x] Save the verified Faro AI buyer-demand discovery workflow as a final checkpoint.
+- [x] Inspect active-monitor state, stored qualified buyer requests, Discover selection logic, and Signals navigation dependencies without triggering a source search.
+- [x] Remove the Signals destination and all now-unused in-app links.
+- [x] Repair Discover so it shows the top qualified buyer requests across saved searches when the newest active search has none.
+- [x] Add regression coverage, verify Discover and Review synchronization, and save a final checkpoint.
+- [x] Save the verified simplified Faro AI discovery workflow as a final checkpoint.

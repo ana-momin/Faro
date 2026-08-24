@@ -11,10 +11,15 @@ export default function Home() {
   const overview = trpc.monitoring.overview.useQuery(undefined, { refetchInterval: 30_000 });
   const [visibleCount, setVisibleCount] = useState(10);
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
-  const qualified = useMemo(
+  const activeQualified = useMemo(
     () => getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, false),
     [overview.data?.posts, active?.monitor.id],
   );
+  const qualified = useMemo(
+    () => getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, true),
+    [overview.data?.posts, active?.monitor.id],
+  );
+  const isShowingSavedFallback = Boolean(active && !activeQualified.length && qualified.length);
   const visible = useMemo(() => getDiscoverPreview(qualified, visibleCount), [qualified, visibleCount]);
   const screened = useMemo(() => (overview.data?.posts ?? []).filter(item => item.monitor.id === active?.monitor.id && item.post.source !== "demo").length, [overview.data?.posts, active?.monitor.id]);
   useEffect(() => setVisibleCount(10), [active?.monitor.id]);
@@ -47,7 +52,7 @@ export default function Home() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-extrabold tracking-[-0.03em]">Highlighted buyer requests</p>
-            <p className="mt-1 text-[10px] text-[#9a8a7b]">Top {Math.min(10, qualified.length)} of {qualified.length} qualified matches. People offering services are excluded.</p>
+            <p className="mt-1 text-[10px] text-[#9a8a7b]">{isShowingSavedFallback ? `Showing the best ${Math.min(10, qualified.length)} saved buyer requests while this newest search has no match yet.` : `Top ${Math.min(10, qualified.length)} of ${qualified.length} qualified matches. People offering services are excluded.`}</p>
           </div>
           <button onClick={() => setLocation("/review")} className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#98523c] hover:text-[#713c2b]">Open full review <ArrowRight className="h-3.5 w-3.5" /></button>
         </div>

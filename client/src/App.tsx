@@ -9,7 +9,6 @@ import Profile from "./pages/Profile";
 import ProductIntro from "./pages/ProductIntro";
 import ReviewQueue from "./pages/ReviewQueue";
 import Search from "./pages/Search";
-import Signals from "./pages/Signals";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -19,7 +18,6 @@ function Router() {
       <Route path={"/faro"} component={ProductIntro} />
       <Route path={"/search"} component={Search} />
       <Route path={"/review"} component={ReviewQueue} />
-      <Route path={"/signals"} component={Signals} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

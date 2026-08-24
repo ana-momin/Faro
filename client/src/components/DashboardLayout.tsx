@@ -16,7 +16,6 @@ const menuItems = [
   { icon: Compass, label: "Discover", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Inbox, label: "Review", path: "/review" },
-  { icon: Radar, label: "Signals", path: "/signals" },
   { icon: UserRound, label: "Profile", path: "/profile" },
 ];
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
