@@ -83,4 +83,4 @@
 - [x] Save a final checkpoint for the verified Faro AI branding and right-aligned sidebar control update.
 - [x] Replace the X provider key securely without exposing it in application code.
 - [x] Validate the replacement key with one minimal public-search request and record the outcome.
-- [ ] Save a checkpoint for the successfully validated provider-key replacement.
+- [x] Save a checkpoint for the successfully validated provider-key replacement.
