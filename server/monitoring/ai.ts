@@ -105,7 +105,7 @@ export async function classifyPostIntent(body: string, monitor: MonitorIntentCon
       messages: [
         {
           role: "system",
-          content: "Classify only the expressed intent in this public social post relative to the supplied listening goal. Prioritize concrete need, topic fit, buyer or decision-maker context, and useful specificity. Penalize generic promotion or low-context mentions. Do not infer sensitive traits or identity. This is for human review only; never recommend autonomous outreach.",
+          content: "Classify only the expressed intent in this public social post relative to the supplied listening goal. Mark Active help-seeking only when the author appears to need a person, freelancer, agency, provider, consultant, or expert to deliver a concrete relevant service. A topical mention alone is not service-seeking. Treat promotions, educational content, tool discussions, event or podcast recommendations, job hunting, permanent hiring, co-founder searches, networking, and generic AI commentary as Potentially relevant or Low-intent mention, not Active help-seeking. Do not infer sensitive traits or identity. This is for human review only; never recommend autonomous outreach.",
         },
         { role: "user", content: `Listening goal: ${monitor.goal}\nMonitored terms: ${monitor.includeTerms.join(", ")}\nExcluded terms: ${(monitor.excludeTerms ?? []).join(", ") || "none"}\nCategories: ${(monitor.categories ?? []).join(", ") || "none"}\n\nPost: ${body}` },
       ],

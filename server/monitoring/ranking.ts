@@ -7,16 +7,18 @@ export type RankedPostInput = {
   goal?: string;
   categories?: string[];
   aiConfidence?: number;
+  aiLabel?: string;
 };
 
 export type ScoreComponent = { label: string; points: number };
 
-const HELP_PATTERNS = ["looking for", "need help", "recommend", "who can", "hire", "anyone know", "seeking", "need someone", "can anyone", "any suggestions"];
-const TASK_REQUEST_PATTERNS = ["need someone to", "looking for someone", "looking to hire", "need help with", "can someone help", "can someone build", "recommend someone", "anyone who can", "need an expert", "need a freelancer"];
-const SERVICE_TASK_PATTERNS = ["automation", "workflow", "integration", "ai agent", "agent", "ai video", "ugc video", "video", "content", "zapier", "n8n", "dashboard", "implementation", "setup", "build"];
+const DIRECT_SERVICE_REQUEST_PATTERNS = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking to hire", "need someone", "need a freelancer", "need an agency", "need an expert", "need a consultant", "needs someone", "needs a freelancer", "needs an agency", "needs an expert", "needs a consultant", "need help with", "need help building", "needs help with", "needs help building", "can someone build", "can someone set up", "can someone implement", "who can build", "who can help us", "recommend someone", "recommend a freelancer", "recommend an agency", "seeking a provider", "seeking an expert", "looking to outsource", "need a team to", "needs a team to", "hire a"];
+const SERVICE_DELIVERY_PATTERNS = ["build", "map", "implement", "set up", "setup", "automate", "automation", "integrate", "integration", "configure", "develop", "create", "produce", "edit", "manage", "design", "launch", "maintain", "streamline", "install"];
+const PROVIDER_PATTERNS = ["freelancer", "agency", "consultant", "expert", "specialist", "developer", "builder", "contractor", "service provider", "vendor"];
 const URGENCY_PATTERNS = ["asap", "urgent", "this week", "today", "tomorrow", "by friday", "right away", "quickly"];
 const DECISION_PATTERNS = ["our team", "my team", "our business", "my business", "our company", "client", "clients", "founder", "agency", "small business", "budget", "project", "for us"];
-const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my"];
+const NON_SERVICE_CONTEXT_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops", "my course", "course on", "webinar", "lecture", "podcast", "newsletter", "tutorial", "tips", "learning", "recommend this", "recommend a talk", "recommend a lecture", "recommend a course", "recommend a podcast", "co-founder", "cofounder", "looking for a job", "job seeker", "open to work", "we are hiring", "we're hiring", "hiring for", "job opening", "apply now", "internship", "full-time", "full time", "part-time", "part time", "salary", "resume", "candidate", "position"];
+const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops"];
 const GENERIC_GOAL_WORDS = new Set(["people", "asking", "help", "building", "build", "looking", "someone", "with", "from", "that", "this", "their", "about", "small", "business", "public", "posts", "for", "and", "the", "a", "an", "to", "of", "in"]);
 
 function tokens(value: string) {
@@ -35,6 +37,25 @@ function hasAny(body: string, patterns: string[]) {
   return patterns.some(pattern => body.includes(pattern));
 }
 
+function matchedConcepts(body: string, includeTerms: string[]) {
+  return includeTerms.filter(term => body.includes(term.toLowerCase()));
+}
+
+function serviceIntentAssessment(body: string, includeTerms: string[], goal?: string) {
+  const concepts = matchedConcepts(body, includeTerms);
+  const goalMatches = goalCoverage(body, goal);
+  const directRequest = hasAny(body, DIRECT_SERVICE_REQUEST_PATTERNS);
+  const deliveryScope = hasAny(body, SERVICE_DELIVERY_PATTERNS);
+  const providerRequest = hasAny(body, PROVIDER_PATTERNS);
+  const buyerContext = hasAny(body, DECISION_PATTERNS);
+  const nonServiceContext = hasAny(body, NON_SERVICE_CONTEXT_PATTERNS);
+  const promotionalContext = hasAny(body, PROMOTIONAL_PATTERNS);
+  const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
+  const serviceSeeking = !nonServiceContext && directRequest && hasRelevantNeed && (deliveryScope || providerRequest || concepts.length > 0);
+
+  return { concepts, goalMatches, directRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, serviceSeeking };
+}
+
 export function rankOpportunity(input: RankedPostInput) {
   const body = input.body.toLowerCase();
   const components: ScoreComponent[] = [];
@@ -45,43 +66,43 @@ export function rankOpportunity(input: RankedPostInput) {
     return { score: 0, components };
   }
 
-  const matchedTerms = input.includeTerms.filter(term => body.includes(term.toLowerCase()));
-  if (matchedTerms.length) {
-    const points = Math.min(34, matchedTerms.reduce((total, term) => total + (term.trim().includes(" ") ? 16 : 9), 0));
-    components.push({ label: `Topic fit · ${matchedTerms.length} monitored concept${matchedTerms.length === 1 ? "" : "s"}`, points });
-  } else {
-    components.push({ label: "Weak monitored-topic fit", points: -10 });
+  const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal);
+  if (assessment.nonServiceContext) {
+    components.push({ label: assessment.promotionalContext ? "Promotional rather than request-led" : "Non-service context", points: -100 });
+    return { score: 0, components };
   }
 
-  const coveredGoalTokens = goalCoverage(body, input.goal);
-  if (coveredGoalTokens >= 3) components.push({ label: "Matches desired outcome context", points: 10 });
-  else if (coveredGoalTokens >= 1) components.push({ label: "Partial desired outcome context", points: 5 });
+  if (!assessment.serviceSeeking) {
+    if (assessment.concepts.length) components.push({ label: `Topic mention · ${assessment.concepts.length} monitored concept${assessment.concepts.length === 1 ? "" : "s"}`, points: 8 });
+    components.push({ label: "No clear service-seeking intent", points: -40 });
+    return { score: 0, components };
+  }
 
-  const explicitAsk = hasAny(body, HELP_PATTERNS);
-  const directTaskRequest = hasAny(body, TASK_REQUEST_PATTERNS);
-  if (explicitAsk || directTaskRequest) components.push({ label: "Explicit help-seeking language", points: directTaskRequest ? 30 : 22 });
+  const topicPoints = Math.min(18, assessment.concepts.reduce((total, term) => total + (term.trim().includes(" ") ? 12 : 6), 0));
+  if (topicPoints) components.push({ label: `Topic fit · ${assessment.concepts.length} monitored concept${assessment.concepts.length === 1 ? "" : "s"}`, points: topicPoints });
 
-  if (hasAny(body, SERVICE_TASK_PATTERNS)) components.push({ label: "Defined task or service need", points: 10 });
-  if (hasAny(body, URGENCY_PATTERNS)) components.push({ label: "Timing signal", points: 6 });
+  components.push({ label: "Direct service request", points: 42 });
+  if (assessment.deliveryScope) components.push({ label: "Defined task or service need", points: 18 });
+  if (assessment.providerRequest) components.push({ label: "Provider or expert requested", points: 10 });
+  if (assessment.goalMatches >= 3) components.push({ label: "Matches desired outcome context", points: 8 });
+  else if (assessment.goalMatches >= 1) components.push({ label: "Partial desired outcome context", points: 4 });
+  if (hasAny(body, URGENCY_PATTERNS)) components.push({ label: "Timing signal", points: 8 });
+  if (assessment.buyerContext) components.push({ label: "Buyer or decision-maker context", points: 12 });
 
-  if (hasAny(body, DECISION_PATTERNS)) components.push({ label: "Buyer or decision-maker context", points: 8 });
-
-  const hasSpecificity = /\d|\?|\bfor (my|our|a)\b|\bworkflow\b|\bproject\b/.test(body);
+  const hasSpecificity = /\d|\?|\bfor (my|our|a)\b|\bworkflow\b|\bproject\b|\bbrief\b|\bbudget\b/.test(body);
   if (hasSpecificity) components.push({ label: "Specific usable context", points: 6 });
 
-  if (hasAny(body, PROMOTIONAL_PATTERNS) && !explicitAsk) components.push({ label: "Promotional rather than request-led", points: -30 });
   if (body.trim().length < 55 || /^https?:\/\//.test(body.trim())) components.push({ label: "Low-context post", points: -12 });
 
   const ageHours = Math.max(0, (Date.now() - input.postedAt.getTime()) / 3_600_000);
-  const recency = ageHours <= 1 ? 14 : ageHours <= 6 ? 10 : ageHours <= 24 ? 6 : ageHours <= 72 ? 3 : 0;
+  const recency = ageHours <= 1 ? 10 : ageHours <= 6 ? 7 : ageHours <= 24 ? 4 : ageHours <= 72 ? 2 : 0;
   if (recency) components.push({ label: "Fresh enough to act on", points: recency });
 
   const engagementTotal = Object.values(input.engagement).reduce((sum, value) => sum + (Number(value) || 0), 0);
-  if (engagementTotal >= 100) components.push({ label: "Strong public engagement", points: 8 });
-  else if (engagementTotal >= 15) components.push({ label: "Early engagement signal", points: 4 });
+  if (engagementTotal >= 100) components.push({ label: "Strong public engagement", points: 4 });
+  else if (engagementTotal >= 15) components.push({ label: "Early engagement signal", points: 2 });
 
-  if ((input.aiConfidence ?? 0) >= 0.8) components.push({ label: "High-confidence intent support", points: 8 });
-  else if ((input.aiConfidence ?? 0) >= 0.55) components.push({ label: "Intent support", points: 4 });
+  if (input.aiLabel === "Active help-seeking" && (input.aiConfidence ?? 0) >= 0.8) components.push({ label: "High-confidence intent support", points: 4 });
 
   const score = Math.max(0, Math.min(100, Math.round(components.reduce((sum, component) => sum + component.points, 0))));
   return { score, components };
@@ -89,22 +110,22 @@ export function rankOpportunity(input: RankedPostInput) {
 
 export function deterministicIntent(body: string, includeTerms: string[], goal = "") {
   const normalized = body.toLowerCase();
-  const matchedTerms = includeTerms.filter(term => normalized.includes(term.toLowerCase()));
-  const explicitAsk = hasAny(normalized, HELP_PATTERNS);
-  const desiredOutcomeTokens = goalCoverage(normalized, goal);
-  const promotional = hasAny(normalized, PROMOTIONAL_PATTERNS);
-  const directTaskRequest = hasAny(normalized, TASK_REQUEST_PATTERNS);
-  const isActive = (explicitAsk || directTaskRequest) && matchedTerms.length > 0;
-  const isRelevant = matchedTerms.length > 0 || desiredOutcomeTokens >= 2;
-  const confidence = Math.min(0.94, 0.16 + matchedTerms.length * 0.15 + ((explicitAsk || directTaskRequest) ? 0.3 : 0) + Math.min(0.15, desiredOutcomeTokens * 0.05) - (promotional && !explicitAsk ? 0.08 : 0));
+  const assessment = serviceIntentAssessment(normalized, includeTerms, goal);
+  const isActive = assessment.serviceSeeking;
+  const isRelevant = !assessment.nonServiceContext && (assessment.concepts.length > 0 || assessment.goalMatches >= 2);
+  const confidence = isActive
+    ? Math.min(0.94, 0.58 + assessment.concepts.length * 0.08 + (assessment.deliveryScope ? 0.12 : 0) + (assessment.buyerContext ? 0.08 : 0))
+    : isRelevant
+      ? Math.min(0.48, 0.14 + assessment.concepts.length * 0.08 + assessment.goalMatches * 0.04)
+      : 0.08;
   return {
     label: isActive ? "Active help-seeking" : isRelevant ? "Potentially relevant" : "Low-intent mention",
     confidence: Math.max(0.05, Math.round(confidence * 100) / 100),
     rationale: isActive
-      ? "The post combines a monitored topic with an expressed need that fits this monitoring goal."
+      ? "The post expresses a concrete need for a person, provider, or expert to deliver a relevant service."
       : isRelevant
-        ? "The post overlaps with the monitored topic or desired outcome, but does not clearly ask for help."
-        : "The post does not show enough topic and outcome fit for this monitoring goal.",
+        ? "The post overlaps with the monitored topic or outcome but does not clearly seek a provider or service."
+        : "The post does not show a relevant service-seeking need for this monitoring goal.",
     model: "deterministic fallback",
     fallback: true,
   };

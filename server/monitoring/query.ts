@@ -60,16 +60,16 @@ export function deterministicSuggestion(goal: string) {
     .split(" ")
     .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
   const includeTerms = uniqueTerms(extractedPhrases.length ? extractedPhrases : usefulWords).slice(0, 5);
-  const actionTerms = ["looking for", "need help", "recommend", "hire"];
+  const actionTerms = ["looking for someone", "need someone", "need help with", "looking to hire", "recommend an agency", "recommend a freelancer", "can someone build"];
   const topicClause = includeTerms.length > 1
     ? `(${includeTerms.map(quoteTerm).join(" OR ")})`
     : quoteTerm(includeTerms[0] ?? "automation");
   const intentClause = `(${actionTerms.map(quoteTerm).join(" OR ")})`;
   return {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],
-    excludeTerms: ["job", "giveaway"],
+    excludeTerms: ["job", "giveaway", "co-founder", "course", "tutorial", "podcast"],
     categories: ["service request"],
-    xQuery: `${topicClause} ${intentClause} -job -giveaway -is:retweet`,
+    xQuery: `${topicClause} ${intentClause} -job -giveaway -"co-founder" -course -tutorial -podcast -is:retweet`,
     rationale: "Deterministic keyword extraction was used because the AI suggestion service was unavailable.",
     model: "deterministic fallback",
     fallback: true,

@@ -21,6 +21,7 @@ export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost:
     goal: monitor.goal,
     categories: monitor.categories,
     aiConfidence: intent.confidence,
+    aiLabel: intent.label,
   });
   await db.upsertListenedPost({
     monitorId: monitor.id,

@@ -27,7 +27,8 @@ describe("AI query suggestion fallback", () => {
       expect(suggestion.model).toBe("deterministic fallback");
       expect(suggestion.xQuery).toContain("-is:retweet");
       expect(suggestion.includeTerms).toContain("custom ai workflow");
-      expect(suggestion.xQuery).toContain('("custom ai workflow" OR "ai workflow") ("looking for" OR "need help" OR recommend OR hire)');
+      expect(suggestion.xQuery).toContain('("custom ai workflow" OR "ai workflow") ("looking for someone" OR "need someone"');
+      expect(suggestion.xQuery).toContain('-"co-founder"');
     } finally {
       if (previous === undefined) delete process.env.SIGNALFORGE_DISABLE_LLM;
       else process.env.SIGNALFORGE_DISABLE_LLM = previous;
@@ -46,9 +47,10 @@ describe("opportunity ranking", () => {
       includeTerms: ["AI workflow", "automation"],
       excludeTerms: ["giveaway"],
       aiConfidence: intent.confidence,
+      aiLabel: intent.label,
     });
     expect(score.score).toBeGreaterThanOrEqual(70);
-    expect(score.components.some(component => component.label === "Explicit help-seeking language")).toBe(true);
+    expect(score.components.some(component => component.label === "Direct service request")).toBe(true);
   });
 
   it("suppresses a post containing an excluded term", () => {

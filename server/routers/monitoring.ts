@@ -29,6 +29,7 @@ export const monitoringRouter = router({
             goal: monitor.goal,
             categories: monitor.categories,
             aiConfidence: post.aiIntent.confidence,
+            aiLabel: post.aiIntent.label,
           });
           return { post: { ...post, ruleScore: ranking.score, scoreExplanation: ranking.components }, monitorName, monitor };
         })
