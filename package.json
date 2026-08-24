@@ -1,8 +1,25 @@
 {
-  "name": "signalforge",
+  "name": "faro",
   "version": "1.0.0",
+  "description": "Human-led social listening for buyer-side service requests on X.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ana-momin/Faro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ana-momin/Faro/issues"
+  },
+  "homepage": "https://github.com/ana-momin/Faro#readme",
+  "keywords": [
+    "social-listening",
+    "x",
+    "twitter",
+    "ai-agents",
+    "automation",
+    "buyer-intent"
+  ],
   "scripts": {
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",

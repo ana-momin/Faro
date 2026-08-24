@@ -1,51 +1,100 @@
-# Faro
+# Faro AI 🦊
 
-Faro is a **human-led public X signal workspace**. It turns a monitoring goal into editable query criteria, reads matching public posts, and brings the findings with the clearest fit to the front of a review queue. It does **not** automate outreach, messages, posting, or any other external action.
+> **Human-led social listening for buyer-side service requests on X.**
 
-## How Faro prioritizes findings
+Faro AI helps teams find public X posts from people who are actively seeking practical help—such as AI agents, workflow automation, product testing, development, content production, and AI video. It prioritizes **real buyer demand** and keeps every external action human-controlled.
 
-| Signal dimension | What the score looks for | Why it matters |
-| --- | --- | --- |
-| Topic fit | The monitored concepts, with higher weight for multi-word phrases. | Keeps findings attached to the subject the user actually specified. |
-| Desired outcome | Overlap with the outcome stated in the monitoring goal. | Personalizes results to the user’s use case rather than broad keyword mentions. |
-| Expressed need | Language such as “looking for,” “need help,” or “recommend.” | Moves request-led posts ahead of casual discussion. |
-| Decision context | Small-business, team, client, project, founder, or budget cues. | Helps surface posts where practical evaluation may be occurring. |
-| Specificity and freshness | Concrete context, recency, and bounded engagement support. | Makes the queue more actionable without overvaluing popularity. |
-| Noise controls | Exclusions, promotional phrases, and low-context content. | Pushes generic promotion and thin mentions down the queue. |
+## Why Faro
 
-> **Human-control boundary.** Faro provides an advisory relevance score and evidence. A person chooses whether to approve or reject a finding, and neither decision triggers communication.
+Most social listening tools return broad keyword matches. Faro is designed to surface the more valuable signal: a person or team expressing a concrete need for delivered work.
 
-## Setup
+| Faro surfaces | Faro excludes |
+| --- | --- |
+| First-party buyer requests for a defined service or outcome | People offering or promoting their own services |
+| AI agents, workflows, automation, AI video, testing, development, and practical project work | Jobs, hiring, co-founder searches, networking, education, and generic discussion |
+| Full public post context for a human reviewer | Automated outreach, messages, follows, or posting |
 
-Set `X_API_BEARER_TOKEN` in the project’s secure secret settings for the official X path. The token is read only by server-side code. X provides a Filtered Stream endpoint for near-real-time posts matching rules and a Recent Search endpoint for polling; endpoint access and consumption are determined by the X account’s current plan.[1][2]
+> **Human-control boundary.** Faro never sends a message, reply, follow, or post. A user reviews every qualifying request and decides what to do next.
 
-When the official account is not entitled to retrieve posts, configure `TWITTERAPI_IO_KEY` as the alternative public-data path. Faro then uses TwitterAPI.io Advanced Search server-side, sends the saved query and durable page cursor, normalizes author/content/timestamp/engagement fields, and saves direct `x.com` links for human review. TwitterAPI.io documents `X-API-Key` authentication, a required query, and cursor-based pagination for that endpoint.[4]
+## Product workflow
 
-Recent Search is the autoscale-safe fallback and the workspace shows the active source plus status and latency. On persistent Reserved Hosting, set both `X_FILTERED_STREAM_ENABLED=true` and `SIGNALFORGE_PERSISTENT_WORKER=true` after verifying the necessary X API access. The worker maintains Filtered Stream ingestion through the same normalization and relevance path.[3]
+1. **Search** — Describe the buyer request in plain language or enter focused keywords. One deliberate source check runs per search.
+2. **Feed** — Review complete buyer-request posts with author identity, category, signal context, and a direct link to X.
+3. **Review** — Keep or dismiss a request in a dedicated human decision workspace. Decisions remain internal to Faro.
 
-The built-in model is **`gpt-5-mini`**. It is called on the server only for structured signal suggestions and context-aware intent interpretation. The model receives the monitoring goal, monitored terms, exclusions, and categories, and is bounded by a 12-second timeout. If it is unavailable or disabled with `SIGNALFORGE_DISABLE_LLM=true`, Faro uses its deterministic relevance profile instead.
+## Core capabilities
 
-## Using the review workspace
+| Area | What it provides |
+| --- | --- |
+| Buyer-only ranking | Strict first-party request checks plus exclusion rules for providers, jobs, promotions, generic discussion, and networking noise. |
+| Practical demand coverage | Search starting points for AI agents, automation, AI video, product testing, development, content/social work, contests, research, and design. |
+| Full-post Feed | Social-style request cards with the complete post, author, handle, task category, signal score, engagement context, source link, and review action. |
+| Credit-aware retrieval | Saved-result expansion never creates another provider request. New source checks happen only after an explicit user search. |
+| Human review | Keep/Dismiss decisions are persisted without triggering communication or other external actions. |
+| Member profile | Secure JPG, PNG, and WebP profile-photo uploads stored outside the database. |
 
-Select **New signal** and describe the ideal finding in plain English. Choose **Suggest** to obtain editable public-search criteria; save the signal, then sync it. The findings panel defaults to a focused signal, supports review-state and relevance thresholds, and shows the monitor goal beside each selected finding’s evidence. Opening a finding displays the relevance breakdown, intent interpretation, author, timestamp, engagement, and a direct X link.
+## Technology
 
-Clearly labeled demo rows are onboarding examples only. Live public rows are distinguished by their source monitor and direct X link. The workspace no longer exports CSV; it is intentionally designed around in-product, evidence-led human review.
+Faro is a full-stack TypeScript application built with **React 19**, **Vite**, **Tailwind CSS**, **tRPC**, **Express**, **Drizzle ORM**, and **MySQL-compatible storage**. It uses server-side source integrations and structured AI assistance without exposing provider credentials to the browser.
 
-## Recurring ingestion
+```text
+client/        React workspace, Feed, Search, Review, Profile, and UI components
+server/        tRPC procedures, buyer-intent ranking, source synchronization, and storage logic
+drizzle/       Database schema and migrations
+shared/        Shared constants and typed utilities
+docs/          Demo guidance and external-source notes
+```
 
-The project includes a protected `/api/scheduled/ingest` endpoint. It is idempotent through durable cursors and the database’s unique `(monitorId, xPostId)` constraint. Transient provider failures are recorded with retry counts and rate-limit/payment states. After publishing, create a project-owned recurring job that POSTs to this endpoint; do not use an in-process timer.
+## Local development
 
-## Development and quality checks
+### Requirements
 
-Run `pnpm check` for type checking and `pnpm test` for the test suite. Tests cover query validation, deduplication, alternative provider handling, personalized ranking, deterministic fallbacks, and review-safe X API states.
+- Node.js 22+
+- pnpm 10+
+- A MySQL-compatible database
 
-## Privacy and safety
+### Install and run
 
-Faro stores the X bearer token only as a server-side secret. It is designed for public-post discovery and manual assessment, not surveillance of private content. Review decisions are internal labels; they never invoke posting, messaging, outreach, or an external workflow.
+```bash
+pnpm install
+pnpm dev
+```
 
-## References
+The application requires its normal server environment for authentication, database access, and source integrations. Keep all credentials in environment variables or the host platform’s secure secret manager—never commit them to the repository.
 
-[1]: https://docs.x.com/x-api/posts/filtered-stream/introduction "X API — Filtered Stream"
-[2]: https://developer.x.com/ "X Developer Platform"
-[3]: https://help.manus.im/ "Manus Reserved Hosting — cost profile"
-[4]: https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search "TwitterAPI.io — Advanced Search"
+### Common environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | MySQL-compatible database connection string. |
+| `JWT_SECRET` | Session signing secret. |
+| `TWITTERAPI_IO_KEY` | Optional server-side key for controlled public X searches. |
+| `X_API_BEARER_TOKEN` | Optional server-side X API access path. |
+| `BUILT_IN_FORGE_API_KEY` | Server-side platform integration key when using the managed runtime. |
+
+## Quality checks
+
+```bash
+# Type safety
+pnpm check
+
+# Full automated test suite
+pnpm test
+
+# Production build
+pnpm build
+```
+
+The test suite covers buyer-intent rules, service-offer rejection, source handling, search lifecycle behavior, Feed selection, profile image validation, and review-safe interactions.
+
+## Data, privacy, and safety
+
+Faro works with public X post data and preserves the distinction between a source signal and a verified business opportunity. It does not access private content, does not store source credentials in the client, and does not automate outreach.
+
+## Contributing
+
+Keep changes focused, typed, and covered by tests. Before opening a pull request, run `pnpm check` and `pnpm test`, avoid committing generated runtime files or secrets, and preserve Faro’s buyer-only and human-control constraints.
+
+## License
+
+This project is released under the [MIT License](./LICENSE).
