@@ -101,3 +101,9 @@
 - [x] Show the full qualified Discover review feed so the unified workspace replaces the retired Review page.
 - [x] Add dialog-content helper coverage and save a final verified Faro AI Discover checkpoint.
 - [x] Save the verified unified Faro AI Discover workspace as a final checkpoint.
+- [x] Design and build a dedicated Faro AI product-introduction route with a professional warm-desk visual system and 3D-inspired motion graphics.
+- [x] Make the Faro AI sidebar brand and mobile wordmark open the product introduction, with clear bidirectional navigation to Discover.
+- [x] Communicate Faro AI’s signal discovery, ranking, human review, and live-source transparency through concise interactive product storytelling.
+- [x] Add focused route/navigation coverage, verify desktop and mobile animation states, run checks, and save a final checkpoint.
+- [x] Add regression coverage for the `/faro` route and sidebar/mobile Faro brand navigation wiring.
+- [x] Save the verified Faro AI animated product-introduction experience as a final checkpoint.
