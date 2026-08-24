@@ -273,4 +273,39 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.score).toBeGreaterThanOrEqual(50);
     expect(result.components.map(component => component.label)).toContain("Direct service request");
   });
+
+  it("accepts an automation-expert request while rejecting a developer role seeker", () => {
+    const buyerRequest = rankOpportunity({
+      includeTerms: ["automation", "workflow"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers looking for AI automation help",
+      body: "Looking for an automation expert to build our lead-intake workflow this month.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+    const jobSeeker = rankOpportunity({
+      includeTerms: ["automation"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers looking for AI automation help",
+      body: "I am looking for a developer role focused on automation and AI.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(buyerRequest.score).toBeGreaterThanOrEqual(50);
+    expect(jobSeeker.score).toBe(0);
+  });
+
+  it("rejects a generic developer mention that does not specify any work to deliver", () => {
+    const result = rankOpportunity({
+      includeTerms: ["developer"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers looking for a developer",
+      body: "Looking for a developer! We are growing quickly with our B2B product.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(result.score).toBe(0);
+  });
 });

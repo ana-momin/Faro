@@ -5,16 +5,19 @@ import { describe, expect, it } from "vitest";
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const appSource = readFileSync(resolve(process.cwd(), "client/src/App.tsx"), "utf8");
 
-describe("Faro Discover and Review workflow wiring", () => {
+describe("Faro Feed workflow wiring", () => {
   it("offers a clear recovery state when the shared overview query fails", () => {
     expect(homeSource).toContain("overview.isError");
     expect(homeSource).toContain("Retry loading");
     expect(homeSource).toContain("overview.refetch()");
   });
 
-  it("opens the dedicated Review route rather than hiding complete post context in Feed", () => {
-    expect(homeSource).toContain('setLocation(`/review?post=${postId}`)');
-    expect(appSource).toContain('path={"/review"} component={ReviewQueue}');
+  it("opens complete post context and Faro analysis inside Feed rather than a separate Review route", () => {
+    expect(homeSource).toContain("function PostDetailDialog");
+    expect(homeSource).toContain("buildReviewDialogContent");
+    expect(homeSource).toContain("Faro AI read");
+    expect(homeSource).toContain('review.mutate({ postId: selectedItem.post.id, decision })');
+    expect(appSource).not.toContain('path={"/review"}');
   });
 
   it("explains when a live search returned posts that did not meet service-request qualification", () => {

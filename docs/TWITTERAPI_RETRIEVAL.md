@@ -47,6 +47,8 @@ After a refreshed provider key was supplied, testing exceeded the intended budge
 
 Local inspection found many previously saved raw X rows but only a small number of credible buyer-side requests. Older, loose source runs had persisted generic commentary, service offers, job-seeking text, and unrelated uses of “looking for”; the current overview re-scores and the Feed then applies a second concrete-buyer gate, rightly hiding those rows. Faro now uses more precise future query families for **developer, automation-expert, AI-expert, agency, and direct build/automation requests**, plus matching recommendation language. This improves the next approved retrieval attempt, but it cannot manufacture additional genuine requests from the existing saved set.
 
+The buyer gate now also requires a defined delivery task for general provider requests, which removes generic “looking for a developer” announcements. It preserves concrete build, automation, implementation, testing, repair, migration, and automation-specialist requests. The Feed presents the Faro summary, confidence, evidence, and manual Keep/Dismiss controls directly inside the clicked post detail view; the separate Review route has been removed.
+
 ## Reference
 
 [1]: https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search "TwitterAPI.io — Tweet Advanced Search"

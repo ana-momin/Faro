@@ -8,7 +8,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import ProductIntro from "./pages/ProductIntro";
-import ReviewQueue from "./pages/ReviewQueue";
 import Search from "./pages/Search";
 
 function Router() {
@@ -16,7 +15,7 @@ function Router() {
   const pathname = location.split("?")[0];
 
   if (pathname === "/faro") return <ProductIntro />;
-  if (!pathname || !["/", "/search", "/review", "/profile"].includes(pathname)) return <NotFound />;
+  if (!pathname || !["/", "/search", "/profile"].includes(pathname)) return <NotFound />;
 
   // The workspace shell remains mounted while only its page content changes.
   // This keeps the Faro mark, member image, and fixed sidebar stable in motion.
@@ -25,7 +24,6 @@ function Router() {
       <Switch>
         <Route path={"/"} component={Home} />
         <Route path={"/search"} component={Search} />
-        <Route path={"/review"} component={ReviewQueue} />
         <Route path={"/profile"} component={Profile} />
       </Switch>
     </DashboardLayout>

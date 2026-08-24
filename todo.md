@@ -219,3 +219,7 @@
 - [x] Refine offline query and buyer-intent rules from stored evidence while preserving rejection of offers, jobs, promotions, networking, and generic discussion.
 - [x] Replace visible Feed time chips with one local Time dropdown containing Today, Last 7 days, Last month, and All.
 - [x] Add regression coverage, validate desktop/mobile presentation without an X-source call, and checkpoint the core discovery and Time-filter repair.
+- [x] Inspect offline discovery bottlenecks, current Feed layout, post-detail components, and Review dependencies without contacting the X provider.
+- [x] Refine buyer-request coverage and qualification from stored evidence without admitting offers, jobs, promotions, networking, or generic discussion.
+- [x] Move the Feed content left, open clicked posts in an embedded detail view with Faro summary and confidence, and remove the separate Review route.
+- [x] Add regression coverage, verify desktop/mobile behavior without an X-source call, and checkpoint the discovery and embedded-detail update.
