@@ -77,4 +77,4 @@
 - [x] Audit agent-run success and failure messages, source-health return values, and the current light desk presentation.
 - [x] Make agent runs report actual live-source outcomes and add a visual progress state that distinguishes planning, source check, qualification, success, and source failure.
 - [x] Update the tab title to a concise Faro tagline, move the sidebar collapse control above the account area, remove the redundant human-review rail, and apply a warm light desk theme.
-- [ ] Save a final checkpoint for the verified Faro agent outcome and warm light desk repair.
+- [x] Save a final checkpoint for the verified Faro agent outcome and warm light desk repair.
