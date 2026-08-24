@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDiscoverPreview, getQualifiedPosts, isConcreteBuyerRequest } from "../client/src/lib/discoverFeed";
+import { getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest } from "../client/src/lib/discoverFeed";
 
 const item = (id: number, monitorId: number, score: number, source = "twitterapi.io", body = "Looking to hire someone to automate our sales workflow") => ({ post: { id, source, ruleScore: score, body, reviewStatus: "pending" as const }, monitor: { id: monitorId } });
 
@@ -30,5 +30,23 @@ describe("Faro Discover feed selection", () => {
   it("does not treat a third-party story about businesses looking for help as a first-party buyer request", () => {
     const thirdPartyStory = item(10, 10, 100, "twitterapi.io", "Small businesses were looking for someone to eliminate repetitive work, according to a founder's story.");
     expect(isConcreteBuyerRequest(thirdPartyStory.post)).toBe(false);
+  });
+
+  it("does not surface a generic founder story or networking ask as a service request", () => {
+    const thirdPartyFounder = item(11, 10, 100, "twitterapi.io", "A founder looking for someone they once met can unlock their next opportunity.");
+    const networkingAsk = item(12, 10, 100, "twitterapi.io", "Looking for someone with technical fluency to sit down, chat, and explore possibilities.");
+    expect(isConcreteBuyerRequest(thirdPartyFounder.post)).toBe(false);
+    expect(isConcreteBuyerRequest(networkingAsk.post)).toBe(false);
+  });
+
+  it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
+    const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
+    expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);
+  });
+
+  it("labels practical buyer-request work by task category", () => {
+    expect(getRequestCategory({ body: "Need a product tester to validate our AI feature" })).toBe("Product testing");
+    expect(getRequestCategory({ body: "Looking for a developer to build an AI product" })).toBe("Development");
+    expect(getRequestCategory({ body: "Need a creator to post social media content with AI" })).toBe("Content & social");
   });
 });

@@ -170,3 +170,7 @@
 - [x] Rebuild Discover as a concise icon-led warm signal desk with fewer words and clearer essential actions.
 - [x] Preserve buyer-only qualification, saved-match expansion, and truthful source context in the simplified Discover UI.
 - [x] Add Discover presentation regression coverage, verify desktop/mobile layouts, run checks, and save a final checkpoint.
+- [x] Audit current saved buyer-request coverage, source semantics, and qualification bottlenecks without starting a provider search.
+- [x] Expand practical AI-solvable buyer-demand categories and search vocabulary while retaining strict rejection of providers, jobs, promotion, and generic discussion.
+- [x] Rename Discover to Feed and build a richer request-only mini-feed from qualifying saved posts with clear source context.
+- [x] Add Feed and buyer-intent regression coverage, verify desktop/mobile workflows, run checks, and save a final checkpoint.

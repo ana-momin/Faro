@@ -60,16 +60,16 @@ export function deterministicSuggestion(goal: string) {
     .split(" ")
     .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
   const includeTerms = expandServiceDiscoveryTerms(goal, extractedPhrases.length ? extractedPhrases : usefulWords);
-  const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "need someone", "need a freelancer", "need an agency", "need an expert", "need help with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "can someone build", "can someone automate", "who can build", "seeking a provider"];
+  const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking for a developer", "looking for a tester", "looking for a designer", "looking for a creator", "looking for an editor", "need someone", "need a freelancer", "need an agency", "need a developer", "need a tester", "need a designer", "need an expert", "need help with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "can someone build", "can someone automate", "who can build", "seeking a provider"];
   const topicClause = includeTerms.length > 1
     ? `(${includeTerms.map(quoteTerm).join(" OR ")})`
     : quoteTerm(includeTerms[0] ?? "automation");
   const intentClause = `(${actionTerms.map(quoteTerm).join(" OR ")})`;
   return {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],
-    excludeTerms: ["job", "giveaway", "co-founder", "course", "tutorial", "podcast"],
+    excludeTerms: ["job", "hiring", "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"],
     categories: ["service request"],
-    xQuery: buildServiceDemandQuery(includeTerms.length ? includeTerms : ["automation", "AI"], ["job", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
+    xQuery: buildServiceDemandQuery(includeTerms.length ? includeTerms : ["automation", "AI"], ["job", "hiring", "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
     rationale: "Deterministic keyword extraction was used because the AI suggestion service was unavailable.",
     model: "deterministic fallback",
     fallback: true,
@@ -82,10 +82,15 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   if (/custom ai workflows?|ai workflows?/.test(normalized)) expansions.push("custom ai workflow", "ai workflow", "automation", "automate", "ai agent");
   if (/automation|automate/.test(normalized)) expansions.push("automation", "automate", "workflow", "ai agent", "operations");
   if (/ai video|video creation|ugc video/.test(normalized)) expansions.push("ai video", "video production", "video editor", "ugc video", "video automation");
+  if (/product test|user test|qa|quality assurance|bug test|validate/.test(normalized)) expansions.push("product testing", "user testing", "qa testing", "quality assurance", "bug testing");
+  if (/contest|competition|challenge|bounty/.test(normalized)) expansions.push("contest submission", "competition entry", "bounty task", "challenge project");
+  if (/content|social|post|posting|distribution|creator/.test(normalized)) expansions.push("social media content", "content creation", "content posting", "creator", "distribution");
+  if (/developer|development|software|app|website|integration|api/.test(normalized)) expansions.push("software development", "app development", "web development", "api integration", "developer");
+  if (/research|design|prototype|product/.test(normalized)) expansions.push("product research", "product design", "prototype", "user research", "product testing");
   return uniqueTerms([...terms, ...expansions]).slice(0, 8);
 }
 
-const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need help with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency")';
+const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency")';
 
 export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
   const topics = uniqueTerms(includeTerms).slice(0, 8);
@@ -97,6 +102,6 @@ export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: st
 export function requireServiceRequestQuery(query: string) {
   const normalized = query.trim();
   if (!normalized) return SERVICE_REQUEST_QUERY;
-  if (normalized.includes("looking for someone") || normalized.includes("need someone") || normalized.includes("looking to hire") || normalized.includes("seeking a provider")) return normalized;
+  if (/looking for (someone|a freelancer|an agency|a developer|a tester|a designer|a creator|an editor)|need (someone|a freelancer|an agency|a developer|a tester|a designer)|looking to hire|seeking a provider/.test(normalized)) return normalized;
   return `${normalized} ${SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
 }

@@ -223,4 +223,40 @@ describe("Faro personalized relevance scoring", () => {
     });
     expect(result.score).toBeGreaterThanOrEqual(55);
   });
+
+  it("accepts a scoped freelance developer request for an AI-enabled product task", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI", "software development", "product testing"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers seeking help building and testing AI-enabled products",
+      body: "We are looking for a developer to build and test an AI onboarding flow for our product. This is a scoped contract project with an approved brief.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(result.score).toBeGreaterThanOrEqual(55);
+    expect(result.components.map(component => component.label)).toContain("Defined task or service need");
+  });
+
+  it("accepts a concrete product-testing provider request while keeping a permanent job opening out", () => {
+    const serviceRequest = rankOpportunity({
+      includeTerms: ["product testing", "user testing", "AI"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers seeking product testing for AI-enabled products",
+      body: "Need a product tester to run user tests on our AI feature before launch. We need an outside specialist this week.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+    const jobOpening = rankOpportunity({
+      includeTerms: ["product testing", "AI"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers seeking product testing for AI-enabled products",
+      body: "Hiring a full-time product tester for our AI team. Salary and benefits listed in the job post.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(serviceRequest.score).toBeGreaterThanOrEqual(55);
+    expect(jobOpening.score).toBe(0);
+  });
 });

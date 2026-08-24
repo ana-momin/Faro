@@ -23,9 +23,10 @@ describe("Faro Discover and Review workflow wiring", () => {
     expect(homeSource).toContain("getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, false)");
   });
 
-  it("keeps Discover concise with icon-led request cards instead of a dense table", () => {
-    expect(homeSource).toContain("Buyer signals");
-    expect(homeSource).toContain("Buyer-only matches");
+  it("keeps the Feed concise with icon-led request cards instead of a dense table", () => {
+    expect(homeSource).toContain("Buyer requests");
+    expect(homeSource).toContain("All qualifying saved requests");
+    expect(homeSource).toContain("getAllQualifiedPosts");
     expect(homeSource).toContain("function RequestCard");
     expect(homeSource).toContain("line-clamp-2");
     expect(homeSource).toContain("ChevronRight");

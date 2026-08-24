@@ -14,7 +14,7 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: Compass, label: "Discover", path: "/" },
+  { icon: Compass, label: "Feed", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: Inbox, label: "Review", path: "/review" },
   { icon: UserRound, label: "Profile", path: "/profile" },
