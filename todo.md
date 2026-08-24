@@ -57,4 +57,4 @@
 - [x] Always surface urgency when a `Timing signal` is detected, without restoring text-heavy score explanations.
 - [x] Verify the visual-first Faro experience on desktop and mobile, run quality checks, and create a final checkpoint.
 - [x] Apply the supplied Faro mascot image as the shared in-app logo and browser favicon.
-- [ ] Save a final checkpoint for the verified Faro mascot logo and favicon update.
+- [x] Save a final checkpoint for the verified Faro mascot logo and favicon update.
