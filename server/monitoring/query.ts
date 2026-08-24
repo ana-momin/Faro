@@ -59,8 +59,8 @@ export function deterministicSuggestion(goal: string) {
   const usefulWords = normalizedGoal
     .split(" ")
     .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
-  const includeTerms = uniqueTerms(extractedPhrases.length ? extractedPhrases : usefulWords).slice(0, 5);
-  const actionTerms = ["looking for someone", "need someone", "need help with", "looking to hire", "recommend an agency", "recommend a freelancer", "can someone build"];
+  const includeTerms = expandServiceDiscoveryTerms(goal, extractedPhrases.length ? extractedPhrases : usefulWords);
+  const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "need someone", "need a freelancer", "need an agency", "need an expert", "need help with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "can someone build", "can someone automate", "who can build", "seeking a provider"];
   const topicClause = includeTerms.length > 1
     ? `(${includeTerms.map(quoteTerm).join(" OR ")})`
     : quoteTerm(includeTerms[0] ?? "automation");
@@ -69,14 +69,30 @@ export function deterministicSuggestion(goal: string) {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],
     excludeTerms: ["job", "giveaway", "co-founder", "course", "tutorial", "podcast"],
     categories: ["service request"],
-    xQuery: `${topicClause} ${intentClause} -job -giveaway -"co-founder" -course -tutorial -podcast -is:retweet`,
+    xQuery: buildServiceDemandQuery(includeTerms.length ? includeTerms : ["automation", "AI"], ["job", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
     rationale: "Deterministic keyword extraction was used because the AI suggestion service was unavailable.",
     model: "deterministic fallback",
     fallback: true,
   };
 }
 
+export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
+  const normalized = goal.toLowerCase();
+  const expansions: string[] = [];
+  if (/custom ai workflows?|ai workflows?/.test(normalized)) expansions.push("custom ai workflow", "ai workflow", "automation", "automate", "ai agent");
+  if (/automation|automate/.test(normalized)) expansions.push("automation", "automate", "workflow", "ai agent", "operations");
+  if (/ai video|video creation|ugc video/.test(normalized)) expansions.push("ai video", "video production", "video editor", "ugc video", "video automation");
+  return uniqueTerms([...terms, ...expansions]).slice(0, 8);
+}
+
 const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need help with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency")';
+
+export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
+  const topics = uniqueTerms(includeTerms).slice(0, 8);
+  const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
+  const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
+  return [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+}
 
 export function requireServiceRequestQuery(query: string) {
   const normalized = query.trim();

@@ -139,3 +139,7 @@
 - [x] Improve lifecycle-synced search progress and source-outcome messaging so completion states are truthful and clear.
 - [x] Add regression coverage, verify desktop/mobile reset behavior, run checks, and save a final checkpoint.
 - [x] Save the verified refreshed Faro AI Discover experience as a final checkpoint.
+- [x] Inspect the latest Faro AI monitor, sync, and stored-post state without initiating another provider search.
+- [x] Repair valid post visibility after a completed search while retaining strict service-intent qualification and truthful empty states.
+- [x] Add regression coverage, verify Discover and Review synchronization, and save a final checkpoint.
+- [x] Save the verified Faro AI post-result visibility repair as a final checkpoint.

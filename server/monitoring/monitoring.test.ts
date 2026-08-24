@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { suggestCriteria } from "./ai";
-import { buildXQuery, validateXQuery } from "./query";
+import { buildServiceDemandQuery, buildXQuery, expandServiceDiscoveryTerms, validateXQuery } from "./query";
 import { deterministicIntent, rankOpportunity } from "./ranking";
 import { classifySyncFailure } from "./sync";
 import { XApiError, dedupePosts, recentSearchStatus } from "./xClient";
@@ -27,12 +27,19 @@ describe("AI query suggestion fallback", () => {
       expect(suggestion.model).toBe("deterministic fallback");
       expect(suggestion.xQuery).toContain("-is:retweet");
       expect(suggestion.includeTerms).toContain("custom ai workflow");
-      expect(suggestion.xQuery).toContain('("custom ai workflow" OR "ai workflow") ("looking for someone" OR "need someone"');
-      expect(suggestion.xQuery).toContain('-"co-founder"');
+      expect(suggestion.includeTerms).toContain("automation");
+      expect(suggestion.xQuery).toContain('(\"custom ai workflow\" OR \"ai workflow\" OR automation');
+      expect(suggestion.xQuery).toContain("-co-founder");
     } finally {
       if (previous === undefined) delete process.env.SIGNALFORGE_DISABLE_LLM;
       else process.env.SIGNALFORGE_DISABLE_LLM = previous;
     }
+  });
+
+  it("broadens workflow searches with service-delivery language while retaining the original concept", () => {
+    const terms = expandServiceDiscoveryTerms("Find providers for a custom AI workflow", ["custom ai workflow"]);
+    expect(terms).toEqual(expect.arrayContaining(["custom ai workflow", "automation", "ai agent"]));
+    expect(buildServiceDemandQuery(terms, ["job"])).toContain('("looking for someone" OR "looking for a freelancer"');
   });
 });
 

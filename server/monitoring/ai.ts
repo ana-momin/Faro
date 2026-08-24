@@ -1,5 +1,5 @@
 import { invokeLLM } from "../_core/llm";
-import { deterministicSuggestion, validateXQuery } from "./query";
+import { buildServiceDemandQuery, deterministicSuggestion, expandServiceDiscoveryTerms, validateXQuery } from "./query";
 import { deterministicIntent } from "./ranking";
 
 export const DISCLOSED_MODEL = "gpt-5-mini";
@@ -82,11 +82,14 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
     const result = typeof content === "string" ? JSON.parse(content) : null;
     const xQuery = typeof result?.xQuery === "string" ? result.xQuery : "";
     if (!result || !validateXQuery(xQuery).valid) return deterministicSuggestion(goal);
+    const includeTerms = expandServiceDiscoveryTerms(goal, asTerms(result.includeTerms, 10));
+    const exclusions = asTerms(result.excludeTerms, 10);
+    const discoveryQuery = buildServiceDemandQuery(includeTerms, exclusions);
     return {
-      includeTerms: asTerms(result.includeTerms, 10),
-      excludeTerms: asTerms(result.excludeTerms, 10),
+      includeTerms,
+      excludeTerms: exclusions,
       categories: asTerms(result.categories, 5),
-      xQuery,
+      xQuery: discoveryQuery,
       rationale: typeof result.rationale === "string" ? result.rationale.slice(0, 500) : "AI-generated query suggestion.",
       model: DISCLOSED_MODEL,
       fallback: false,
