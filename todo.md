@@ -88,4 +88,4 @@
 - [x] Enlarge and center the Faro AI sidebar identity and make the sidebar collapse control more prominent.
 - [x] Upgrade the Run Faro control and synchronize visual search-progress stages with the live request lifecycle.
 - [x] Limit long review posts to a compact excerpt and highlight the relevant service-request phrases.
-- [ ] Save a final checkpoint for the verified Faro AI sidebar, search-progress, and compact post-card refinements.
+- [x] Save a final checkpoint for the verified Faro AI sidebar, search-progress, and compact post-card refinements.
