@@ -84,3 +84,8 @@
 - [x] Replace the X provider key securely without exposing it in application code.
 - [x] Validate the replacement key with one minimal public-search request and record the outcome.
 - [x] Save a checkpoint for the successfully validated provider-key replacement.
+- [x] Audit the current compact sidebar, Run Faro search lifecycle, and long-post rendering behavior.
+- [x] Enlarge and center the Faro AI sidebar identity and make the sidebar collapse control more prominent.
+- [x] Upgrade the Run Faro control and synchronize visual search-progress stages with the live request lifecycle.
+- [x] Limit long review posts to a compact excerpt and highlight the relevant service-request phrases.
+- [ ] Save a final checkpoint for the verified Faro AI sidebar, search-progress, and compact post-card refinements.
