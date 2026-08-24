@@ -3,7 +3,7 @@ import { z } from "zod";
 import * as db from "../db";
 import { suggestCriteria } from "../monitoring/ai";
 import { seedDemo } from "../monitoring/demo";
-import { requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
+import { deterministicSuggestion, requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
 import { classifySyncFailure, syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -63,6 +63,36 @@ export const monitoringRouter = router({
       });
       const monitor = await db.getMonitorForUser(monitorId, ctx.user.id);
       if (!monitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Faro could not save this brief." });
+      try {
+        const sync = await syncMonitorRecord(monitor);
+        return { monitorId, criteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, humanReviewOnly: true };
+      } catch (error) {
+        const sourceState = classifySyncFailure(error);
+        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, humanReviewOnly: true };
+      }
+    }),
+
+  keywordStart: protectedProcedure
+    .input(z.object({ keywords: z.string().trim().min(2).max(240) }))
+    .mutation(async ({ ctx, input }) => {
+      const criteria = deterministicSuggestion(`Find people looking for help with ${input.keywords}`);
+      const xQuery = requireServiceRequestQuery(criteria.xQuery);
+      const previousMonitors = await db.listMonitorsWithSync(ctx.user.id);
+      await Promise.all(previousMonitors
+        .filter(({ monitor }) => monitor.status === "active")
+        .map(({ monitor }) => db.updateMonitorStatus(monitor.id, ctx.user.id, "paused")));
+      const monitorId = await db.createMonitor({
+        userId: ctx.user.id,
+        name: `Keyword search · ${input.keywords.slice(0, 42)}`,
+        goal: `Find people looking for help with ${input.keywords}`,
+        xQuery,
+        includeTerms: criteria.includeTerms,
+        excludeTerms: criteria.excludeTerms,
+        categories: ["keyword search", "service request", "human review"],
+        status: "active",
+      });
+      const monitor = await db.getMonitorForUser(monitorId, ctx.user.id);
+      if (!monitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Faro could not save this keyword search." });
       try {
         const sync = await syncMonitorRecord(monitor);
         return { monitorId, criteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, humanReviewOnly: true };

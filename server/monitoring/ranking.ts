@@ -13,12 +13,17 @@ export type RankedPostInput = {
 export type ScoreComponent = { label: string; points: number };
 
 const DIRECT_SERVICE_REQUEST_PATTERNS = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking to hire", "need someone", "need a freelancer", "need an agency", "need an expert", "need a consultant", "needs someone", "needs a freelancer", "needs an agency", "needs an expert", "needs a consultant", "need help with", "need help building", "needs help with", "needs help building", "can someone build", "can someone set up", "can someone implement", "who can build", "who can help us", "recommend someone", "recommend a freelancer", "recommend an agency", "seeking a provider", "seeking an expert", "looking to outsource", "need a team to", "needs a team to", "hire a"];
+const CONCRETE_HELP_REQUEST_PATTERN = /\bneed(?:s)? help (?:with )?(?:building|automating|implementing|setting up|creating|integrating|developing|designing|an? ai (?:agent|workflow|automation)|automation|a workflow)\b/;
 const SERVICE_DELIVERY_PATTERNS = ["build", "map", "implement", "set up", "setup", "automate", "integrate", "configure", "develop", "create", "produce", "edit", "manage", "design", "launch", "maintain", "streamline", "install"];
 const PROVIDER_PATTERNS = ["freelancer", "agency", "consultant", "expert", "specialist", "developer", "builder", "contractor", "service provider", "vendor"];
 const URGENCY_PATTERNS = ["asap", "urgent", "this week", "today", "tomorrow", "by friday", "right away", "quickly"];
 const DECISION_PATTERNS = ["our team", "my team", "our business", "my business", "our company", "client", "clients", "founder", "agency", "small business", "budget", "project", "for us"];
+const DIRECT_BUYER_SUBJECT_PATTERN = /\b(i|we|our|my|team|company|business|founder|client)\b.{0,90}\b(looking for|need someone|need a freelancer|need an agency|need an expert|need help|seeking|can someone|who can|recommend|hire)\b/;
+const OPENING_BUYER_ASK_PATTERN = /^\s*(looking for|need someone|need a freelancer|need an agency|need an expert|need help|seeking|can someone|who can|recommend|hire)\b/;
 const NON_SERVICE_CONTEXT_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "they need someone", "businesses don't need", "show you how", "more advice", "stop being told", "happy to connect", "curious to hear", "for beta testing", "drop what you're working on", "looking for people building", "coaching", "workshop", "workshops", "motivation", "my next role", "next role", "my course", "course on", "webinar", "lecture", "podcast", "newsletter", "tutorial", "tips", "learning", "recommend this", "recommend a talk", "recommend a lecture", "recommend a course", "recommend a podcast", "co-founder", "cofounder", "looking for a job", "job seeker", "open to work", "we are hiring", "we're hiring", "hiring:", "hiring for", "hiring a", "hiring an", "job opening", "apply now", "click the link", "join the team", "self-motivated", "willing to learn", "per hour", "hrs/week", "pay:", "internship", "full-time", "full time", "part-time", "part time", "salary", "resume", "candidate", "position"];
 const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops"];
+const SERVICE_OFFER_PATTERNS = ["i offer", "we offer", "my services", "our services", "available for hire", "available to hire", "hire me", "book me", "dm for", "dm me for", "i can build", "we can build", "i build ai", "we build ai", "i build automation", "we build automation", "i help businesses", "we help businesses", "i help founders", "we help founders", "reach out if you need", "contact me for"];
+const SELF_PROVIDER_OFFER_PATTERN = /\b(i am|i'm|we are|we're)\b.{0,100}\b(build(?:s|ing)?|help(?:s|ing)?|offer(?:s|ing)?|deliver(?:s|ing)?|speciali[sz](?:e|es|ing)|work with|provide(?:s|ing)?)\b/;
 const GENERIC_GOAL_WORDS = new Set(["people", "asking", "help", "building", "build", "looking", "someone", "with", "from", "that", "this", "their", "about", "small", "business", "public", "posts", "for", "and", "the", "a", "an", "to", "of", "in"]);
 
 function tokens(value: string) {
@@ -45,17 +50,22 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const concepts = matchedConcepts(body, includeTerms);
   const goalMatches = goalCoverage(body, goal);
   const directRequest = hasAny(body, DIRECT_SERVICE_REQUEST_PATTERNS);
+  const concreteHelpRequest = CONCRETE_HELP_REQUEST_PATTERN.test(body);
   const deliveryScope = hasAny(body, SERVICE_DELIVERY_PATTERNS);
   const providerRequest = hasAny(body, PROVIDER_PATTERNS);
   const buyerContext = hasAny(body, DECISION_PATTERNS);
+  const directBuyerRequest = directRequest && (buyerContext || DIRECT_BUYER_SUBJECT_PATTERN.test(body) || OPENING_BUYER_ASK_PATTERN.test(body));
   const nonServiceContext = hasAny(body, NON_SERVICE_CONTEXT_PATTERNS);
   const promotionalContext = hasAny(body, PROMOTIONAL_PATTERNS);
+  const selfDescribedDelivery = SELF_PROVIDER_OFFER_PATTERN.test(body) && !/(looking for|need someone|needs someone|seeking|recommend)/.test(body);
+  const serviceOffer = hasAny(body, SERVICE_OFFER_PATTERNS) || selfDescribedDelivery || /\bwhat i do\b|\bwhat we do\b/.test(body);
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
   const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
   const modelAssistedServiceSeeking = modelConfirmedServiceNeed && providerRequest && (deliveryScope || buyerContext);
-  const serviceSeeking = !nonServiceContext && hasRelevantNeed && ((directRequest && (deliveryScope || providerRequest)) || modelAssistedServiceSeeking);
+  const concreteBuyerRequest = directBuyerRequest && (!/need(?:s)? help with/.test(body) || concreteHelpRequest);
+  const serviceSeeking = !nonServiceContext && !serviceOffer && hasRelevantNeed && ((concreteBuyerRequest && (deliveryScope || providerRequest)) || modelAssistedServiceSeeking);
 
-  return { concepts, goalMatches, directRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, modelConfirmedServiceNeed, serviceSeeking };
+  return { concepts, goalMatches, directRequest, directBuyerRequest, concreteBuyerRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, serviceOffer, modelConfirmedServiceNeed, serviceSeeking };
 }
 
 export function rankOpportunity(input: RankedPostInput) {
@@ -69,6 +79,10 @@ export function rankOpportunity(input: RankedPostInput) {
   }
 
   const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal, input.aiLabel, input.aiConfidence);
+  if (assessment.serviceOffer) {
+    components.push({ label: "Service offer rather than buyer request", points: -100 });
+    return { score: 0, components };
+  }
   if (assessment.nonServiceContext) {
     components.push({ label: assessment.promotionalContext ? "Promotional rather than request-led" : "Non-service context", points: -100 });
     return { score: 0, components };

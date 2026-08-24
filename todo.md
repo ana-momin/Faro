@@ -143,3 +143,10 @@
 - [x] Repair valid post visibility after a completed search while retaining strict service-intent qualification and truthful empty states.
 - [x] Add regression coverage, verify Discover and Review synchronization, and save a final checkpoint.
 - [x] Save the verified Faro AI post-result visibility repair as a final checkpoint.
+- [x] Audit buyer-intent ranking, provider-offer suppression, current sync pagination, profile data, routes, and reusable workspace components.
+- [x] Enforce buyer-only qualification so posts offering services do not enter Faro AI’s Discover or Review feeds.
+- [x] Rebuild Discover as a categorized highlighted top-10 buyer-request feed with controlled “view more” expansion that does not trigger unbounded provider calls.
+- [x] Move AI brief and keyword search into a dedicated Search workspace with clear search-mode controls and source-aware progress.
+- [x] Add editable profile-photo storage and display it consistently in Profile and the dashboard account area.
+- [x] Add regression coverage, verify desktop/mobile workflows, run checks, and save a final checkpoint.
+- [x] Save the verified Faro AI buyer-demand discovery workflow as a final checkpoint.

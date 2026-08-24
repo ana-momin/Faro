@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import ProductIntro from "./pages/ProductIntro";
 import ReviewQueue from "./pages/ReviewQueue";
+import Search from "./pages/Search";
 import Signals from "./pages/Signals";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/faro"} component={ProductIntro} />
+      <Route path={"/search"} component={Search} />
       <Route path={"/review"} component={ReviewQueue} />
       <Route path={"/signals"} component={Signals} />
       <Route path={"/profile"} component={Profile} />

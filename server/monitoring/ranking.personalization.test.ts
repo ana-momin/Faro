@@ -170,4 +170,57 @@ describe("Faro personalized relevance scoring", () => {
     expect(providerRequest.score).toBeGreaterThanOrEqual(80);
     expect(topicOnly.score).toBe(0);
   });
+
+  it("rejects a person offering the monitored service instead of asking for it", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI agents", "automation"],
+      excludeTerms: [],
+      goal: "Find people looking for AI agents and automation help",
+      body: "I build AI agents and automation systems for founders. DM me for my services.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("Service offer rather than buyer request");
+  });
+
+  it("rejects a self-description of delivered services even without a direct sales call to action", () => {
+    const result = rankOpportunity({
+      includeTerms: ["automation", "AI workflow"],
+      excludeTerms: [],
+      goal: "Find teams that need AI workflow and automation help",
+      body: "I am an operations leader who builds AI-powered automation workflows and process systems for fast-moving companies.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("Service offer rather than buyer request");
+  });
+
+  it("rejects generic commentary about people needing AI help without a buyer asking for a provider", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI", "automation"],
+      excludeTerms: [],
+      goal: "Find buyers looking for AI automation help",
+      body: "People need help using AI properly, and every brand should consider automation this year.",
+      postedAt: new Date(),
+      engagement: {},
+      aiLabel: "Active help-seeking",
+      aiConfidence: 0.96,
+    });
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
+  });
+
+  it("accepts a concrete first-person request for help automating a real workflow", () => {
+    const result = rankOpportunity({
+      includeTerms: ["automation", "AI workflow"],
+      excludeTerms: [],
+      goal: "Find buyers looking for AI workflow automation help",
+      body: "I need help automating our lead follow-up workflow with AI this month. Can someone recommend a freelancer?",
+      postedAt: new Date(),
+      engagement: {},
+    });
+    expect(result.score).toBeGreaterThanOrEqual(55);
+  });
 });
