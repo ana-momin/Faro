@@ -67,22 +67,21 @@ describe("syncMonitorRecord X fallback integration", () => {
     expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ source: "recent_search", status: "rate_limited", latencyLabel: "X API rate limit active", retryCount: 1 }));
   });
 
-  it("keeps concrete buyer candidates across bounded multi-signal retrieval and deduplicates post IDs", async () => {
-    mocks.fetchPublicPosts
-      .mockResolvedValueOnce(sourceResult([{ id: "one", text: "Looking for someone to build automation for our business." }]))
-      .mockResolvedValueOnce(sourceResult([
-        { id: "one", text: "Looking for someone to build automation for our business." },
-        { id: "two", text: "Need someone to automate an operations workflow for our team." },
-      ]))
-      .mockResolvedValueOnce(sourceResult([{ id: "three", text: "We need someone to build an AI agent that automates our customer-support workflow." }]));
+  it("uses one protected source call, retains concrete buyer candidates, and deduplicates post IDs", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([
+      { id: "one", text: "Looking for someone to build automation for our business." },
+      { id: "one", text: "Looking for someone to build automation for our business." },
+      { id: "two", text: "Need someone to automate an operations workflow for our team." },
+    ]));
 
     const coverage = await fetchCreditAwarePosts(monitor);
 
-    expect(coverage.calls).toBe(3);
-    expect(coverage.queryFamilies).toBe(3);
-    expect(coverage.rawReceived).toBe(4);
-    expect(coverage.rawCount).toBe(3);
-    expect(coverage.result.posts.map(post => post.id)).toEqual(["one", "two", "three"]);
+    expect(coverage.calls).toBe(1);
+    expect(coverage.queryFamilies).toBe(1);
+    expect(coverage.rawReceived).toBe(3);
+    expect(coverage.rawCount).toBe(2);
+    expect(coverage.result.posts.map(post => post.id)).toEqual(["one", "two"]);
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
   });
 
   it("uses only the primary query when it already has six buyer candidates", async () => {
@@ -113,27 +112,24 @@ describe("syncMonitorRecord X fallback integration", () => {
     expect(coverage.result.nextToken).toBe("following-page");
   });
 
-  it("returns an empty candidate set after three empty bounded checks", async () => {
+  it("returns an empty candidate set after one protected empty source check", async () => {
     mocks.fetchPublicPosts.mockResolvedValue(sourceResult([]));
 
     const coverage = await fetchCreditAwarePosts(monitor);
 
-    expect(coverage.calls).toBe(3);
+    expect(coverage.calls).toBe(1);
     expect(coverage.rawCount).toBe(0);
     expect(coverage.result.posts).toEqual([]);
   });
 
   it("persists a degraded state when one qualified provider post cannot be normalized", async () => {
-    mocks.fetchPublicPosts
-      .mockResolvedValueOnce(sourceResult([
-        { id: "one", text: "Looking for someone to build automation for our business." },
-        { id: "two", text: "Need someone to automate an operations workflow for our team." },
-      ]))
-      .mockResolvedValueOnce(sourceResult([]))
-      .mockResolvedValueOnce(sourceResult([]));
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([
+      { id: "one", text: "Looking for someone to build automation for our business." },
+      { id: "two", text: "Need someone to automate an operations workflow for our team." },
+    ]));
     mocks.persistNormalizedPost.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("invalid provider timestamp"));
 
-    await expect(syncMonitorRecord(monitor)).resolves.toMatchObject({ inserted: 1, source: "twitterapi_io", retrieval: { sourceCalls: 3, buyerCandidates: 2, persisted: 1 } });
+    await expect(syncMonitorRecord(monitor)).resolves.toMatchObject({ inserted: 1, source: "twitterapi_io", retrieval: { sourceCalls: 1, buyerCandidates: 2, persisted: 1 } });
     expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ source: "twitterapi_io", status: "degraded", latencyLabel: expect.stringContaining("1 skipped"), lastError: "invalid provider timestamp" }));
   });
 });

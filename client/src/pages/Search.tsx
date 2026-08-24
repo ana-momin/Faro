@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getQualifiedPosts, getRequestCategory } from "@/lib/discoverFeed";
 import { getSearchLifecycleDetails, type SearchLifecycle } from "@/lib/discoverSearch";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, KeyRound, Loader2, Radar, Search as SearchIcon, Sparkles, WandSparkles } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { ArrowRight, BadgeCheck, ExternalLink, KeyRound, Loader2, Radar, Search as SearchIcon, Sparkles, WandSparkles } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -28,6 +29,7 @@ type RetrievalMetrics = {
 };
 
 type SearchResult = {
+  monitorId: number;
   inserted: number;
   sourceStatus: string;
   syncError?: string | null;
@@ -42,11 +44,13 @@ export default function Search() {
   const [keywords, setKeywords] = useState("");
   const [phase, setPhase] = useState<SearchLifecycle>("idle");
   const [result, setResult] = useState<SearchResult | null>(null);
+  const overview = trpc.monitoring.overview.useQuery(undefined, { staleTime: 5_000 });
 
-  const finish = (data: { sync?: { inserted: number; retrieval?: RetrievalMetrics } | null; sourceStatus: string; syncError?: string | null }) => {
+  const finish = (data: { monitorId: number; sync?: { inserted: number; retrieval?: RetrievalMetrics } | null; sourceStatus: string; syncError?: string | null }) => {
     const retrieval = data.sync?.retrieval;
     const sourceIssue = Boolean(data.syncError) || Boolean(retrieval?.buyerCandidates && !retrieval.persisted);
     setResult({
+      monitorId: data.monitorId,
       inserted: data.sync?.inserted ?? 0,
       sourceStatus: data.sourceStatus,
       syncError: data.syncError ?? (sourceIssue ? "Faro found buyer candidates but could not save them. Please run the search again." : null),
@@ -78,6 +82,7 @@ export default function Search() {
 
   const state = getSearchLifecycleDetails(phase);
   const ready = mode === "agent" ? brief.trim().length >= 12 : keywords.trim().length >= 2;
+  const qualifiedResults = useMemo(() => result ? getQualifiedPosts(overview.data?.posts ?? [], result.monitorId, false) : [], [overview.data?.posts, result]);
 
   return <div className="mx-auto max-w-4xl pb-10">
     <header className="flex items-center gap-3 border-b border-[#eadfd2] pb-6">
@@ -100,13 +105,14 @@ export default function Search() {
           <p className="mt-3 text-[10px] leading-5 text-[#9a7d68]">Faro still keeps only people asking for help. Keywords guide the search; they do not surface service providers.</p>
         </>}
         <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="max-w-md text-[10px] leading-5 text-[#987b67]">Each run uses one to three targeted source checks only when more coverage is warranted. “View more” in Feed never spends another source call.</p>
+          <p className="max-w-md text-[10px] leading-5 text-[#987b67]">Each manual run uses one protected source check only. “View more” in Feed and Search results never spend another source call.</p>
           <Button type="submit" disabled={!ready || pending} className="h-11 shrink-0 rounded-2xl bg-[#b85f45] px-5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">
             {pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Radar className="mr-2 h-4 w-4" />Run Faro</>}
           </Button>
         </div>
       </form>
       {phase !== "idle" ? <SearchState phase={phase} state={state} result={result} onOpen={() => setLocation("/")} /> : null}
+      {result && (phase === "complete" || phase === "empty") ? <SearchResults items={qualifiedResults} loading={overview.isFetching} onOpenFeed={() => setLocation("/")} /> : null}
     </section>
   </div>;
 }
@@ -132,4 +138,15 @@ function SearchState({ phase, state, result, onOpen }: { phase: SearchLifecycle;
     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f2dfc8]"><div className={`h-full rounded-full transition-all duration-700 ${alert ? "bg-[#c46b4d]" : done ? "bg-[#5a9a70]" : "bg-[#b85f45]"}`} style={{ width: `${state.progress}%` }} /></div>
     {done && !alert ? <Button onClick={onOpen} variant="outline" className="mt-4 h-9 rounded-xl border-[#cce1d1] bg-white text-xs font-bold text-[#40745a] hover:bg-[#fafffa]">Open Feed <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button> : null}
   </div>;
+}
+
+function SearchResults({ items, loading, onOpenFeed }: { items: any[]; loading: boolean; onOpenFeed: () => void }) {
+  return <section className="mt-6 border-t border-[#ead9c4] pt-5"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#a25d47]">Search results</p><h2 className="mt-1 text-base font-extrabold tracking-[-0.04em] text-[#4b3123]">Qualified posts for this search</h2></div><button onClick={onOpenFeed} className="text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">Open Feed <ArrowRight className="ml-1 inline h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-24 place-items-center rounded-2xl border border-[#ead9c4] bg-white/60"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : items.length ? <div className="mt-4 space-y-3">{items.slice(0, 10).map(item => <SearchResultCard key={item.post.id} item={item} />)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#ead9c4] bg-white/60 p-4 text-[11px] leading-5 text-[#92735f]">This search completed, but no saved post met Faro’s buyer-only quality gate. The source was not re-run.</div>}</section>;
+}
+
+function SearchResultCard({ item }: { item: any }) {
+  const { post } = item;
+  const author = post.authorName || post.authorHandle || "Public X account";
+  const category = getRequestCategory(post);
+  return <article className="rounded-2xl border border-[#ead9c4] bg-white p-4 shadow-[0_8px_18px_rgba(99,59,31,0.035)]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-xs font-extrabold text-[#4b3123]">{author}</p><p className="mt-1 text-[10px] font-semibold text-[#9b735c]">{category} · {post.ruleScore} signal</p></div><span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#e7f3e9] px-2 py-1 text-[9px] font-extrabold text-[#3f7757]"><BadgeCheck className="h-3 w-3" />Qualified</span></div><p className="mt-3 line-clamp-4 whitespace-pre-wrap text-[12px] leading-5 text-[#604536]">{post.body}</p><div className="mt-3 flex justify-end"><a href={post.postUrl || "https://x.com"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#98513a] hover:text-[#713c2b]">Open in X <ExternalLink className="h-3 w-3" /></a></div></article>;
 }

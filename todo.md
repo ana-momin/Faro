@@ -226,3 +226,7 @@
 - [x] Inspect the current Feed alignment and clicked-post detail overlay without a source call.
 - [x] Re-center the Feed and refine the post-detail overlay hierarchy, analysis presentation, and manual actions.
 - [x] Verify desktop and mobile presentation without a source call, add any needed regression coverage, and checkpoint the visual refinement.
+- [x] Replace the TwitterAPI.io key securely and enforce the user’s credit-protection policy: no exploratory or repeated provider calls.
+- [x] Prioritize current-month saved buyer requests in Feed while retaining older qualified posts only as a fallback.
+- [x] Keep completed AI and keyword Search results visible in the Search workspace instead of redirecting users to Feed.
+- [x] Add regression coverage, validate locally without a provider call, document the credit-safe policy, and checkpoint the update.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest } from "../client/src/lib/discoverFeed";
+import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest, prioritizeCurrentMonth } from "../client/src/lib/discoverFeed";
 
 const item = (id: number, monitorId: number, score: number, source = "twitterapi.io", body = "Looking to hire someone to automate our sales workflow") => ({ post: { id, source, ruleScore: score, body, reviewStatus: "pending" as const }, monitor: { id: monitorId } });
 
@@ -72,6 +72,13 @@ describe("Faro Discover feed selection", () => {
     const lastMonth = { ...lastWeekBase, post: { ...lastWeekBase.post, postedAt: "2026-07-31T10:00:00.000Z" } };
     expect(filterFeedByTime([recent, lastMonth], "last_7_days", now).map(row => row.post.id)).toEqual([22]);
     expect(filterFeedByTime([recent, lastMonth], "last_month", now).map(row => row.post.id)).toEqual([23]);
+  });
+
+  it("prioritizes current-month saved requests before older qualified history", () => {
+    const older = { ...item(24, 10, 96), post: { ...item(24, 10, 96).post, postedAt: "2026-07-31T15:00:00.000Z" } };
+    const currentEarlier = { ...item(25, 10, 70), post: { ...item(25, 10, 70).post, postedAt: "2026-08-03T15:00:00.000Z" } };
+    const currentLatest = { ...item(26, 10, 65), post: { ...item(26, 10, 65).post, postedAt: "2026-08-23T15:00:00.000Z" } };
+    expect(prioritizeCurrentMonth([older, currentEarlier, currentLatest], new Date("2026-08-24T12:00:00.000Z")).map(row => row.post.id)).toEqual([26, 25, 24]);
   });
 
   it("labels practical buyer-request work by task category", () => {

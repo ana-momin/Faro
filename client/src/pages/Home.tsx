@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getRequestCategory, type FeedTimeFilter } from "@/lib/discoverFeed";
+import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getRequestCategory, prioritizeCurrentMonth, type FeedTimeFilter } from "@/lib/discoverFeed";
 import { buildReviewDialogContent } from "@/lib/discoverAgent";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, BadgeCheck, Bot, Check, ChevronDown, Clapperboard, ClipboardCheck, Clock3, Code2, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, Search, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Trophy, Workflow, Zap } from "lucide-react";
@@ -22,7 +22,7 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
-  const allQualified = useMemo(() => getAllQualifiedPosts(overview.data?.posts ?? []), [overview.data?.posts]);
+  const allQualified = useMemo(() => prioritizeCurrentMonth(getAllQualifiedPosts(overview.data?.posts ?? [])), [overview.data?.posts]);
   const filteredQualified = useMemo(() => filterFeedByTime(allQualified, timeFilter), [allQualified, timeFilter]);
   const visible = useMemo(() => getDiscoverPreview(filteredQualified, visibleCount), [filteredQualified, visibleCount]);
   const screened = useMemo(() => (overview.data?.posts ?? []).filter(item => item.monitor.id === active?.monitor.id && item.post.source !== "demo").length, [overview.data?.posts, active?.monitor.id]);

@@ -32,6 +32,21 @@ export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {
   });
 }
 
+export function prioritizeCurrentMonth<T extends FeedItem>(items: T[], now = new Date()) {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const timestamp = (item: T) => {
+    const raw = item.post.postedAt;
+    if (!raw) return 0;
+    const date = raw instanceof Date ? raw : new Date(raw);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  };
+  const currentMonth: T[] = [];
+  const older: T[] = [];
+  items.forEach(item => (timestamp(item) >= monthStart ? currentMonth : older).push(item));
+  const newestFirst = (left: T, right: T) => timestamp(right) - timestamp(left);
+  return [...currentMonth.sort(newestFirst), ...older.sort(newestFirst)];
+}
+
 export function getDiscoverPreview<T>(items: T[], limit = 10) {
   return items.slice(0, Math.max(1, limit));
 }

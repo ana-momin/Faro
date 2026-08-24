@@ -4,8 +4,6 @@ import { buildCoverageQueries } from "./query";
 import { isPotentialBuyerOpportunity } from "./ranking";
 import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule, type PublicSearchResult, type XApiPost, type XApiUser } from "./xClient";
 
-const TARGET_INITIAL_CANDIDATES = 6;
-
 function candidatePosts(monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>, posts: XApiPost[]) {
   return posts.filter(post => isPotentialBuyerOpportunity({
     body: post.text,
@@ -18,77 +16,22 @@ function candidatePosts(monitor: NonNullable<Awaited<ReturnType<typeof db.getMon
   }));
 }
 
-function combineUsers(...groups: XApiUser[][]) {
-  return Array.from(new Map(groups.flat().map(user => [user.id, user])).values());
-}
-
 export async function fetchCreditAwarePosts(
   monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>,
   cursor?: { newestId?: string | null; nextToken?: string | null },
 ) {
-  const [primaryQuery, secondaryQuery, tertiaryQuery] = buildCoverageQueries(monitor.includeTerms, monitor.excludeTerms);
+  const [primaryQuery] = buildCoverageQueries(monitor.includeTerms, monitor.excludeTerms);
   const continuingPage = Boolean(cursor?.nextToken);
   const primary = await fetchPublicPosts(primaryQuery, continuingPage ? { nextToken: cursor?.nextToken } : { newestId: cursor?.newestId });
-  const postGroups = [primary.posts];
-  const userGroups = [primary.users];
-  let nextToken = primary.nextToken;
-  let calls = 1;
-  let queryFamilies = 1;
   const primaryPosts = dedupePosts(primary.posts);
   const primaryCandidates = candidatePosts(monitor, primaryPosts);
-  if (continuingPage || primary.source !== "twitterapi_io" || primaryCandidates.length >= TARGET_INITIAL_CANDIDATES) {
-    return {
-      result: { ...primary, posts: primaryCandidates },
-      calls,
-      rawCount: primaryPosts.length,
-      rawReceived: primary.posts.length,
-      candidateCount: primaryCandidates.length,
-      queryFamilies,
-    };
-  }
-
-  if (secondaryQuery) {
-    const secondary = await fetchPublicPosts(secondaryQuery);
-    postGroups.push(secondary.posts);
-    userGroups.push(secondary.users);
-    calls += 1;
-    queryFamilies += 1;
-  }
-
-  let combined = dedupePosts(postGroups.flat());
-  let combinedCandidates = candidatePosts(monitor, combined);
-  if (combinedCandidates.length < TARGET_INITIAL_CANDIDATES && calls < 3) {
-    if (primary.nextToken) {
-      const primaryContinuation = await fetchPublicPosts(primaryQuery, { nextToken: primary.nextToken });
-      postGroups.push(primaryContinuation.posts);
-      userGroups.push(primaryContinuation.users);
-      nextToken = primaryContinuation.nextToken;
-      calls += 1;
-    } else if (tertiaryQuery) {
-      const tertiary = await fetchPublicPosts(tertiaryQuery);
-      postGroups.push(tertiary.posts);
-      userGroups.push(tertiary.users);
-      calls += 1;
-      queryFamilies += 1;
-    }
-    combined = dedupePosts(postGroups.flat());
-    combinedCandidates = candidatePosts(monitor, combined);
-  }
-
   return {
-    result: {
-      posts: combinedCandidates,
-      users: combineUsers(...userGroups),
-      newestId: primary.newestId,
-      nextToken,
-      source: primary.source,
-      latencyLabel: `TwitterAPI.io Advanced Search · ${queryFamilies} targeted query ${queryFamilies === 1 ? "family" : "families"}`,
-    } satisfies PublicSearchResult,
-    calls,
-    rawCount: combined.length,
-    rawReceived: postGroups.flat().length,
-    candidateCount: combinedCandidates.length,
-    queryFamilies,
+    result: { ...primary, posts: primaryCandidates } satisfies PublicSearchResult,
+    calls: 1,
+    rawCount: primaryPosts.length,
+    rawReceived: primary.posts.length,
+    candidateCount: primaryCandidates.length,
+    queryFamilies: 1,
   };
 }
 
