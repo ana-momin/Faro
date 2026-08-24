@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory } from "@/lib/discoverFeed";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BadgeCheck, Bot, ChevronRight, Clapperboard, ClipboardCheck, Code2, Compass, Lightbulb, Loader2, Megaphone, Radar, Search, Sparkles, Trophy, Workflow, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bot, CheckCircle2, Clapperboard, ClipboardCheck, Clock3, Code2, Compass, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, Search, ShieldCheck, Sparkles, Trophy, Workflow, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -11,52 +11,35 @@ export default function Home() {
   const overview = trpc.monitoring.overview.useQuery(undefined, { refetchInterval: 30_000 });
   const [visibleCount, setVisibleCount] = useState(10);
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
-  const activeQualified = useMemo(
-    () => getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, false),
-    [overview.data?.posts, active?.monitor.id],
-  );
-  const qualified = useMemo(
-    () => getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, true),
-    [overview.data?.posts, active?.monitor.id],
-  );
+  const activeQualified = useMemo(() => getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, false), [overview.data?.posts, active?.monitor.id]);
   const allQualified = useMemo(() => getAllQualifiedPosts(overview.data?.posts ?? []), [overview.data?.posts]);
   const visible = useMemo(() => getDiscoverPreview(allQualified, visibleCount), [allQualified, visibleCount]);
   const isShowingSavedFallback = Boolean(active && !activeQualified.length && allQualified.length);
-  const screened = useMemo(
-    () => (overview.data?.posts ?? []).filter(item => item.monitor.id === active?.monitor.id && item.post.source !== "demo").length,
-    [overview.data?.posts, active?.monitor.id],
-  );
+  const screened = useMemo(() => (overview.data?.posts ?? []).filter(item => item.monitor.id === active?.monitor.id && item.post.source !== "demo").length, [overview.data?.posts, active?.monitor.id]);
 
   useEffect(() => setVisibleCount(10), [active?.monitor.id]);
 
   let content: React.ReactNode;
   if (overview.isLoading) {
-    content = <div className="grid min-h-72 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-[#b56a4e]" /></div>;
+    content = <div className="grid min-h-80 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-[#b56a4e]" /></div>;
   } else if (overview.isError) {
-    content = <DiscoverError onRetry={() => overview.refetch()} />;
+    content = <FeedError onRetry={() => overview.refetch()} />;
   } else if (!active) {
-    content = <EmptyDiscover onSearch={() => setLocation("/search")} />;
+    content = <EmptyFeed onSearch={() => setLocation("/search")} />;
   } else {
-    content = <>
-      <section className="mt-5 rounded-[26px] border border-[#ead9c4] bg-[#fbf2e5] p-4 shadow-[0_14px_32px_rgba(99,59,31,0.05)] sm:p-5">
-        <div className="flex items-start gap-3 sm:items-center">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#f1d7b9] text-[#98533b]"><Radar className="h-4 w-4" /></span>
-          <div className="min-w-0 flex-1"><p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#a45c45]">Latest brief</p><h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 tracking-[-0.03em] text-[#472f21] sm:text-base">{active.monitor.goal}</h2></div>
-          <span title="Saved source status" className="hidden shrink-0 items-center gap-1.5 rounded-xl border border-[#e7d2bb] bg-white/75 px-2.5 py-2 text-[9px] font-bold text-[#63806a] sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-[#62a075]" />{active.sync?.latencyLabel || "Ready"}</span>
+    content = <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start">
+      <section className="min-w-0">
+        <div className="flex items-center justify-between gap-3 border-b border-[#eadfd2] pb-4">
+          <div className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-[#f7e4d1] text-[#a35c43]"><Sparkles className="h-4 w-4" /></span><div><h2 className="text-base font-extrabold tracking-[-0.045em]">Request feed</h2><p className="mt-0.5 text-[10px] text-[#9a8170]">{isShowingSavedFallback ? "All qualifying saved requests" : "Buyer-only service requests"}</p></div></div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e7f3e9] px-2.5 py-1.5 text-[9px] font-extrabold text-[#3f7757]"><CheckCircle2 className="h-3 w-3" />Request-only</span>
         </div>
+        {visible.length ? <BuyerRequestFeed items={visible} hasMore={visibleCount < allQualified.length} onMore={() => setVisibleCount(count => count + 10)} onReview={postId => setLocation(`/review?post=${postId}`)} /> : <NoRequests screened={screened} onSearch={() => setLocation("/search")} />}
       </section>
-
-      <section className="mt-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#f8e8d6] text-[#a05940]"><Sparkles className="h-3.5 w-3.5" /></span><div><h2 className="text-sm font-extrabold tracking-[-0.035em]">Request feed</h2><p className="mt-0.5 text-[10px] font-medium text-[#9d8574]">{isShowingSavedFallback ? "All qualifying saved requests" : "Buyer-only service requests"}</p></div></div>
-          <button onClick={() => setLocation("/review")} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ead9c4] bg-white px-3 text-[10px] font-extrabold text-[#914e39] transition hover:bg-[#fff6ee] active:scale-[0.97]" aria-label="Open full review"><span className="hidden sm:inline">Review</span><ArrowRight className="h-3.5 w-3.5" /></button>
-        </div>
-        {visible.length ? <BuyerRequestList items={visible} hasMore={visibleCount < allQualified.length} onMore={() => setVisibleCount(count => count + 10)} onOpen={postId => setLocation(`/review?post=${postId}`)} /> : <NoRequests screened={screened} onSearch={() => setLocation("/search")} />}
-      </section>
-    </>;
+      <FeedContext active={active} savedFallback={isShowingSavedFallback} onReview={() => setLocation("/review")} />
+    </div>;
   }
 
-  return <div className="mx-auto max-w-5xl pb-10">
+  return <div className="mx-auto max-w-6xl pb-10">
     <header className="flex items-center justify-between gap-4 border-b border-[#eadfd2] pb-5">
       <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f1d7b9] text-[#8f4e38]"><Compass className="h-[18px] w-[18px]" /></span><div><p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[#a25d47]">Feed</p><h1 className="mt-0.5 text-xl font-extrabold tracking-[-0.06em]">Buyer requests</h1></div></div>
       <Button onClick={() => setLocation("/search")} className="h-10 rounded-xl bg-[#b85f45] px-3 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search"><Search className="h-3.5 w-3.5 sm:mr-1.5" /><span className="hidden sm:inline">Search</span></Button>
@@ -65,19 +48,27 @@ export default function Home() {
   </div>;
 }
 
-function BuyerRequestList({ items, hasMore, onMore, onOpen }: { items: any[]; hasMore: boolean; onMore: () => void; onOpen: (postId: number) => void }) {
-  return <div className="mt-4 space-y-2">{items.map(item => <RequestCard key={item.post.id} item={item} onOpen={() => onOpen(item.post.id)} />)}{hasMore ? <button onClick={onMore} className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#e7d4c0] bg-[#fffaf5] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#fff4e8] active:scale-[0.99]"><span>Show 10 more saved matches <span className="ml-1 font-medium text-[#a98a76]">· no new source check</span></span><ArrowRight className="h-3.5 w-3.5" /></button> : null}</div>;
+function FeedContext({ active, savedFallback, onReview }: { active: any; savedFallback: boolean; onReview: () => void }) {
+  return <aside className="rounded-[25px] border border-[#ead9c4] bg-[#fbf2e5] p-4 shadow-[0_12px_28px_rgba(99,59,31,0.04)] xl:sticky xl:top-7"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-white/80 text-[#a05a41]"><Radar className="h-3.5 w-3.5" /></span><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#a25d47]">Feed context</p></div><p className="mt-4 text-sm font-extrabold leading-5 text-[#492f21]">{active.monitor.goal}</p><div className="mt-5 space-y-2 rounded-2xl border border-[#ead8c3] bg-white/75 p-3"><div className="flex items-center gap-2 text-[10px] font-bold text-[#63806a]"><span className="h-1.5 w-1.5 rounded-full bg-[#62a075]" />{active.sync?.latencyLabel || "Saved source ready"}</div><p className="text-[10px] leading-5 text-[#937c6b]">{savedFallback ? "Latest search has no request yet. These are other saved buyer matches." : "Only first-party requests for delivered work appear here."}</p></div><button onClick={onReview} className="mt-4 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-[#e2c9b1] bg-white text-[10px] font-extrabold text-[#8f503a] transition hover:bg-[#fff8f1] active:scale-[0.98]">Open review <ArrowRight className="h-3.5 w-3.5" /></button></aside>;
 }
 
-function RequestCard({ item, onOpen }: { item: any; onOpen: () => void }) {
-  const { post } = item;
+function BuyerRequestFeed({ items, hasMore, onMore, onReview }: { items: any[]; hasMore: boolean; onMore: () => void; onReview: (postId: number) => void }) {
+  return <div className="mt-4 space-y-4">{items.map(item => <RequestCard key={item.post.id} item={item} onReview={() => onReview(item.post.id)} />)}{hasMore ? <button onClick={onMore} className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#e7d4c0] bg-[#fffaf5] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#fff4e8] active:scale-[0.99]"><span>Show 10 more saved matches <span className="ml-1 font-medium text-[#a98a76]">· no new source check</span></span><ArrowRight className="h-3.5 w-3.5" /></button> : null}</div>;
+}
+
+function RequestCard({ item, onReview }: { item: any; onReview: () => void }) {
+  const { post, monitorName } = item;
   const category = getRequestCategory(post);
   const author = post.authorName || post.authorHandle || "X member";
+  const handle = post.authorHandle ? `@${String(post.authorHandle).replace(/^@/, "")}` : "X member";
   const initial = author.charAt(0).toUpperCase();
   const Icon = category === "Automation" ? Zap : category === "AI video" ? Clapperboard : category === "Custom AI workflow" ? Workflow : category === "Product testing" ? ClipboardCheck : category === "Contests & bounties" ? Trophy : category === "Content & social" ? Megaphone : category === "Development" ? Code2 : category === "Research & design" ? Lightbulb : Bot;
-  return <button onClick={onOpen} className="group flex w-full items-start gap-3 rounded-[22px] border border-[#eadfd2] bg-white p-3.5 text-left shadow-[0_8px_20px_rgba(95,58,33,0.035)] transition hover:-translate-y-0.5 hover:border-[#dfb999] hover:bg-[#fffdfb] active:scale-[0.995] sm:p-4"><Avatar className="h-10 w-10 shrink-0 border border-[#f0ded0]"><AvatarImage src={post.authorAvatarUrl || undefined} alt={author} /><AvatarFallback className="bg-[#f9e8d8] text-[11px] font-extrabold text-[#a45a41]">{initial}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-xs font-extrabold text-[#3d2e23]">{author}</p>{post.authorHandle ? <span className="hidden truncate text-[10px] text-[#ab9382] sm:inline">@{String(post.authorHandle).replace(/^@/, "")}</span> : null}<span className="rounded-full bg-[#e7f3e9] px-1.5 py-0.5 text-[9px] font-extrabold text-[#3f7757]">{post.ruleScore}</span></div><p className="mt-1 line-clamp-3 text-[11px] leading-5 text-[#745f50] sm:text-[12px]">{post.body}</p><span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#fbefe5] px-2 py-1 text-[9px] font-extrabold text-[#9b593f]"><Icon className="h-3 w-3" />{category}</span></div><ChevronRight className="mt-2 h-4 w-4 shrink-0 text-[#b38e78] transition group-hover:translate-x-0.5 group-hover:text-[#935139]" /></button>;
+  const likes = Number(post.engagement?.like_count ?? post.engagement?.likes ?? 0);
+  const replies = Number(post.engagement?.reply_count ?? post.engagement?.replies ?? 0);
+  return <article className="overflow-hidden rounded-[28px] border border-[#eadfd2] bg-white shadow-[0_14px_32px_rgba(95,58,33,0.045)] transition hover:border-[#e0baa0]"><div className="p-4 sm:p-5"><div className="flex items-start gap-3"><Avatar className="h-11 w-11 shrink-0 border border-[#f0ded0]"><AvatarImage src={post.authorAvatarUrl || undefined} alt={author} /><AvatarFallback className="bg-[#f9e8d8] text-xs font-extrabold text-[#a45a41]">{initial}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><p className="truncate text-sm font-extrabold text-[#3d2e23]">{author}</p><span className="truncate text-[11px] text-[#a18b7a]">{handle}</span><span className="hidden text-[#c2aa97] sm:inline">·</span><span className="hidden items-center gap-1 text-[10px] font-medium text-[#a18b7a] sm:inline-flex"><Clock3 className="h-3 w-3" />{formatPostDate(post.postedAt)}</span></div><div className="mt-1.5 flex flex-wrap items-center gap-1.5"><span className="inline-flex items-center gap-1 rounded-full bg-[#fbefe5] px-2 py-1 text-[9px] font-extrabold text-[#9b593f]"><Icon className="h-3 w-3" />{category}</span><span className="inline-flex items-center gap-1 rounded-full bg-[#e7f3e9] px-2 py-1 text-[9px] font-extrabold text-[#3f7757]"><BadgeCheck className="h-3 w-3" />{post.ruleScore} signal</span></div></div></div><p className="mt-4 whitespace-pre-wrap text-[14px] leading-6 text-[#4e392d] sm:text-[15px] sm:leading-7">{post.body}</p></div><div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e6de] bg-[#fffdfa] px-4 py-3 sm:px-5"><div className="flex items-center gap-3 text-[10px] font-bold text-[#9b8575]"><span className="inline-flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" />{replies || "Reply"}</span><span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" />{likes || "Signal"}</span><span className="hidden items-center gap-1 sm:inline-flex"><ShieldCheck className="h-3.5 w-3.5 text-[#62a075]" />Buyer request</span></div><div className="flex items-center gap-2"><a href={post.postUrl || "https://x.com"} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ead5c2] bg-white px-3 text-[10px] font-extrabold text-[#80503a] transition hover:bg-[#fff4e8]"><ExternalLink className="h-3.5 w-3.5" /><span className="hidden sm:inline">Open X</span></a><button onClick={onReview} className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#b85f45] px-3 text-[10px] font-extrabold text-white transition hover:bg-[#9f4d36] active:scale-[0.97]">Review <ArrowRight className="h-3.5 w-3.5" /></button></div></div><div className="border-t border-[#f5ece5] bg-white px-4 py-2.5 text-[9px] font-medium text-[#a18b7a] sm:px-5">Matched from {monitorName || "saved Faro search"}</div></article>;
 }
 
-function EmptyDiscover({ onSearch }: { onSearch: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-dashed border-[#ead7c5] bg-[#fffdfa] px-6 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-[#f6e6d4] text-[#a55a42]"><Radar className="h-4 w-4" /></span><h2 className="mt-3 text-base font-extrabold tracking-[-0.04em]">Ready to find buyers.</h2><p className="mx-auto mt-1.5 max-w-sm text-[10px] leading-5 text-[#9a8474]">Run one focused X search. Faro keeps only real requests for help.</p><Button onClick={onSearch} className="mt-4 h-10 rounded-xl bg-[#b85f45] text-xs font-extrabold text-white hover:bg-[#9f4d36]"><Search className="mr-2 h-3.5 w-3.5" />Search</Button></div></div>; }
+function formatPostDate(value: string | Date | undefined) { if (!value) return "Saved request"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "Saved request" : date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+function EmptyFeed({ onSearch }: { onSearch: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-dashed border-[#ead7c5] bg-[#fffdfa] px-6 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-[#f6e6d4] text-[#a55a42]"><Radar className="h-4 w-4" /></span><h2 className="mt-3 text-base font-extrabold tracking-[-0.04em]">Ready for request posts.</h2><p className="mx-auto mt-1.5 max-w-sm text-[10px] leading-5 text-[#9a8474]">Run one focused X search. Faro keeps only real requests for help.</p><Button onClick={onSearch} className="mt-4 h-10 rounded-xl bg-[#b85f45] text-xs font-extrabold text-white hover:bg-[#9f4d36]"><Search className="mr-2 h-3.5 w-3.5" />Search</Button></div></div>; }
 function NoRequests({ screened, onSearch }: { screened: number; onSearch: () => void }) { return <div className="mt-4 grid min-h-44 place-items-center rounded-[24px] border border-dashed border-[#ead7c5] bg-[#fffdfa] px-6 text-center"><div><BadgeCheck className="mx-auto h-5 w-5 text-[#6c9b7b]" /><h2 className="mt-3 text-sm font-extrabold">Nothing qualified yet.</h2><p className="mx-auto mt-1.5 max-w-md text-[10px] leading-5 text-[#9a8474]">Faro screened {screened} stored public posts for this search. Service offers and topic chatter were filtered as noise, not lost.</p><button onClick={onSearch} className="mt-3 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#99523c] hover:text-[#713c2b]">Refine search <ArrowRight className="h-3 w-3" /></button></div></div>; }
-function DiscoverError({ onRetry }: { onRetry: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-[#efd4c7] bg-[#fff7f1] px-6 text-center"><div><Radar className="mx-auto h-5 w-5 text-[#b8654a]" /><h2 className="mt-3 text-base font-extrabold">Feed needs a refresh.</h2><p className="mt-1.5 text-[10px] text-[#9a8474]">Saved requests are safe. This does not start another source search.</p><Button onClick={onRetry} variant="outline" className="mt-4 h-9 rounded-xl border-[#e2bfae] bg-white text-xs font-extrabold text-[#98513a] hover:bg-[#fffaf7]">Retry loading</Button></div></div>; }
+function FeedError({ onRetry }: { onRetry: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-[#efd4c7] bg-[#fff7f1] px-6 text-center"><div><Radar className="mx-auto h-5 w-5 text-[#b8654a]" /><h2 className="mt-3 text-base font-extrabold">Feed needs a refresh.</h2><p className="mt-1.5 text-[10px] text-[#9a8474]">Saved requests are safe. This does not start another source search.</p><Button onClick={onRetry} variant="outline" className="mt-4 h-9 rounded-xl border-[#e2bfae] bg-white text-xs font-extrabold text-[#98513a] hover:bg-[#fffaf7]">Retry loading</Button></div></div>; }

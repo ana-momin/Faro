@@ -174,3 +174,7 @@
 - [x] Expand practical AI-solvable buyer-demand categories and search vocabulary while retaining strict rejection of providers, jobs, promotion, and generic discussion.
 - [x] Rename Discover to Feed and build a richer request-only mini-feed from qualifying saved posts with clear source context.
 - [x] Add Feed and buyer-intent regression coverage, verify desktop/mobile workflows, run checks, and save a final checkpoint.
+- [x] Audit current Feed and Review post fields, actions, and responsive patterns for a complete social-style presentation.
+- [x] Rebuild Feed around full buyer posts with complete identity, body, metadata, source link, and essential human-only actions.
+- [x] Preserve strict buyer-only gating, saved-result coverage, and accessible no-source-call expansion behavior in the redesigned Feed.
+- [x] Add full-post Feed regression coverage, verify desktop/mobile views, run checks, and save a final checkpoint.
