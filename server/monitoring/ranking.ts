@@ -42,8 +42,19 @@ function hasAny(body: string, patterns: string[]) {
   return patterns.some(pattern => body.includes(pattern));
 }
 
+function conceptVariants(term: string) {
+  const normalized = term.toLowerCase().trim();
+  const variants = new Set([normalized]);
+  if (normalized.includes("automation") || normalized === "automate") variants.add("automation").add("automate").add("automating");
+  if (normalized.includes("workflow")) variants.add("workflow").add("workflows");
+  if (normalized.includes("ai agent")) variants.add("ai agent").add("ai agents").add("agentic");
+  if (normalized.includes("product test") || normalized.includes("user test")) variants.add("product testing").add("user testing").add("beta testing").add("qa testing");
+  if (normalized.includes("video")) variants.add("video").add("ugc");
+  return Array.from(variants);
+}
+
 function matchedConcepts(body: string, includeTerms: string[]) {
-  return includeTerms.filter(term => body.includes(term.toLowerCase()));
+  return includeTerms.filter(term => conceptVariants(term).some(variant => body.includes(variant)));
 }
 
 function serviceIntentAssessment(body: string, includeTerms: string[], goal?: string, aiLabel?: string, aiConfidence = 0) {
@@ -122,6 +133,16 @@ export function rankOpportunity(input: RankedPostInput) {
 
   const score = Math.max(0, Math.min(100, Math.round(components.reduce((sum, component) => sum + component.points, 0))));
   return { score, components };
+}
+
+/**
+ * A deterministic source-level guard used before the per-post model call.
+ * It deliberately reuses Faro’s existing buyer-only ranker so clearly
+ * promotional, job, networking, and generic-topic posts do not consume LLM
+ * work during a controlled source sync.
+ */
+export function isPotentialBuyerOpportunity(input: Omit<RankedPostInput, "aiConfidence" | "aiLabel">) {
+  return rankOpportunity({ ...input, aiConfidence: 0, aiLabel: "Low-intent mention" }).score > 0;
 }
 
 export function deterministicIntent(body: string, includeTerms: string[], goal = "") {

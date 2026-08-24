@@ -1,6 +1,55 @@
 import * as db from "../db";
 import { persistNormalizedPost } from "./ingest";
-import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule } from "./xClient";
+import { buildCoverageQueries } from "./query";
+import { isPotentialBuyerOpportunity } from "./ranking";
+import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule, type PublicSearchResult, type XApiPost, type XApiUser } from "./xClient";
+
+const MIN_PRIMARY_CANDIDATES = 4;
+
+function candidatePosts(monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>, posts: XApiPost[]) {
+  return posts.filter(post => isPotentialBuyerOpportunity({
+    body: post.text,
+    postedAt: post.created_at ? new Date(post.created_at) : new Date(),
+    engagement: post.public_metrics ?? {},
+    includeTerms: monitor.includeTerms,
+    excludeTerms: monitor.excludeTerms,
+    goal: monitor.goal,
+    categories: monitor.categories,
+  }));
+}
+
+function combineUsers(...groups: XApiUser[][]) {
+  return Array.from(new Map(groups.flat().map(user => [user.id, user])).values());
+}
+
+export async function fetchCreditAwarePosts(
+  monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>,
+  cursor?: { newestId?: string | null; nextToken?: string | null },
+) {
+  const [primaryQuery, secondaryQuery] = buildCoverageQueries(monitor.includeTerms, monitor.excludeTerms);
+  const continuingPage = Boolean(cursor?.nextToken);
+  const primary = await fetchPublicPosts(primaryQuery, continuingPage ? { nextToken: cursor?.nextToken } : { newestId: cursor?.newestId });
+  const primaryPosts = dedupePosts(primary.posts);
+  const primaryCandidates = candidatePosts(monitor, primaryPosts);
+  if (continuingPage || primary.source !== "twitterapi_io" || !secondaryQuery || primaryCandidates.length >= MIN_PRIMARY_CANDIDATES) {
+    return { result: { ...primary, posts: primaryCandidates }, calls: 1, rawCount: primaryPosts.length };
+  }
+
+  const secondary = await fetchPublicPosts(secondaryQuery);
+  const combined = dedupePosts([...primaryPosts, ...secondary.posts]);
+  return {
+    result: {
+      posts: candidatePosts(monitor, combined),
+      users: combineUsers(primary.users, secondary.users),
+      newestId: primary.newestId,
+      nextToken: primary.nextToken,
+      source: primary.source,
+      latencyLabel: "TwitterAPI.io Advanced Search · 2 targeted query families",
+    } satisfies PublicSearchResult,
+    calls: 2,
+    rawCount: combined.length,
+  };
+}
 
 export function classifySyncFailure(error: unknown) {
   if (error instanceof XApiError) {
@@ -20,11 +69,7 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
     if (filteredStreamRequested()) {
       await upsertFilteredStreamRule(monitor.xQuery, `signalforge-${monitor.id}`);
     }
-    const continuingPage = Boolean(previous?.nextToken);
-    const result = await fetchPublicPosts(monitor.xQuery, continuingPage
-      ? { nextToken: previous?.nextToken }
-      : { newestId: previous?.newestPostId },
-    );
+    const { result, calls, rawCount } = await fetchCreditAwarePosts(monitor, { nextToken: previous?.nextToken, newestId: previous?.newestPostId });
     const users = new Map(result.users.map(user => [user.id, user]));
     const settled = await Promise.allSettled(dedupePosts(result.posts).map(xPost => persistNormalizedPost(monitor, xPost, users)));
     const rejected = settled.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
@@ -32,7 +77,7 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
     await db.recordSync(monitor.id, {
       source: result.source,
       status: rejected.length ? "degraded" : "healthy",
-      latencyLabel: rejected.length ? `${result.latencyLabel} · ${rejected.length} post${rejected.length === 1 ? "" : "s"} skipped` : result.latencyLabel,
+      latencyLabel: `TwitterAPI.io · ${calls} call${calls === 1 ? "" : "s"} · ${rawCount} screened · ${result.posts.length} candidate${result.posts.length === 1 ? "" : "s"}${rejected.length ? ` · ${rejected.length} skipped` : ""}`.slice(0, 80),
       newestPostId: result.newestId ?? previous?.newestPostId ?? null,
       nextToken: result.nextToken ?? null,
       lastSyncedAt: new Date(),

@@ -133,7 +133,7 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
     const body = await response.text();
     throw new XApiError(response.status, `TwitterAPI.io: ${body.slice(0, 600) || `HTTP ${response.status}.`}`);
   }
-  const payload = (await response.json()) as { tweets?: TwitterApiIoTweet[]; next_cursor?: string; nextCursor?: string };
+  const payload = (await response.json()) as { tweets?: TwitterApiIoTweet[]; has_next_page?: boolean; hasNextPage?: boolean; next_cursor?: string; nextCursor?: string };
   const users: XApiUser[] = [];
   const posts: XApiPost[] = [];
   for (const tweet of payload.tweets ?? []) {
@@ -160,7 +160,7 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
     posts,
     users,
     newestId: posts[0]?.id,
-    nextToken: payload.next_cursor ?? payload.nextCursor,
+    nextToken: payload.has_next_page === false || payload.hasNextPage === false ? undefined : payload.next_cursor ?? payload.nextCursor,
     source: "twitterapi_io",
     latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
   };

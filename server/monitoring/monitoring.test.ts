@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { suggestCriteria } from "./ai";
 import { buildServiceDemandQuery, buildXQuery, expandServiceDiscoveryTerms, validateXQuery } from "./query";
-import { deterministicIntent, rankOpportunity } from "./ranking";
+import { deterministicIntent, isPotentialBuyerOpportunity, rankOpportunity } from "./ranking";
 import { classifySyncFailure } from "./sync";
 import { XApiError, dedupePosts, recentSearchStatus } from "./xClient";
 
@@ -69,6 +69,30 @@ describe("opportunity ranking", () => {
       excludeTerms: ["giveaway"],
     });
     expect(score.score).toBe(0);
+  });
+
+  it("keeps a concrete buyer request before the per-post model call", () => {
+    expect(isPotentialBuyerOpportunity({
+      body: "Looking for someone to build automation for our business.",
+      postedAt: new Date(),
+      engagement: {},
+      includeTerms: ["automation"],
+      excludeTerms: [],
+      goal: "Test health-state persistence",
+      categories: ["service request"],
+    })).toBe(true);
+  });
+
+  it("recognizes a concrete automation request when the post uses the verb form", () => {
+    expect(isPotentialBuyerOpportunity({
+      body: "Need someone to automate an operations workflow for our team.",
+      postedAt: new Date(),
+      engagement: {},
+      includeTerms: ["automation"],
+      excludeTerms: [],
+      goal: "Test health-state persistence",
+      categories: ["service request"],
+    })).toBe(true);
   });
 });
 

@@ -92,11 +92,28 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
 
 const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "need a hand with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency" OR "does anyone know a developer" OR "does anyone know an agency" OR "does anyone know a freelancer" OR "recommendations for a developer" OR "recommendations for an agency")';
 
+const SECONDARY_SERVICE_REQUEST_QUERY = '("need help building" OR "need help automating" OR "need help creating" OR "can someone build" OR "can someone automate" OR "can someone implement" OR "who can build" OR "who can help us" OR "anyone know a developer" OR "anyone know an agency" OR "recommend someone" OR "looking to outsource" OR "need a team to" OR "does anyone know someone")';
+
 export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
   const topics = uniqueTerms(includeTerms).slice(0, 8);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
   const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
   return [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+}
+
+/**
+ * Two complementary, goal-derived query families. The first identifies
+ * explicit provider demand; the second is only used when that primary page
+ * produces too few deterministic buyer candidates. This caps an initial
+ * search at two TwitterAPI.io calls and continuation pages at one call.
+ */
+export function buildCoverageQueries(includeTerms: string[], excludeTerms: string[] = []) {
+  const topics = uniqueTerms(includeTerms).slice(0, 8);
+  const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
+  const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
+  const primary = [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+  const secondary = [topicClause, SECONDARY_SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+  return primary === secondary ? [primary] : [primary, secondary];
 }
 
 export function requireServiceRequestQuery(query: string) {

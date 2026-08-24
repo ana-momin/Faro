@@ -189,3 +189,11 @@
 - [x] Inspect the malformed Feed API response across tRPC client configuration, server routes, and current request logs.
 - [x] Repair API routing or query configuration so Feed receives valid JSON without changing buyer-post behavior.
 - [x] Add API response regression coverage, verify the Feed workflow, run checks, and save a final checkpoint.
+- [x] Inspect the existing Faro AI provider adapter pipeline and x-tweet-fetcher’s public repository without executing untrusted code; later superseded by the user’s direction not to adopt an unofficial scraper.
+- [x] Superseded: do not design an x-tweet-fetcher adapter because the user cancelled the temporary-provider plan before completion.
+- [x] Superseded: do not implement or document x-tweet-fetcher; no personal X credentials, scraping runtime, or provider switch remains.
+- [x] Superseded: do not run public-data tests through x-tweet-fetcher because TwitterAPI.io is the only active development provider.
+- [x] Remove unfinished temporary x-tweet-fetcher and Python runtime changes so TwitterAPI.io remains Faro AI’s only active development provider.
+- [x] Audit the current TwitterAPI.io query grammar, single-page retrieval, pagination state, and buyer-intent bottlenecks without starting additional provider searches.
+- [x] Add bounded, intent-aware query expansion, source-level pagination, cross-query deduplication, and early noise pruning to improve relevant opportunities per API credit.
+- [x] Add retrieval regression coverage, verify controlled source behavior, document the credit budget and limitations, and save a final checkpoint.

@@ -20,6 +20,7 @@ describe("TwitterAPI.io public-post adapter", () => {
         replyCount: 3,
         author: { id: "44", userName: "signaltester", name: "Signal Tester" },
       }],
+      has_next_page: true,
       next_cursor: "next-page",
     }), { status: 200 }));
 
@@ -31,5 +32,22 @@ describe("TwitterAPI.io public-post adapter", () => {
     expect(result.users[0]).toMatchObject({ id: "44", username: "signaltester" });
     expect(result.nextToken).toBe("next-page");
     expect(String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0])).toContain("filter%3Aretweets");
+    expect(String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0])).toContain("queryType=Latest");
+  });
+
+  it("uses a supplied cursor and clears it when the provider reports no next page", async () => {
+    process.env.TWITTERAPI_IO_KEY = "test-key";
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      tweets: [],
+      has_next_page: false,
+      next_cursor: "must-not-be-stored",
+    }), { status: 200 }));
+
+    const result = await fetchTwitterApiIoSearch("need help automating a business", "saved-cursor");
+
+    expect(result.nextToken).toBeUndefined();
+    const requestedUrl = String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]);
+    expect(requestedUrl).toContain("queryType=Latest");
+    expect(requestedUrl).toContain("cursor=saved-cursor");
   });
 });
