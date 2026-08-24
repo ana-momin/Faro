@@ -62,4 +62,4 @@
 - [x] Rework ranking to strongly prioritize credible service demand while suppressing topic-only, promotional, educational, hiring, and generic AI mentions.
 - [x] Add focused tests proving service-seeking posts outrank keyword-only posts and non-service contexts are demoted.
 - [x] Replace the overlapping preset cards with one simple listening setup path and a clearer first-use feed workflow.
-- [ ] Save a final checkpoint for the verified service-seeking ranking and simplified listening workflow.
+- [x] Save a final checkpoint for the verified service-seeking ranking and simplified listening workflow.
