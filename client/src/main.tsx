@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { faroQueryPolicy } from "@/lib/queryPolicy";
+import { fetchTrpcWithRetry } from "@/lib/trpcTransport";
 import { COOKIE_NAME, UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -65,12 +66,7 @@ const trpcClient = trpc.createClient({
         }
         return {};
       },
-      fetch(input, init) {
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        });
-      },
+      fetch: fetchTrpcWithRetry,
     }),
   ],
 });

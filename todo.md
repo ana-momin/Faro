@@ -186,3 +186,6 @@
 - [x] Broaden concrete help-seeking matching while retaining exclusions for service offers, jobs, promotions, networking, and generic discussion.
 - [x] Simplify Feed into a clean posts-only social surface without extra top icons, “Buyer requests,” or “Request feed” copy.
 - [x] Add broader-intent and simplified-Feed regression coverage, verify desktop/mobile layouts, run checks, and save a final checkpoint.
+- [x] Inspect the malformed Feed API response across tRPC client configuration, server routes, and current request logs.
+- [x] Repair API routing or query configuration so Feed receives valid JSON without changing buyer-post behavior.
+- [x] Add API response regression coverage, verify the Feed workflow, run checks, and save a final checkpoint.
