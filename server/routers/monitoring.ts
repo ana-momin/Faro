@@ -3,7 +3,7 @@ import { z } from "zod";
 import * as db from "../db";
 import { suggestCriteria } from "../monitoring/ai";
 import { seedDemo } from "../monitoring/demo";
-import { validateXQuery } from "../monitoring/query";
+import { requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
 import { syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -46,6 +46,7 @@ export const monitoringRouter = router({
     .input(z.object({ brief: z.string().trim().min(12).max(800) }))
     .mutation(async ({ ctx, input }) => {
       const criteria = await suggestCriteria(input.brief);
+      const xQuery = requireServiceRequestQuery(criteria.xQuery);
       const previousMonitors = await db.listMonitorsWithSync(ctx.user.id);
       await Promise.all(previousMonitors
         .filter(({ monitor }) => monitor.status === "active")
@@ -54,7 +55,7 @@ export const monitoringRouter = router({
         userId: ctx.user.id,
         name: `Faro Agent · ${input.brief.slice(0, 42)}`,
         goal: input.brief,
-        xQuery: criteria.xQuery,
+        xQuery,
         includeTerms: criteria.includeTerms,
         excludeTerms: criteria.excludeTerms,
         categories: ["service request", "human review", "agent-assisted"],

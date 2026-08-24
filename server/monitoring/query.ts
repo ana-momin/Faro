@@ -75,3 +75,12 @@ export function deterministicSuggestion(goal: string) {
     fallback: true,
   };
 }
+
+const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need help with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency")';
+
+export function requireServiceRequestQuery(query: string) {
+  const normalized = query.trim();
+  if (!normalized) return SERVICE_REQUEST_QUERY;
+  if (normalized.includes("looking for someone") || normalized.includes("need someone") || normalized.includes("looking to hire") || normalized.includes("seeking a provider")) return normalized;
+  return `${normalized} ${SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
+}

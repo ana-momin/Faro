@@ -1,15 +1,14 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import XPostCard from "@/components/XPostCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { ArrowUpRight, Bot, Compass, Loader2, Radar, Search, Sparkles, Target, Zap } from "lucide-react";
+import { ArrowUpRight, Bot, Compass, Loader2, Radar, RefreshCw, Search, Sparkles, Target, Zap } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 const DEFAULT_BRIEF = "Find founders and operators who need a provider to build custom AI workflows, automate operations, or produce practical AI video.";
-
-const scoreTone = (score: number) => score >= 80 ? "bg-[#dff5e6] text-[#17643c]" : "bg-[#f2f3f0] text-[#30322e]";
 
 export default function Home() {
   const utils = trpc.useUtils();
@@ -23,9 +22,19 @@ export default function Home() {
     },
     onError: error => toast.error(error.message),
   });
+  const review = trpc.monitoring.review.useMutation({
+    onSuccess: () => { utils.monitoring.overview.invalidate(); toast.success("Saved to your review queue."); },
+    onError: error => toast.error(error.message),
+  });
+  const sync = trpc.monitoring.sync.useMutation({
+    onSuccess: result => { utils.monitoring.overview.invalidate(); toast.success(`${result.inserted} new posts checked.`); },
+    onError: error => { utils.monitoring.overview.invalidate(); toast.error(error.message); },
+  });
 
   const activeBrief = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
-  const qualified = useMemo(() => (overview.data?.posts ?? []).filter(({ post, monitor }) => post.source !== "demo" && (!activeBrief || monitor.id === activeBrief.monitor.id) && post.ruleScore >= 60).slice(0, 4), [overview.data?.posts, activeBrief]);
+  const allQualified = useMemo(() => (overview.data?.posts ?? []).filter(({ post }) => post.source !== "demo" && post.ruleScore >= 55), [overview.data?.posts]);
+  const activeQualified = useMemo(() => allQualified.filter(({ monitor }) => !activeBrief || monitor.id === activeBrief.monitor.id), [allQualified, activeBrief]);
+  const qualified = (activeQualified.length ? activeQualified : allQualified).slice(0, 4);
   const monitored = activeBrief ? 1 : 0;
 
   function runAgent(event: FormEvent<HTMLFormElement>) {
@@ -37,7 +46,7 @@ export default function Home() {
     <div className="mx-auto max-w-6xl pb-8">
       <header className="flex items-center justify-between border-b border-[#e8e9e5] pb-5">
         <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#111214] text-white"><Compass className="h-4 w-4" /></span><div><h1 className="text-xl font-extrabold tracking-[-0.055em]">Discover</h1><p className="text-[11px] text-[#858780]">Service demand on X, sorted for human review.</p></div></div>
-        <button onClick={() => setLocation("/review")} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e3e4df] text-[#4e514b] transition hover:bg-white" title="Open review queue"><ArrowUpRight className="h-4 w-4" /></button>
+        <div className="flex items-center gap-2"><button onClick={() => activeBrief && sync.mutate({ monitorId: activeBrief.monitor.id })} disabled={!activeBrief || sync.isPending} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e3e4df] text-[#4e514b] transition hover:bg-white disabled:opacity-40" title="Check live source"><RefreshCw className={`h-4 w-4 ${sync.isPending ? "animate-spin" : ""}`} /></button><button onClick={() => setLocation("/review")} className="grid h-9 w-9 place-items-center rounded-xl border border-[#e3e4df] text-[#4e514b] transition hover:bg-white" title="Open review queue"><ArrowUpRight className="h-4 w-4" /></button></div>
       </header>
 
       <section className="mt-6 overflow-hidden rounded-[28px] bg-[#171916] p-5 text-white sm:p-7">
@@ -47,7 +56,7 @@ export default function Home() {
       </section>
 
       <section className="mt-7"><div className="flex items-center justify-between"><div><p className="text-sm font-extrabold tracking-[-0.03em]">Qualified now</p><p className="mt-1 text-[10px] text-[#8d8f88]">Requests with an actual service need.</p></div><button onClick={() => setLocation("/review")} className="text-[11px] font-bold text-[#277449]">Review queue</button></div>
-        {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#e7e8e4] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#9ca097]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 md:grid-cols-2">{qualified.map(({ post, monitorName }) => <button key={post.id} onClick={() => setLocation("/review")} className="flex items-start gap-3 rounded-2xl border border-[#e7e8e4] bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#b7d9bf] hover:shadow-[0_12px_24px_rgba(27,33,27,0.05)]"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-extrabold ${scoreTone(post.ruleScore)}`}>{post.ruleScore}</span><div className="min-w-0"><div className="flex items-center gap-2"><span className="text-xs font-bold">{post.authorHandle ? `@${post.authorHandle}` : post.authorName || "Unknown"}</span><span className="text-[9px] text-[#999b95]">{monitorName}</span></div><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#343633]">{post.body}</p></div></button>)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dfe1dc] bg-white px-5 text-center"><Search className="h-5 w-5 text-[#a9aca5]" /><p className="mt-3 text-sm font-bold">Nothing worth your time yet.</p><p className="mt-1 text-[10px] text-[#969890]">Faro keeps topical chatter out.</p></div>}</section>
+        {overview.isLoading ? <div className="mt-4 grid min-h-40 place-items-center rounded-2xl border border-[#e7e8e4] bg-white"><Loader2 className="h-5 w-5 animate-spin text-[#9ca097]" /></div> : qualified.length ? <div className="mt-4 grid gap-3 xl:grid-cols-2">{qualified.map(({ post }) => <XPostCard key={post.id} post={post} pending={review.isPending} onSelect={() => setLocation("/review")} onReview={decision => review.mutate({ postId: post.id, decision })} />)}</div> : <div className="mt-4 flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-[#dfe1dc] bg-white px-5 text-center"><Search className="h-5 w-5 text-[#a9aca5]" /><p className="mt-3 text-sm font-bold">No qualified requests yet.</p><p className="mt-1 max-w-md text-[10px] text-[#969890]">{activeBrief?.sync?.status === "payment_required" ? "Your live X provider needs account credit before Faro can fetch fresh posts." : "Check the live source for fresh provider requests. Topic chatter stays out."}</p></div>}</section>
 
       <section className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"><Metric icon={Radar} value={String(monitored)} label="active briefs" /><Metric icon={Target} value={String(qualified.length)} label="qualified now" /><Metric icon={Bot} value="On demand" label="agent runs" /></section>
     </div>

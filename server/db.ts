@@ -168,6 +168,7 @@ export async function upsertListenedPost(input: typeof listenedPosts.$inferInser
       authorId: input.authorId,
       authorHandle: input.authorHandle,
       authorName: input.authorName,
+      authorAvatarUrl: input.authorAvatarUrl,
       body: input.body,
       postUrl: input.postUrl,
       postedAt: input.postedAt,

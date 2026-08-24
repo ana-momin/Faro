@@ -7,7 +7,7 @@ export type XApiPost = {
   public_metrics?: Record<string, number>;
 };
 
-export type XApiUser = { id: string; username?: string; name?: string };
+export type XApiUser = { id: string; username?: string; name?: string; profileImageUrl?: string; profile_image_url?: string };
 
 export type RecentSearchResult = {
   posts: XApiPost[];
@@ -79,7 +79,7 @@ export async function fetchRecentSearch(query: string, cursor?: { newestId?: str
     max_results: "25",
     expansions: "author_id",
     "tweet.fields": "author_id,created_at,lang,public_metrics",
-    "user.fields": "id,name,username",
+    "user.fields": "id,name,username,profile_image_url",
   });
   if (cursor?.newestId) params.set("since_id", cursor.newestId);
   if (cursor?.nextToken) params.set("next_token", cursor.nextToken);
@@ -90,9 +90,10 @@ export async function fetchRecentSearch(query: string, cursor?: { newestId?: str
     includes?: { users?: XApiUser[] };
     meta?: { newest_id?: string; next_token?: string };
   };
+  const users = (payload.includes?.users ?? []).map(user => ({ ...user, profileImageUrl: user.profile_image_url ?? user.profileImageUrl }));
   return {
     posts: payload.data ?? [],
-    users: payload.includes?.users ?? [],
+    users,
     newestId: payload.meta?.newest_id,
     nextToken: payload.meta?.next_token,
   } satisfies RecentSearchResult;
@@ -110,7 +111,7 @@ type TwitterApiIoTweet = {
   replyCount?: number;
   retweetCount?: number;
   quoteCount?: number;
-  author?: { id?: string; userName?: string; username?: string; name?: string };
+  author?: { id?: string; userName?: string; username?: string; name?: string; profilePicture?: string; profileImageUrl?: string; profile_image_url?: string; avatar?: string };
 };
 
 function twitterApiIoKey() {
@@ -140,7 +141,7 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
     const text = tweet.text ?? tweet.fullText;
     if (!id || !text) continue;
     const authorId = tweet.author?.id;
-    if (authorId) users.push({ id: authorId, username: tweet.author?.userName ?? tweet.author?.username, name: tweet.author?.name });
+    if (authorId) users.push({ id: authorId, username: tweet.author?.userName ?? tweet.author?.username, name: tweet.author?.name, profileImageUrl: tweet.author?.profilePicture ?? tweet.author?.profileImageUrl ?? tweet.author?.profile_image_url ?? tweet.author?.avatar });
     posts.push({
       id,
       text,

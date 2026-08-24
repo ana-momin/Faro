@@ -47,6 +47,7 @@ describe("monitoring.agentStart", () => {
       userId: 7,
       status: "active",
       categories: ["service request", "human review", "agent-assisted"],
+      xQuery: expect.stringContaining("need someone"),
     }));
     expect(mocks.updateMonitorStatus).toHaveBeenCalledWith(13, 7, "paused");
     expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42 });

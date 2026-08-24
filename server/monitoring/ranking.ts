@@ -17,7 +17,7 @@ const SERVICE_DELIVERY_PATTERNS = ["build", "map", "implement", "set up", "setup
 const PROVIDER_PATTERNS = ["freelancer", "agency", "consultant", "expert", "specialist", "developer", "builder", "contractor", "service provider", "vendor"];
 const URGENCY_PATTERNS = ["asap", "urgent", "this week", "today", "tomorrow", "by friday", "right away", "quickly"];
 const DECISION_PATTERNS = ["our team", "my team", "our business", "my business", "our company", "client", "clients", "founder", "agency", "small business", "budget", "project", "for us"];
-const NON_SERVICE_CONTEXT_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "they need someone", "businesses don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops", "motivation", "my next role", "next role", "my course", "course on", "webinar", "lecture", "podcast", "newsletter", "tutorial", "tips", "learning", "recommend this", "recommend a talk", "recommend a lecture", "recommend a course", "recommend a podcast", "co-founder", "cofounder", "looking for a job", "job seeker", "open to work", "we are hiring", "we're hiring", "hiring:", "hiring for", "hiring a", "hiring an", "job opening", "apply now", "click the link", "join the team", "self-motivated", "willing to learn", "per hour", "hrs/week", "pay:", "internship", "full-time", "full time", "part-time", "part time", "salary", "resume", "candidate", "position"];
+const NON_SERVICE_CONTEXT_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "they need someone", "businesses don't need", "show you how", "more advice", "stop being told", "happy to connect", "curious to hear", "for beta testing", "drop what you're working on", "looking for people building", "coaching", "workshop", "workshops", "motivation", "my next role", "next role", "my course", "course on", "webinar", "lecture", "podcast", "newsletter", "tutorial", "tips", "learning", "recommend this", "recommend a talk", "recommend a lecture", "recommend a course", "recommend a podcast", "co-founder", "cofounder", "looking for a job", "job seeker", "open to work", "we are hiring", "we're hiring", "hiring:", "hiring for", "hiring a", "hiring an", "job opening", "apply now", "click the link", "join the team", "self-motivated", "willing to learn", "per hour", "hrs/week", "pay:", "internship", "full-time", "full time", "part-time", "part time", "salary", "resume", "candidate", "position"];
 const PROMOTIONAL_PATTERNS = ["book a call", "dm me", "follow for", "we built", "i built", "launching", "limited offer", "sign up", "buy now", "check out my", "you need", "you don't need", "show you how", "more advice", "stop being told", "coaching", "workshop", "workshops"];
 const GENERIC_GOAL_WORDS = new Set(["people", "asking", "help", "building", "build", "looking", "someone", "with", "from", "that", "this", "their", "about", "small", "business", "public", "posts", "for", "and", "the", "a", "an", "to", "of", "in"]);
 
@@ -41,7 +41,7 @@ function matchedConcepts(body: string, includeTerms: string[]) {
   return includeTerms.filter(term => body.includes(term.toLowerCase()));
 }
 
-function serviceIntentAssessment(body: string, includeTerms: string[], goal?: string) {
+function serviceIntentAssessment(body: string, includeTerms: string[], goal?: string, aiLabel?: string, aiConfidence = 0) {
   const concepts = matchedConcepts(body, includeTerms);
   const goalMatches = goalCoverage(body, goal);
   const directRequest = hasAny(body, DIRECT_SERVICE_REQUEST_PATTERNS);
@@ -51,9 +51,11 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const nonServiceContext = hasAny(body, NON_SERVICE_CONTEXT_PATTERNS);
   const promotionalContext = hasAny(body, PROMOTIONAL_PATTERNS);
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
-  const serviceSeeking = !nonServiceContext && directRequest && hasRelevantNeed && (deliveryScope || providerRequest);
+  const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
+  const modelAssistedServiceSeeking = modelConfirmedServiceNeed && providerRequest && (deliveryScope || buyerContext);
+  const serviceSeeking = !nonServiceContext && hasRelevantNeed && ((directRequest && (deliveryScope || providerRequest)) || modelAssistedServiceSeeking);
 
-  return { concepts, goalMatches, directRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, serviceSeeking };
+  return { concepts, goalMatches, directRequest, deliveryScope, providerRequest, buyerContext, nonServiceContext, promotionalContext, modelConfirmedServiceNeed, serviceSeeking };
 }
 
 export function rankOpportunity(input: RankedPostInput) {
@@ -66,7 +68,7 @@ export function rankOpportunity(input: RankedPostInput) {
     return { score: 0, components };
   }
 
-  const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal);
+  const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal, input.aiLabel, input.aiConfidence);
   if (assessment.nonServiceContext) {
     components.push({ label: assessment.promotionalContext ? "Promotional rather than request-led" : "Non-service context", points: -100 });
     return { score: 0, components };
@@ -81,7 +83,8 @@ export function rankOpportunity(input: RankedPostInput) {
   const topicPoints = Math.min(18, assessment.concepts.reduce((total, term) => total + (term.trim().includes(" ") ? 12 : 6), 0));
   if (topicPoints) components.push({ label: `Topic fit · ${assessment.concepts.length} monitored concept${assessment.concepts.length === 1 ? "" : "s"}`, points: topicPoints });
 
-  components.push({ label: "Direct service request", points: 42 });
+  if (assessment.directRequest) components.push({ label: "Direct service request", points: 42 });
+  else if (assessment.modelConfirmedServiceNeed) components.push({ label: "Model-confirmed service request", points: 30 });
   if (assessment.deliveryScope) components.push({ label: "Defined task or service need", points: 18 });
   if (assessment.providerRequest) components.push({ label: "Provider or expert requested", points: 10 });
   if (assessment.goalMatches >= 3) components.push({ label: "Matches desired outcome context", points: 8 });

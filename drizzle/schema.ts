@@ -73,6 +73,7 @@ export const listenedPosts = mysqlTable(
     authorId: varchar("authorId", { length: 64 }),
     authorHandle: varchar("authorHandle", { length: 80 }),
     authorName: varchar("authorName", { length: 160 }),
+    authorAvatarUrl: varchar("authorAvatarUrl", { length: 1024 }),
     body: text("body").notNull(),
     postUrl: varchar("postUrl", { length: 512 }),
     postedAt: timestamp("postedAt").notNull(),

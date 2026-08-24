@@ -135,6 +135,20 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
   });
 
+  it("rejects community-building posts that invite peers rather than seek a provider", () => {
+    const result = rankOpportunity({
+      ...profile,
+      body: "Builders and founders, I am looking for people building AI workflows. Drop what you're working on right now.",
+      postedAt: new Date(),
+      engagement: {},
+      aiConfidence: 0.95,
+      aiLabel: "Active help-seeking",
+    });
+
+    expect(result.score).toBe(0);
+    expect(result.components.map(component => component.label)).toContain("Non-service context");
+  });
+
   it("ranks a genuine provider request above a topic-only discussion", () => {
     const providerRequest = rankOpportunity({
       ...profile,

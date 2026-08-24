@@ -29,6 +29,7 @@ export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost:
     authorId: xPost.author_id ?? null,
     authorHandle: author?.username ?? null,
     authorName: author?.name ?? null,
+    authorAvatarUrl: author?.profileImageUrl ?? null,
     body: xPost.text,
     postUrl: author?.username ? `https://x.com/${author.username}/status/${xPost.id}` : `https://x.com/i/web/status/${xPost.id}`,
     postedAt: xPost.created_at ? new Date(xPost.created_at) : new Date(),
