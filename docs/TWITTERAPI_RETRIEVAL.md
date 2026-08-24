@@ -43,6 +43,10 @@ Faro AI cannot guarantee multiple qualified opportunities for every brief: X may
 
 After a refreshed provider key was supplied, testing exceeded the intended budget. All temporary live-test runners were removed and all active provider work was stopped. **No further TwitterAPI.io request may be made unless the user gives explicit written approval and a fixed maximum call count.** Feed pagination, duplicate suppression, time filters, and post expansion operate entirely on already-saved rows and never contact the provider.
 
+## Stored-data diagnosis — 24 August 2026
+
+Local inspection found many previously saved raw X rows but only a small number of credible buyer-side requests. Older, loose source runs had persisted generic commentary, service offers, job-seeking text, and unrelated uses of “looking for”; the current overview re-scores and the Feed then applies a second concrete-buyer gate, rightly hiding those rows. Faro now uses more precise future query families for **developer, automation-expert, AI-expert, agency, and direct build/automation requests**, plus matching recommendation language. This improves the next approved retrieval attempt, but it cannot manufacture additional genuine requests from the existing saved set.
+
 ## Reference
 
 [1]: https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search "TwitterAPI.io — Tweet Advanced Search"

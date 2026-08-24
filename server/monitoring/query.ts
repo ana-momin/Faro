@@ -101,9 +101,9 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return discoveryTerms([...terms, ...expansions]);
 }
 
-const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for an agency" OR "looking for a creator" OR "looking for an expert" OR "looking for someone to" OR "need a developer" OR "need an agency" OR "need a creator" OR "need someone to")';
-const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know a developer" OR "does anyone know an agency" OR "recommend a developer" OR "recommend an agency" OR "looking to outsource")';
-const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "need someone to automate" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent")';
+const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "need a developer to" OR "need someone to build" OR "need someone to automate" OR "need an automation expert")';
+const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend a developer" OR "can anyone recommend an automation" OR "does anyone know a developer" OR "does anyone know an automation expert" OR "recommend an automation consultant" OR "looking to outsource")';
+const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "need someone to automate" OR "need someone to build" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent")';
 
 function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
   const topics = discoveryTerms(includeTerms).slice(0, 5);

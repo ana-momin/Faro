@@ -1,8 +1,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, type FeedTimeFilter } from "@/lib/discoverFeed";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BadgeCheck, Bot, Clapperboard, ClipboardCheck, Clock3, Code2, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, Search, Trophy, Workflow, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bot, ChevronDown, Clapperboard, ClipboardCheck, Clock3, Code2, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, Search, Trophy, Workflow, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -43,8 +44,9 @@ export default function Home() {
 }
 
 function FeedTimeFilters({ value, onChange }: { value: FeedTimeFilter; onChange: (value: FeedTimeFilter) => void }) {
-  const filters: Array<{ value: FeedTimeFilter; label: string }> = [{ value: "all", label: "All time" }, { value: "today", label: "Today" }, { value: "this_week", label: "This week" }, { value: "last_week", label: "Last week" }, { value: "this_month", label: "This month" }];
-  return <div className="mt-3 flex max-w-full gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">{filters.map(filter => <button key={filter.value} type="button" onClick={() => onChange(filter.value)} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10px] font-extrabold transition ${value === filter.value ? "border-[#d49a78] bg-[#fff4e8] text-[#8b4e37]" : "border-[#eadfd2] bg-white text-[#957967] hover:bg-[#fffaf5]"}`}>{filter.label}</button>)}</div>;
+  const filters: Array<{ value: FeedTimeFilter; label: string }> = [{ value: "all", label: "All" }, { value: "today", label: "Today" }, { value: "last_7_days", label: "Last 7 days" }, { value: "last_month", label: "Last month" }];
+  const activeLabel = filters.find(filter => filter.value === value)?.label ?? "All";
+  return <div className="mt-3"><DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#eadfd2] bg-white px-3 text-[10px] font-extrabold text-[#80503a] transition hover:bg-[#fffaf5]">Time <span className="font-medium text-[#a18b7a]">· {activeLabel}</span><ChevronDown className="h-3.5 w-3.5 text-[#a27863]" /></button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-36 rounded-xl border-[#eadfd2] bg-[#fffdfa] p-1.5 shadow-[0_12px_30px_rgba(92,53,31,0.12)]"><DropdownMenuRadioGroup value={value} onValueChange={next => onChange(next as FeedTimeFilter)}>{filters.map(filter => <DropdownMenuRadioItem key={filter.value} value={filter.value} className="cursor-pointer rounded-lg py-2 text-xs font-semibold text-[#6d4a39] focus:bg-[#fff0e2] focus:text-[#6d4a39]">{filter.label}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuContent></DropdownMenu></div>;
 }
 
 function BuyerRequestFeed({ items, hasMore, onMore, onReview }: { items: any[]; hasMore: boolean; onMore: () => void; onReview: (postId: number) => void }) {

@@ -215,3 +215,7 @@
 - [x] Inspect saved Feed rendering, duplicate rows, local pagination, post-length handling, and timestamp data without contacting the X provider.
 - [x] Show ten unique saved posts initially, reveal the next ten locally, collapse long post text behind a See more control, and add professional local time filters.
 - [x] Add Feed regression coverage, verify desktop and mobile presentation without a source call, and checkpoint the update.
+- [x] Inspect stored live X posts and every buyer qualification stage to identify why genuine service requests are not reaching the Feed, without a provider call.
+- [x] Refine offline query and buyer-intent rules from stored evidence while preserving rejection of offers, jobs, promotions, networking, and generic discussion.
+- [x] Replace visible Feed time chips with one local Time dropdown containing Today, Last 7 days, Last month, and All.
+- [x] Add regression coverage, validate desktop/mobile presentation without an X-source call, and checkpoint the core discovery and Time-filter repair.

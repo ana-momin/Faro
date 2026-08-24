@@ -40,7 +40,7 @@ describe("AI query suggestion fallback", () => {
     const terms = expandServiceDiscoveryTerms("Find providers for a custom AI workflow", ["custom ai workflow"]);
     expect(terms).toEqual(expect.arrayContaining(["custom ai workflow", "automation", "ai agent"]));
     const query = buildServiceDemandQuery(terms, ["job"]);
-    expect(query).toContain('(\"looking for a developer\" OR \"looking for an agency\"');
+    expect(query).toContain('(\"looking for a developer\" OR \"looking for an automation expert\"');
     expect(query.length).toBeLessThanOrEqual(1024);
   });
 });

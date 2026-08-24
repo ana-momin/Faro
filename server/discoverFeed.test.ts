@@ -64,14 +64,14 @@ describe("Faro Discover feed selection", () => {
     expect(getAllQualifiedPosts([duplicateFirst, duplicateSecond]).map(row => row.post.id)).toEqual([20]);
   });
 
-  it("filters qualified saved posts by professional local time windows", () => {
+  it("filters qualified saved posts by the compact local Time menu windows", () => {
     const now = new Date("2026-08-24T12:00:00.000Z");
     const thisWeekBase = item(22, 10, 82);
     const lastWeekBase = item(23, 10, 82);
-    const thisWeek = { ...thisWeekBase, post: { ...thisWeekBase.post, postedAt: "2026-08-24T10:00:00.000Z" } };
-    const lastWeek = { ...lastWeekBase, post: { ...lastWeekBase.post, postedAt: "2026-08-17T10:00:00.000Z" } };
-    expect(filterFeedByTime([thisWeek, lastWeek], "this_week", now).map(row => row.post.id)).toEqual([22]);
-    expect(filterFeedByTime([thisWeek, lastWeek], "last_week", now).map(row => row.post.id)).toEqual([23]);
+    const recent = { ...thisWeekBase, post: { ...thisWeekBase.post, postedAt: "2026-08-20T10:00:00.000Z" } };
+    const lastMonth = { ...lastWeekBase, post: { ...lastWeekBase.post, postedAt: "2026-07-31T10:00:00.000Z" } };
+    expect(filterFeedByTime([recent, lastMonth], "last_7_days", now).map(row => row.post.id)).toEqual([22]);
+    expect(filterFeedByTime([recent, lastMonth], "last_month", now).map(row => row.post.id)).toEqual([23]);
   });
 
   it("labels practical buyer-request work by task category", () => {
