@@ -163,3 +163,6 @@
 - [x] Remove the adjustable sidebar control and enforce a fixed standard sidebar width across section changes.
 - [x] Keep Faro branding and the member profile image stable while navigating between sections.
 - [x] Add sidebar stability regression coverage, verify desktop/mobile navigation, run checks, and save a final checkpoint.
+- [x] Preload the authenticated member photo from the persistent Faro AI workspace shell.
+- [x] Make the large Profile photo prioritize rendering and transition in without layout shift or fallback flashing.
+- [x] Add profile-photo performance regression coverage, verify direct and in-app Profile loading on desktop/mobile, run checks, and save a final checkpoint.

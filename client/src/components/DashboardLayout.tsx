@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
+import { useWarmProfileImage } from "@/hooks/useWarmProfileImage";
 import { PRODUCT_INTRO_PATH } from "@/lib/productIntro";
 import { Compass, Inbox, LogOut, Radar, Search, ShieldCheck, UserRound } from "lucide-react";
 import { CSSProperties } from "react";
@@ -22,6 +23,7 @@ const DEFAULT_WIDTH = 248;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
+  useWarmProfileImage(user?.avatarUrl);
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) return <div className="min-h-screen bg-[#f8f9f7] p-4 sm:p-8"><div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-5xl overflow-hidden rounded-[32px] border border-[#e5e7e1] bg-white lg:grid-cols-[1.1fr_0.9fr]"><section className="flex flex-col justify-between bg-[#171916] p-7 text-white sm:p-10"><FaroLogo className="[&>span:last-child]:text-white" /><div className="py-10"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-[#a8dfb8]"><Radar className="h-5 w-5" /></span><h1 className="mt-6 max-w-md text-4xl font-extrabold tracking-[-0.07em]">Find people already looking for help.</h1><p className="mt-4 max-w-sm text-sm leading-6 text-white/60">Faro maps service demand on X, filters the noise, and leaves every decision to you.</p></div><div className="flex items-center gap-2 text-[10px] text-white/50"><ShieldCheck className="h-3.5 w-3.5 text-[#9ee2ae]" />Human review stays in control.</div></section><section className="flex flex-col justify-center p-7 sm:p-10"><FaroLogo /><h2 className="mt-10 text-2xl font-extrabold tracking-[-0.055em]">Your signal desk.</h2><p className="mt-2 text-sm leading-6 text-[#777a73]">One agent, one clear review queue, and no automated outreach.</p><Button onClick={() => startLogin()} size="lg" className="mt-8 h-11 w-full rounded-xl bg-[#111214]">Continue to Faro</Button><div className="mt-5 grid grid-cols-3 gap-2"><span className="rounded-xl bg-[#f2f4f0] p-3 text-center text-[10px] font-bold text-[#5d615a]">Map</span><span className="rounded-xl bg-[#f2f4f0] p-3 text-center text-[10px] font-bold text-[#5d615a]">Filter</span><span className="rounded-xl bg-[#f2f4f0] p-3 text-center text-[10px] font-bold text-[#5d615a]">Review</span></div></section></div></div>;
   return <SidebarProvider style={{ "--sidebar-width": `${DEFAULT_WIDTH}px`, "--sidebar-width-icon": `${DEFAULT_WIDTH}px` } as CSSProperties}><DashboardLayoutContent>{children}</DashboardLayoutContent></SidebarProvider>;
