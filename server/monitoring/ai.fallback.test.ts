@@ -4,9 +4,21 @@ const mocks = vi.hoisted(() => ({ invokeLLM: vi.fn() }));
 
 vi.mock("../_core/llm", () => ({ invokeLLM: mocks.invokeLLM }));
 
-import { suggestCriteria } from "./ai";
+import { modelTimeoutMs, suggestCriteria } from "./ai";
 
 describe("suggestCriteria unavailable-model fallback", () => {
+  it("uses a short default wait before preserving search progress with the deterministic fallback", () => {
+    const previous = process.env.SIGNALFORGE_LLM_TIMEOUT_MS;
+    delete process.env.SIGNALFORGE_LLM_TIMEOUT_MS;
+
+    try {
+      expect(modelTimeoutMs()).toBe(4_500);
+    } finally {
+      if (previous === undefined) delete process.env.SIGNALFORGE_LLM_TIMEOUT_MS;
+      else process.env.SIGNALFORGE_LLM_TIMEOUT_MS = previous;
+    }
+  });
+
   it("returns a deterministic suggestion when the built-in model throws", async () => {
     const previous = process.env.SIGNALFORGE_DISABLE_LLM;
     delete process.env.SIGNALFORGE_DISABLE_LLM;

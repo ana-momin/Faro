@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { faroQueryPolicy } from "@/lib/queryPolicy";
 import { COOKIE_NAME, UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -8,7 +9,9 @@ import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: faroQueryPolicy,
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;

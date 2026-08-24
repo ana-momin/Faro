@@ -21,9 +21,11 @@ export type MonitorIntentContext = {
   categories?: string[];
 };
 
-function modelTimeoutMs() {
-  const configured = Number(process.env.SIGNALFORGE_LLM_TIMEOUT_MS ?? 12_000);
-  return Number.isFinite(configured) ? Math.max(250, Math.min(configured, 30_000)) : 12_000;
+export function modelTimeoutMs() {
+  // Buyer-safe deterministic criteria are available, so a stalled AI brief
+  // should not keep a user waiting for the old twelve-second ceiling.
+  const configured = Number(process.env.SIGNALFORGE_LLM_TIMEOUT_MS ?? 4_500);
+  return Number.isFinite(configured) ? Math.max(250, Math.min(configured, 30_000)) : 4_500;
 }
 
 async function withModelTimeout<T>(operation: Promise<T>): Promise<T> {

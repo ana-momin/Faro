@@ -155,3 +155,7 @@
 - [x] Repair Discover so it shows the top qualified buyer requests across saved searches when the newest active search has none.
 - [x] Add regression coverage, verify Discover and Review synchronization, and save a final checkpoint.
 - [x] Save the verified simplified Faro AI discovery workflow as a final checkpoint.
+- [x] Audit Faro AI’s frontend loading paths, query cache behavior, bundle hotspots, and controlled search lifecycle latency.
+- [x] Implement cache-first page rendering, faster navigation, and immediate feedback for controlled search initiation.
+- [x] Optimize shared data fetching and loading states without adding automatic source checks or weakening buyer-only qualification.
+- [x] Add performance-focused regression coverage, verify desktop/mobile responsiveness, run checks, and save a final checkpoint.

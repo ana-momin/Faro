@@ -18,6 +18,9 @@ export function useAuth(options?: UseAuthOptions) {
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
@@ -51,10 +54,6 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
@@ -68,6 +67,14 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.error,
     logoutMutation.isPending,
   ]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("manus-runtime-user-info", JSON.stringify(meQuery.data));
+    } catch {
+      // Storage can be unavailable in privacy-focused browser contexts.
+    }
+  }, [meQuery.data]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
