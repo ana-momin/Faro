@@ -68,4 +68,4 @@
 - [x] Build a unified AI-assisted service-discovery command flow that helps create, refine, sync, rank, and review X service requests without autonomous outreach.
 - [x] Redesign the signed-out and profile experiences with clear, visual-first account states and Faro capitalization.
 - [x] Refine the overall interface into a minimal icon-led system with purposeful controls, reduced copy, and cohesive sidebar formatting.
-- [ ] Save a final checkpoint for the verified unified Faro agent, navigation, profile, and service-intent revision.
+- [x] Save a final checkpoint for the verified unified Faro agent, navigation, profile, and service-intent revision.
