@@ -92,4 +92,4 @@
 - [x] Remove nested interactive elements from selectable X post cards while preserving review actions.
 - [x] Ensure keyboard activation only selects a post when focus is on the outer card, not inner review controls.
 - [x] Add a regression test for keyboard interaction on nested post-card actions.
-- [ ] Save a final checkpoint for the verified accessible Faro AI post-card DOM repair.
+- [x] Save a final checkpoint for the verified accessible Faro AI post-card DOM repair.
