@@ -15,4 +15,9 @@ describe("Faro Discover feed selection", () => {
     expect(qualified).toHaveLength(3);
     expect(getDiscoverPreview(qualified, 2).map(row => row.post.id)).toEqual([1, 2]);
   });
+
+  it("can keep a newly started brief clear instead of resurfacing prior monitors", () => {
+    const rows = [item(1, 10, 89), item(2, 11, 92)];
+    expect(getQualifiedPosts(rows, 99, false)).toEqual([]);
+  });
 });

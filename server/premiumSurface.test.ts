@@ -9,7 +9,7 @@ const styleSource = readFileSync(resolve(process.cwd(), "client/src/index.css"),
 
 describe("Faro premium interaction surfaces", () => {
   it("uses a dedicated, fixed-height hidden-scrollbar full-post review surface", () => {
-    expect(homeSource).toContain("Review all {total} qualified requests");
+    expect(homeSource).toContain("Review all {total} requests from this search");
     expect(reviewSource).toContain("xl:max-h-[calc(100vh-5rem)]");
     expect(reviewSource).toContain("scrollbar-none");
     expect(reviewSource).toContain("Review qualified requests");

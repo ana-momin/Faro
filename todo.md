@@ -134,3 +134,8 @@
 - [x] Add regression coverage, verify desktop/mobile behavior, run checks, and save a final checkpoint.
 - [x] Add a clear Discover overview-fetch error state with retry guidance and recovery action.
 - [x] Save the verified Faro AI Discover and Review workflow rebuild as a final checkpoint.
+- [x] Audit the current Discover default brief, persisted post visibility, and search-progress lifecycle without running a live provider search.
+- [x] Clear the old Discover feed and previous agent prompt into a polished suggestion-led starting state.
+- [x] Improve lifecycle-synced search progress and source-outcome messaging so completion states are truthful and clear.
+- [x] Add regression coverage, verify desktop/mobile reset behavior, run checks, and save a final checkpoint.
+- [x] Save the verified refreshed Faro AI Discover experience as a final checkpoint.
