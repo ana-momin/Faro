@@ -166,3 +166,7 @@
 - [x] Preload the authenticated member photo from the persistent Faro AI workspace shell.
 - [x] Make the large Profile photo prioritize rendering and transition in without layout shift or fallback flashing.
 - [x] Add profile-photo performance regression coverage, verify direct and in-app Profile loading on desktop/mobile, run checks, and save a final checkpoint.
+- [x] Audit Discover’s current visual density, hierarchy, and buyer-request scan flow.
+- [x] Rebuild Discover as a concise icon-led warm signal desk with fewer words and clearer essential actions.
+- [x] Preserve buyer-only qualification, saved-match expansion, and truthful source context in the simplified Discover UI.
+- [x] Add Discover presentation regression coverage, verify desktop/mobile layouts, run checks, and save a final checkpoint.
