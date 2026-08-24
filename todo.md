@@ -73,4 +73,4 @@
 - [x] Simplify the browser tab title and preserve a visible Faro mascot in a wider compact sidebar with the collapse control moved away from the logo.
 - [x] Restore qualified result visibility without reintroducing keyword-only, promotional, job, or networking posts.
 - [x] Redesign discovery and review findings as X-style post cards with account avatar, display name, handle, complete post body, direct X link, and compact human-review/save controls.
-- [ ] Save a final checkpoint for the verified Faro chrome, compact sidebar, source-state, and X-style post-card refinements.
+- [x] Save a final checkpoint for the verified Faro chrome, compact sidebar, source-state, and X-style post-card refinements.
