@@ -17,11 +17,7 @@ vi.mock("../db", () => ({
 
 vi.mock("./xClient", async importOriginal => {
   const actual = await importOriginal<typeof import("./xClient")>();
-  return {
-    ...actual,
-    fetchPublicPosts: mocks.fetchPublicPosts,
-    upsertFilteredStreamRule: mocks.upsertFilteredStreamRule,
-  };
+  return { ...actual, fetchPublicPosts: mocks.fetchPublicPosts, upsertFilteredStreamRule: mocks.upsertFilteredStreamRule };
 });
 
 vi.mock("./ingest", () => ({ persistNormalizedPost: mocks.persistNormalizedPost }));
@@ -42,6 +38,15 @@ const monitor = {
   updatedAt: new Date(),
 };
 
+const sourceResult = (posts: Array<{ id: string; text: string }>, nextToken?: string) => ({
+  posts,
+  users: [],
+  newestId: posts[0]?.id,
+  nextToken,
+  source: "twitterapi_io" as const,
+  latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
+});
+
 describe("syncMonitorRecord X fallback integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,81 +57,53 @@ describe("syncMonitorRecord X fallback integration", () => {
     mocks.fetchPublicPosts.mockRejectedValueOnce(new XApiError(402, "payment required"));
 
     await expect(syncMonitorRecord(monitor)).rejects.toThrow("payment required");
-    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({
-      source: "recent_search",
-      status: "payment_required",
-      latencyLabel: "X API credit required",
-      retryCount: 1,
-    }));
+    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ source: "recent_search", status: "payment_required", latencyLabel: "X API credit required", retryCount: 1 }));
   });
 
   it("persists rate-limited status when X Recent Search returns HTTP 429", async () => {
     mocks.fetchPublicPosts.mockRejectedValueOnce(new XApiError(429, "rate limited"));
 
     await expect(syncMonitorRecord(monitor)).rejects.toThrow("rate limited");
-    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({
-      source: "recent_search",
-      status: "rate_limited",
-      latencyLabel: "X API rate limit active",
-      retryCount: 1,
-    }));
+    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ source: "recent_search", status: "rate_limited", latencyLabel: "X API rate limit active", retryCount: 1 }));
   });
 
-  it("keeps concrete buyer candidates across a bounded secondary query", async () => {
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [{ id: "one", text: "Looking for someone to build automation for our business." }],
-      users: [],
-      newestId: "one",
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [
+  it("keeps concrete buyer candidates across bounded multi-signal retrieval and deduplicates post IDs", async () => {
+    mocks.fetchPublicPosts
+      .mockResolvedValueOnce(sourceResult([{ id: "one", text: "Looking for someone to build automation for our business." }]))
+      .mockResolvedValueOnce(sourceResult([
         { id: "one", text: "Looking for someone to build automation for our business." },
         { id: "two", text: "Need someone to automate an operations workflow for our team." },
-      ],
-      users: [],
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
+      ]))
+      .mockResolvedValueOnce(sourceResult([{ id: "three", text: "We need someone to build an AI agent that automates our customer-support workflow." }]));
 
     const coverage = await fetchCreditAwarePosts(monitor);
 
-    expect(coverage.calls).toBe(2);
-    expect(coverage.rawCount).toBe(2);
-    expect(coverage.result.posts.map(post => post.id)).toEqual(["one", "two"]);
+    expect(coverage.calls).toBe(3);
+    expect(coverage.queryFamilies).toBe(3);
+    expect(coverage.rawReceived).toBe(4);
+    expect(coverage.rawCount).toBe(3);
+    expect(coverage.result.posts.map(post => post.id)).toEqual(["one", "two", "three"]);
   });
 
-  it("uses only the primary query when it already has four buyer candidates", async () => {
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [
-        { id: "one", text: "Looking for someone to build automation for our business." },
-        { id: "two", text: "Need someone to automate an operations workflow for our team." },
-        { id: "three", text: "Need an agency to build an automation workflow for our client team." },
-        { id: "four", text: "Looking to hire a developer to implement automation in our business." },
-      ],
-      users: [],
-      newestId: "four",
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
+  it("uses only the primary query when it already has six buyer candidates", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([
+      { id: "one", text: "Looking for someone to build automation for our business." },
+      { id: "two", text: "Need someone to automate an operations workflow for our team." },
+      { id: "three", text: "Need an agency to build an automation workflow for our client team." },
+      { id: "four", text: "Looking to hire a developer to implement automation in our business." },
+      { id: "five", text: "Our company needs someone to automate a workflow for the sales team." },
+      { id: "six", text: "Looking for an expert to build an automation system for our business." },
+    ]));
 
     const coverage = await fetchCreditAwarePosts(monitor);
 
     expect(coverage.calls).toBe(1);
-    expect(coverage.result.posts).toHaveLength(4);
+    expect(coverage.result.posts).toHaveLength(6);
     expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
   });
 
-  it("uses one continuation request and never expands to a second query family", async () => {
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [{ id: "next", text: "Need someone to automate an operations workflow for our team." }],
-      users: [],
-      newestId: "next",
-      nextToken: "following-page",
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
+  it("uses one continuation request and never expands to another query family", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "next", text: "Need someone to automate an operations workflow for our team." }], "following-page"));
 
     const coverage = await fetchCreditAwarePosts(monitor, { nextToken: "saved-page" });
 
@@ -136,47 +113,27 @@ describe("syncMonitorRecord X fallback integration", () => {
     expect(coverage.result.nextToken).toBe("following-page");
   });
 
-  it("returns an empty candidate set after two empty bounded pages", async () => {
-    const emptyResult = {
-      posts: [],
-      users: [],
-      source: "twitterapi_io" as const,
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    };
-    mocks.fetchPublicPosts.mockResolvedValueOnce(emptyResult).mockResolvedValueOnce(emptyResult);
+  it("returns an empty candidate set after three empty bounded checks", async () => {
+    mocks.fetchPublicPosts.mockResolvedValue(sourceResult([]));
 
     const coverage = await fetchCreditAwarePosts(monitor);
 
-    expect(coverage.calls).toBe(2);
+    expect(coverage.calls).toBe(3);
     expect(coverage.rawCount).toBe(0);
     expect(coverage.result.posts).toEqual([]);
   });
 
-  it("persists a degraded live-source state when an individual public post cannot be normalized", async () => {
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [
+  it("persists a degraded state when one qualified provider post cannot be normalized", async () => {
+    mocks.fetchPublicPosts
+      .mockResolvedValueOnce(sourceResult([
         { id: "one", text: "Looking for someone to build automation for our business." },
         { id: "two", text: "Need someone to automate an operations workflow for our team." },
-      ],
-      users: [],
-      newestId: "two",
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
-    mocks.fetchPublicPosts.mockResolvedValueOnce({
-      posts: [],
-      users: [],
-      source: "twitterapi_io",
-      latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
-    });
+      ]))
+      .mockResolvedValueOnce(sourceResult([]))
+      .mockResolvedValueOnce(sourceResult([]));
     mocks.persistNormalizedPost.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("invalid provider timestamp"));
 
-    await expect(syncMonitorRecord(monitor)).resolves.toEqual({ inserted: 1, source: "twitterapi_io" });
-    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({
-      source: "twitterapi_io",
-      status: "degraded",
-      latencyLabel: expect.stringContaining("1 skipped"),
-      lastError: "invalid provider timestamp",
-    }));
+    await expect(syncMonitorRecord(monitor)).resolves.toMatchObject({ inserted: 1, source: "twitterapi_io", retrieval: { sourceCalls: 3, buyerCandidates: 2, persisted: 1 } });
+    expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ source: "twitterapi_io", status: "degraded", latencyLabel: expect.stringContaining("1 skipped"), lastError: "invalid provider timestamp" }));
   });
 });

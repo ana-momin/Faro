@@ -45,6 +45,12 @@ describe("Faro Discover feed selection", () => {
     expect(getAllQualifiedPosts([recommendation]).map(row => row.post.id)).toEqual([13]);
   });
 
+  it("keeps first-party needs-someone and expert requests visible after server qualification", () => {
+    const needsSomeone = item(14, 10, 78, "twitterapi.io", "Our company needs someone to automate the support workflow.");
+    const expertRequest = item(15, 10, 78, "twitterapi.io", "Looking for an AI expert to build a workflow for our business.");
+    expect(getAllQualifiedPosts([needsSomeone, expertRequest]).map(row => row.post.id)).toEqual([14, 15]);
+  });
+
   it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
     const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
     expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);

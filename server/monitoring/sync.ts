@@ -4,7 +4,7 @@ import { buildCoverageQueries } from "./query";
 import { isPotentialBuyerOpportunity } from "./ranking";
 import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule, type PublicSearchResult, type XApiPost, type XApiUser } from "./xClient";
 
-const MIN_PRIMARY_CANDIDATES = 4;
+const TARGET_INITIAL_CANDIDATES = 6;
 
 function candidatePosts(monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>, posts: XApiPost[]) {
   return posts.filter(post => isPotentialBuyerOpportunity({
@@ -26,28 +26,69 @@ export async function fetchCreditAwarePosts(
   monitor: NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>,
   cursor?: { newestId?: string | null; nextToken?: string | null },
 ) {
-  const [primaryQuery, secondaryQuery] = buildCoverageQueries(monitor.includeTerms, monitor.excludeTerms);
+  const [primaryQuery, secondaryQuery, tertiaryQuery] = buildCoverageQueries(monitor.includeTerms, monitor.excludeTerms);
   const continuingPage = Boolean(cursor?.nextToken);
   const primary = await fetchPublicPosts(primaryQuery, continuingPage ? { nextToken: cursor?.nextToken } : { newestId: cursor?.newestId });
+  const postGroups = [primary.posts];
+  const userGroups = [primary.users];
+  let nextToken = primary.nextToken;
+  let calls = 1;
+  let queryFamilies = 1;
   const primaryPosts = dedupePosts(primary.posts);
   const primaryCandidates = candidatePosts(monitor, primaryPosts);
-  if (continuingPage || primary.source !== "twitterapi_io" || !secondaryQuery || primaryCandidates.length >= MIN_PRIMARY_CANDIDATES) {
-    return { result: { ...primary, posts: primaryCandidates }, calls: 1, rawCount: primaryPosts.length };
+  if (continuingPage || primary.source !== "twitterapi_io" || primaryCandidates.length >= TARGET_INITIAL_CANDIDATES) {
+    return {
+      result: { ...primary, posts: primaryCandidates },
+      calls,
+      rawCount: primaryPosts.length,
+      rawReceived: primary.posts.length,
+      candidateCount: primaryCandidates.length,
+      queryFamilies,
+    };
   }
 
-  const secondary = await fetchPublicPosts(secondaryQuery);
-  const combined = dedupePosts([...primaryPosts, ...secondary.posts]);
+  if (secondaryQuery) {
+    const secondary = await fetchPublicPosts(secondaryQuery);
+    postGroups.push(secondary.posts);
+    userGroups.push(secondary.users);
+    calls += 1;
+    queryFamilies += 1;
+  }
+
+  let combined = dedupePosts(postGroups.flat());
+  let combinedCandidates = candidatePosts(monitor, combined);
+  if (combinedCandidates.length < TARGET_INITIAL_CANDIDATES && calls < 3) {
+    if (primary.nextToken) {
+      const primaryContinuation = await fetchPublicPosts(primaryQuery, { nextToken: primary.nextToken });
+      postGroups.push(primaryContinuation.posts);
+      userGroups.push(primaryContinuation.users);
+      nextToken = primaryContinuation.nextToken;
+      calls += 1;
+    } else if (tertiaryQuery) {
+      const tertiary = await fetchPublicPosts(tertiaryQuery);
+      postGroups.push(tertiary.posts);
+      userGroups.push(tertiary.users);
+      calls += 1;
+      queryFamilies += 1;
+    }
+    combined = dedupePosts(postGroups.flat());
+    combinedCandidates = candidatePosts(monitor, combined);
+  }
+
   return {
     result: {
-      posts: candidatePosts(monitor, combined),
-      users: combineUsers(primary.users, secondary.users),
+      posts: combinedCandidates,
+      users: combineUsers(...userGroups),
       newestId: primary.newestId,
-      nextToken: primary.nextToken,
+      nextToken,
       source: primary.source,
-      latencyLabel: "TwitterAPI.io Advanced Search · 2 targeted query families",
+      latencyLabel: `TwitterAPI.io Advanced Search · ${queryFamilies} targeted query ${queryFamilies === 1 ? "family" : "families"}`,
     } satisfies PublicSearchResult,
-    calls: 2,
+    calls,
     rawCount: combined.length,
+    rawReceived: postGroups.flat().length,
+    candidateCount: combinedCandidates.length,
+    queryFamilies,
   };
 }
 
@@ -69,7 +110,7 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
     if (filteredStreamRequested()) {
       await upsertFilteredStreamRule(monitor.xQuery, `signalforge-${monitor.id}`);
     }
-    const { result, calls, rawCount } = await fetchCreditAwarePosts(monitor, { nextToken: previous?.nextToken, newestId: previous?.newestPostId });
+    const { result, calls, rawCount, rawReceived, candidateCount, queryFamilies } = await fetchCreditAwarePosts(monitor, { nextToken: previous?.nextToken, newestId: previous?.newestPostId });
     const users = new Map(result.users.map(user => [user.id, user]));
     const settled = await Promise.allSettled(dedupePosts(result.posts).map(xPost => persistNormalizedPost(monitor, xPost, users)));
     const rejected = settled.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
@@ -77,7 +118,7 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
     await db.recordSync(monitor.id, {
       source: result.source,
       status: rejected.length ? "degraded" : "healthy",
-      latencyLabel: `TwitterAPI.io · ${calls} call${calls === 1 ? "" : "s"} · ${rawCount} screened · ${result.posts.length} candidate${result.posts.length === 1 ? "" : "s"}${rejected.length ? ` · ${rejected.length} skipped` : ""}`.slice(0, 80),
+      latencyLabel: `TwitterAPI.io · ${calls} call${calls === 1 ? "" : "s"} · ${rawCount}/${rawReceived} unique · ${candidateCount} buyer${rejected.length ? ` · ${rejected.length} skipped` : ""}`.slice(0, 80),
       newestPostId: result.newestId ?? previous?.newestPostId ?? null,
       nextToken: result.nextToken ?? null,
       lastSyncedAt: new Date(),
@@ -86,7 +127,18 @@ export async function syncMonitorRecord(monitor: NonNullable<Awaited<ReturnType<
       lastDurationMs: Date.now() - start,
       retryCount: 0,
     });
-    return { inserted, source: result.source };
+    return {
+      inserted,
+      source: result.source,
+      retrieval: {
+        sourceCalls: calls,
+        queryFamilies,
+        rawReceived,
+        deduplicatedPosts: rawCount,
+        buyerCandidates: candidateCount,
+        persisted: inserted,
+      },
+    };
   } catch (error) {
     const state = classifySyncFailure(error);
     await db.recordSync(monitor.id, {

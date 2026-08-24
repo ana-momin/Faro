@@ -1,40 +1,43 @@
-# TwitterAPI.io Retrieval Policy
+# TwitterAPI.io Retrieval Policy and Live Findings
 
-Faro AI uses **TwitterAPI.io Advanced Search** as its only active development and testing source. It does not use an unofficial scraper, Nitter, personal X credentials, browser cookies, or automated outreach. The adapter requests the provider’s `Latest` search mode and accepts the provider’s page cursor fields; these are documented capabilities of the Advanced Search endpoint.[1]
+Faro AI uses **TwitterAPI.io Advanced Search** as its sole active development and testing source. It does not use an unofficial scraper, browser cookies, personal X credentials, or automated outreach. The provider’s Advanced Search endpoint accepts a `Latest` query and a cursor, returns up to 20 posts per page, and indicates whether another page is available.[1]
 
-## Controlled initial retrieval
+## Root cause found
 
-Each newly started monitor begins with one explicit, first-party buyer-demand query. Faro AI then applies its deterministic buyer gate before any per-post AI classification. The gate retains concrete first-person requests for practical AI-solvable delivery work, including safe wording variants such as **automation**, **automate**, and **automating**. It continues to reject provider offers, hiring, promotions, networking, education, third-party stories, and generic discussion.
+The earlier implementation did not have a provider outage. Recent manual briefs were recorded as healthy while saving **zero** posts because query setup retained low-signal instruction words such as `find`, `who`, and `operators`, then paired them with a narrow service-demand clause. The strict first-party buyer gate ran before persistence and again in the Feed, so posts could be removed before the user saw them. The Search screen also reported a saved-post count as “screened,” obscuring the difference between source results, duplicates, candidates, and a genuinely empty result.
 
-| Condition after the primary page | Source calls for the sync | Behavior |
+## Repaired credit-aware discovery plan
+
+| Retrieval situation | Maximum source calls | Faro AI behavior |
 | --- | ---: | --- |
-| At least four plausible buyer candidates | 1 | Use the primary result set only. |
-| Fewer than four plausible buyer candidates | 2 maximum | Run one complementary help/recommendation query, merge both result sets, and deduplicate by X post ID before the AI ingestion pipeline. |
-| Stored pagination cursor exists | 1 | Request only that continuation page. Faro AI deliberately skips the complementary query. |
-| Provider reports no next page | 1 or 2, as above | Clear the stored cursor so a finished page is not fetched again. |
+| Initial brief with at least six buyer candidates from the first page | 1 | Use the explicit-provider-demand query only. |
+| Initial brief with fewer than six candidates | 3 | Use a primary provider-demand query, one complementary help/recommendation query, then exactly one final coverage step. Faro AI prefers the primary query’s next cursor when available; otherwise it uses a third `want to automate` / direct-need query family. |
+| Stored cursor continuation | 1 | Fetch only the continuation page; never fan out to extra query families. |
+| Provider returns no next page | 1–3, as applicable | Clear the stored cursor to prevent re-fetching a completed page. |
 
-The complementary query is not an unbounded fan-out. It runs only for a sparse initial TwitterAPI.io result set and it is never added to a continuation-page request. A source-sync status records the actual calls, raw posts screened, buyer candidates passed forward, and any rows skipped during persistence.
+The plan strips instruction noise from discovery terms, preserves relevant wording variants such as **automation**, **automate**, and **automating**, deduplicates by post ID before model processing, and keeps author, post, timestamp, URL inputs, language, and engagement metadata. A local request-to-delivery check now rejects generic commentary that merely says “I need” or “recommend someone” while retaining concrete requests such as “our company needs someone to automate” or “looking for an AI expert to build.”
 
-## Pagination, duplicate, and metadata handling
+To respect the provider’s observed free-tier limit, server-side calls are serialized with a **5.2-second minimum interval**. This avoids Faro AI triggering a rate limit by issuing its own bounded multi-signal calls too quickly.
 
-TwitterAPI.io’s response can include both a next-page indicator and a cursor. Faro AI persists a cursor only when the provider has not explicitly reported that no next page exists. The next sync then resumes with exactly that cursor. The implementation preserves the original normalized post fields—author identity, post text, direct X URL inputs, timestamp, language, and engagement—while removing duplicates first across the primary and complementary result sets, then again defensively before persistence.
+## Manual Search outcome handling
 
-> The retrieval policy increases **coverage of eligible buyer intent**, not raw volume. A page that contains no concrete buyer-side requests is correctly allowed to yield zero Faro AI posts.
+The Search workspace now distinguishes a source error from a valid empty search and reports the real pipeline metrics. On completion it states: source checks used, raw posts received, unique posts after deduplication, buyer candidates, and qualified posts saved. A true empty state only appears after the bounded coverage plan has produced no concrete first-party buyer requests.
 
-## Validation performed
+## Controlled live evaluation — 24 August 2026
 
-The implementation was verified without exploratory live searches or four repeated manual provider runs. The adapter and sync tests mock provider responses, so they do not consume provider credits. They cover explicit `has_next_page` true/false handling, supplied continuation cursors, one-or-two-call limits, cross-query deduplication, early candidate retention, strict noise rejection, and degraded persistence when a single row cannot be normalized.
+Three required live brief evaluations were initiated through Faro AI’s actual retrieval and qualification code, not mocked data. The first encountered the provider’s free-tier QPS message before paced handling was added. After pacing, the automation brief completed three calls and returned 40 raw posts, all unique, but only one candidate survived the prior gate. Manual inspection showed that candidate was generic commentary about agents evaluating products, **not** a person seeking a service; the local request-to-delivery gate was tightened and a regression test was added to reject that pattern.
 
-| Validation command | Result |
-| --- | --- |
-| Focused retrieval, sync, and adapter tests | 19 tests passed. |
-| Full local suite | 24 test files and 86 tests passed. |
-| TypeScript check | Passed. |
-| Production build | Passed. |
+| Brief | Provider outcome | Calls observed | Raw / unique | Qualified buyer opportunities shown |
+| --- | --- | ---: | ---: | ---: |
+| People looking for someone to build AI automation | Completed before the credit balance was exhausted; the lone candidate was rejected after manual inspection as generic commentary. | 3 | 40 / 40 | 0 verified buyer requests |
+| People looking for AI UGC video creation | Provider returned `Credits is not enough. Please recharge`. | 1 attempted; no completed page | — | — |
+| People needing custom AI workflows or agents | Provider returned `Credits is not enough. Please recharge`. | 1 attempted; no completed page | — | — |
 
-## Operational limits and production note
+No further live calls were made after the credit response. This preserves the user’s credit balance and avoids representing provider exhaustion as a zero-result search. The documented source metrics and new UI error state make the distinction visible.
 
-The first page remains provider-limited, so Faro AI cannot promise a fixed number of qualified posts for every topic or time window. Strict buyer-only gating intentionally discards many public posts that merely mention AI. The stored `TWITTERAPI_IO_KEY` remains server-side and is not exposed to the browser. If production coverage or economics later require a provider comparison, assess the official X API separately; do not reintroduce the cancelled unofficial scraper.
+## Remaining limitation
+
+Faro AI cannot guarantee multiple qualified opportunities for every brief: X may have no current first-party buyer requests matching a narrow topic, and the provider’s page composition is outside Faro AI’s control. The current provider account also requires sufficient credits to complete the remaining live validations. When credits are available, re-run the same three briefs; Faro AI will pace calls and record the exact raw, deduplicated, qualified, persisted, and displayed counts.
 
 ## Reference
 

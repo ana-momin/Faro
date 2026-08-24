@@ -10,6 +10,17 @@ function uniqueTerms(terms: string[]) {
   return Array.from(new Set(terms.map(term => term.trim()).filter(Boolean))).slice(0, 20);
 }
 
+const DISCOVERY_NOISE_TERMS = new Set([
+  "a", "an", "and", "find", "for", "from", "help", "looking", "need", "needs", "of", "operator", "operators", "or", "people", "person", "provider", "providers", "service", "services", "someone", "the", "to", "who", "with",
+]);
+
+function discoveryTerms(terms: string[]) {
+  return uniqueTerms(terms)
+    .map(term => term.replace(/\s+/g, " ").trim())
+    .filter(term => term.length > 1 && !DISCOVERY_NOISE_TERMS.has(term.toLowerCase()))
+    .slice(0, 8);
+}
+
 function quoteTerm(term: string) {
   return /\s/.test(term) ? `"${term.replaceAll('"', "")}"` : term;
 }
@@ -58,7 +69,7 @@ export function deterministicSuggestion(goal: string) {
     .map(pattern => normalizedGoal.match(pattern)?.[0] ?? "");
   const usefulWords = normalizedGoal
     .split(" ")
-    .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for"].includes(word));
+    .filter(word => word.length > 2 && !["looking", "someone", "people", "with", "that", "need", "help", "build", "building", "want", "asking", "for", "find", "who", "operators", "operator", "provider", "providers"].includes(word));
   const includeTerms = expandServiceDiscoveryTerms(goal, extractedPhrases.length ? extractedPhrases : usefulWords);
   const actionTerms = ["looking for someone", "looking for a freelancer", "looking for an agency", "looking for a developer", "looking for a tester", "looking for a designer", "looking for a creator", "looking for an editor", "need someone", "need a freelancer", "need an agency", "need a developer", "need a tester", "need a designer", "need an expert", "need help with", "need a hand with", "need help building", "need help automating", "looking to hire", "want to hire", "recommend an agency", "recommend a freelancer", "does anyone know a developer", "does anyone know an agency", "does anyone know a freelancer", "recommendations for a developer", "recommendations for an agency", "can someone build", "can someone automate", "who can build", "seeking a provider"];
   const topicClause = includeTerms.length > 1
@@ -87,12 +98,13 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   if (/content|social|post|posting|distribution|creator/.test(normalized)) expansions.push("social media content", "content creation", "content posting", "creator", "distribution");
   if (/developer|development|software|app|website|integration|api/.test(normalized)) expansions.push("software development", "app development", "web development", "api integration", "developer");
   if (/research|design|prototype|product/.test(normalized)) expansions.push("product research", "product design", "prototype", "user research", "product testing");
-  return uniqueTerms([...terms, ...expansions]).slice(0, 8);
+  return discoveryTerms([...terms, ...expansions]);
 }
 
 const SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a freelancer" OR "looking for an agency" OR "looking for a developer" OR "looking for a tester" OR "looking for a designer" OR "looking for a creator" OR "looking for an editor" OR "need someone" OR "need a freelancer" OR "need an agency" OR "need a developer" OR "need a tester" OR "need a designer" OR "need help with" OR "need a hand with" OR "looking to hire" OR "seeking a provider" OR "recommend a freelancer" OR "recommend an agency" OR "does anyone know a developer" OR "does anyone know an agency" OR "does anyone know a freelancer" OR "recommendations for a developer" OR "recommendations for an agency")';
 
 const SECONDARY_SERVICE_REQUEST_QUERY = '("need help building" OR "need help automating" OR "need help creating" OR "can someone build" OR "can someone automate" OR "can someone implement" OR "who can build" OR "who can help us" OR "anyone know a developer" OR "anyone know an agency" OR "recommend someone" OR "looking to outsource" OR "need a team to" OR "does anyone know someone")';
+const TERTIARY_SERVICE_REQUEST_QUERY = '("want to automate" OR "want help automating" OR "need automation" OR "need an automation" OR "need a workflow" OR "need an AI workflow" OR "need an AI agent" OR "could use help automating" OR "help me automate" OR "help us automate" OR "automation help")';
 
 export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: string[] = []) {
   const topics = uniqueTerms(includeTerms).slice(0, 8);
@@ -108,12 +120,13 @@ export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: st
  * search at two TwitterAPI.io calls and continuation pages at one call.
  */
 export function buildCoverageQueries(includeTerms: string[], excludeTerms: string[] = []) {
-  const topics = uniqueTerms(includeTerms).slice(0, 8);
+  const topics = discoveryTerms(includeTerms);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
   const exclusions = uniqueTerms(excludeTerms).map(term => `-${quoteTerm(term)}`).join(" ");
   const primary = [topicClause, SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
   const secondary = [topicClause, SECONDARY_SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
-  return primary === secondary ? [primary] : [primary, secondary];
+  const tertiary = [topicClause, TERTIARY_SERVICE_REQUEST_QUERY, exclusions, "-is:retweet"].filter(Boolean).join(" ").slice(0, 1024);
+  return Array.from(new Set([primary, secondary, tertiary]));
 }
 
 export function requireServiceRequestQuery(query: string) {

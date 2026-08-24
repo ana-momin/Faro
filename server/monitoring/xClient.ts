@@ -45,6 +45,24 @@ export class XApiError extends Error {
 }
 
 const X_API_BASE = "https://api.x.com/2";
+const TWITTERAPI_IO_MIN_INTERVAL_MS = 5_200;
+let twitterApiIoQueue: Promise<void> = Promise.resolve();
+let lastTwitterApiIoRequestAt = 0;
+
+async function waitForTwitterApiIoRequestSlot() {
+  if (process.env.VITEST) return;
+  let releaseSlot: (() => void) | undefined;
+  const previous = twitterApiIoQueue;
+  twitterApiIoQueue = new Promise<void>(resolve => { releaseSlot = resolve; });
+  await previous;
+  try {
+    const delay = Math.max(0, lastTwitterApiIoRequestAt + TWITTERAPI_IO_MIN_INTERVAL_MS - Date.now());
+    if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+    lastTwitterApiIoRequestAt = Date.now();
+  } finally {
+    releaseSlot?.();
+  }
+}
 
 function bearerToken() {
   const token = process.env.X_API_BEARER_TOKEN;
@@ -126,6 +144,7 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
   const apiKey = twitterApiIoKey();
   if (!apiKey) throw new XApiError(401, "TwitterAPI.io key is not configured.");
   const params = new URLSearchParams({ query: twitterApiIoQuery(query), queryType: "Latest", cursor: cursor ?? "" });
+  await waitForTwitterApiIoRequestSlot();
   const response = await fetch(`https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`, {
     headers: { "X-API-Key": apiKey },
   });

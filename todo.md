@@ -197,3 +197,9 @@
 - [x] Audit the current TwitterAPI.io query grammar, single-page retrieval, pagination state, and buyer-intent bottlenecks without starting additional provider searches.
 - [x] Add bounded, intent-aware query expansion, source-level pagination, cross-query deduplication, and early noise pruning to improve relevant opportunities per API credit.
 - [x] Add retrieval regression coverage, verify controlled source behavior, document the credit budget and limitations, and save a final checkpoint.
+- [x] Inspect real manual Search behavior, monitored-brief retrieval, query construction, pagination state, source outcomes, and early filtering to identify why useful posts do not reach Faro AI.
+- [x] Implement a credit-aware multi-signal retrieval strategy that improves relevant buyer opportunities without uncontrolled source calls or weaker buyer-only standards.
+- [x] Repair manual Search end-to-end so query errors, source errors, genuinely empty results, and qualified results are accurately distinguished and rendered.
+- [x] Add regression coverage for multi-signal search, cursor continuation, deduplication, and user-visible empty/error/result outcomes.
+- [x] Run and manually inspect three controlled real TwitterAPI.io briefs; record API calls, raw posts, deduplicated posts, qualified posts, displayed opportunities, and source limitations.
+- [x] Document root cause and measured live results, verify the final workflow, and save a published checkpoint.

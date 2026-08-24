@@ -94,6 +94,18 @@ describe("opportunity ranking", () => {
       categories: ["service request"],
     })).toBe(true);
   });
+
+  it("rejects generic agent commentary that only mentions a hypothetical need and recommendation", () => {
+    expect(isPotentialBuyerOpportunity({
+      body: "Imagine I need a tool. My agent may recommend someone else after evaluating products, APIs, and documentation.",
+      postedAt: new Date(),
+      engagement: {},
+      includeTerms: ["ai agent", "automation"],
+      excludeTerms: [],
+      goal: "Find people looking for someone to build AI automation",
+      categories: ["service request"],
+    })).toBe(false);
+  });
 });
 
 describe("ingestion resilience", () => {

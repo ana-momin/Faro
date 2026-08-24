@@ -6,10 +6,12 @@ const originalFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = originalFetch;
   delete process.env.TWITTERAPI_IO_KEY;
+  delete process.env.VITEST;
 });
 
 describe("TwitterAPI.io public-post adapter", () => {
   it("normalizes a provider response into direct-link-ready X post fields", async () => {
+    process.env.VITEST = "true";
     process.env.TWITTERAPI_IO_KEY = "test-key";
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       tweets: [{
@@ -36,6 +38,7 @@ describe("TwitterAPI.io public-post adapter", () => {
   });
 
   it("uses a supplied cursor and clears it when the provider reports no next page", async () => {
+    process.env.VITEST = "true";
     process.env.TWITTERAPI_IO_KEY = "test-key";
     globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       tweets: [],
