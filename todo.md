@@ -116,3 +116,7 @@
 - [x] Remove the active brief, qualified-now, and agent-runs metric strip from Discover without changing underlying review behavior.
 - [x] Verify the simplified Discover layout and save the update as a checkpoint.
 - [x] Save the verified simplified Discover layout as a final checkpoint.
+- [x] Audit the current Profile surface, authenticated user data, and existing personalization patterns.
+- [x] Redesign Profile as a warmer, more personal Faro AI member space with clear human-led workflow context.
+- [x] Preserve sign-out/session controls and add focused coverage, responsive verification, and a final checkpoint.
+- [x] Save the verified personalized Faro AI Profile experience as a final checkpoint.
