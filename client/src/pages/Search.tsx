@@ -50,6 +50,8 @@ export default function Search() {
   const [keywords, setKeywords] = useState("");
   const [phase, setPhase] = useState<SearchLifecycle>("idle");
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const overview = trpc.monitoring.overview.useQuery(undefined, { staleTime: 5_000 });
 
   const finish = async (data: { monitorId: number; sync?: { inserted: number; retrieval?: RetrievalMetrics } | null; sourceStatus: string; syncError?: string | null }) => {
@@ -67,27 +69,31 @@ export default function Search() {
     setPhase(sourceIssue ? "attention" : retrieval?.persisted ? "complete" : "empty");
   };
 
-  const agent = trpc.monitoring.agentStart.useMutation({ onSuccess: finish, onError: error => { setPhase("attention"); toast.error(error.message); } });
-  const keyword = trpc.monitoring.keywordStart.useMutation({ onSuccess: finish, onError: error => { setPhase("attention"); toast.error(error.message); } });
+  const agent = trpc.monitoring.agentStart.useMutation({ onSuccess: finish, onError: error => { setRunError(error.message); setPhase("attention"); toast.error(error.message); } });
+  const keyword = trpc.monitoring.keywordStart.useMutation({ onSuccess: finish, onError: error => { setRunError(error.message); setPhase("attention"); toast.error(error.message); } });
   const pending = agent.isPending || keyword.isPending;
 
   useEffect(() => {
-    if (!pending) return;
+    if (!pending) { setElapsedSeconds(0); return; }
     setPhase("brief");
-    const source = window.setTimeout(() => setPhase("source"), 420);
-    const qualify = window.setTimeout(() => setPhase("qualifying"), 1250);
-    return () => { window.clearTimeout(source); window.clearTimeout(qualify); };
+    const startedAt = Date.now();
+    const source = window.setTimeout(() => setPhase("source"), 360);
+    const qualify = window.setTimeout(() => setPhase("qualifying"), 1_050);
+    const pulse = window.setInterval(() => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1_000))), 500);
+    return () => { window.clearTimeout(source); window.clearTimeout(qualify); window.clearInterval(pulse); };
   }, [pending]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setResult(null);
+    setRunError(null);
+    setElapsedSeconds(0);
     setPhase("brief");
     if (mode === "agent") agent.mutate({ brief });
     else keyword.mutate({ keywords });
   };
 
-  const state = getSearchLifecycleDetails(phase);
+  const state = getSearchLifecycleDetails(phase, elapsedSeconds);
   const ready = mode === "agent" ? brief.trim().length >= 12 : keywords.trim().length >= 2;
   const qualifiedResults = useMemo(() => result ? getQualifiedPosts(overview.data?.posts ?? [], result.monitorId, false) : [], [overview.data?.posts, result]);
 
@@ -107,7 +113,7 @@ export default function Search() {
         </div>
         <div className="flex flex-col justify-between rounded-[22px] border border-[#edd9c3] bg-white/70 p-4"><span className="inline-flex w-fit rounded-full bg-[#f8eadc] px-2 py-1 text-[9px] font-extrabold text-[#92513c]">Buyer-only</span><Button type="submit" disabled={!ready || pending} className="mt-8 h-11 w-full rounded-2xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">{pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Radar className="mr-2 h-4 w-4" />Run Faro</>}</Button></div>
       </form>
-      {phase !== "idle" ? <SearchState phase={phase} state={state} result={result} onOpen={() => setLocation("/")} /> : null}
+      {phase !== "idle" ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onOpen={() => setLocation("/")} /> : null}
       {result && (phase === "complete" || phase === "empty") ? <SearchResults items={qualifiedResults} loading={overview.isFetching} persisted={result.retrieval?.persisted ?? 0} onOpenFeed={() => setLocation("/")} /> : null}
     </section>
   </div>;
@@ -117,12 +123,12 @@ function ModeButton({ active, icon: Icon, label, onClick }: { active: boolean; i
   return <button type="button" onClick={onClick} className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-extrabold transition ${active ? "border-[#d69d7b] bg-white text-[#914f39] shadow-sm" : "border-transparent text-[#967760] hover:bg-white/60"}`}><Icon className="h-3.5 w-3.5" />{label}</button>;
 }
 
-function SearchState({ phase, state, result, onOpen }: { phase: SearchLifecycle; state: ReturnType<typeof getSearchLifecycleDetails>; result: SearchResult | null; onOpen: () => void }) {
+function SearchState({ phase, state, result, errorDetail, onOpen }: { phase: SearchLifecycle; state: ReturnType<typeof getSearchLifecycleDetails>; result: SearchResult | null; errorDetail: string | null; onOpen: () => void }) {
   const alert = phase === "attention";
   const done = phase === "complete" || phase === "empty" || alert;
   const metrics = result?.retrieval;
   const detail = alert
-    ? result?.syncError || state.detail
+    ? errorDetail || result?.syncError || state.detail
     : metrics
       ? metrics.buyerCandidates
         ? `${metrics.persisted} qualified request${metrics.persisted === 1 ? "" : "s"} saved.`

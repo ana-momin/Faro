@@ -21,3 +21,7 @@ Desktop and mobile Feed checks confirmed that the dense polling telemetry rail h
 ## Wide Search refinement — 25 August 2026
 
 Desktop verification confirms that Search now uses a wider workspace, a short **Buyer requests / Search** heading, one expanded brief field, compact suggestion pills, and a dedicated buyer-only Run Faro action. Mobile verification confirms that the same controls stack cleanly without horizontal overflow or excess explanatory copy. No source search was run during this visual check.
+
+## Search lifecycle and Profile actions — 25 August 2026
+
+Desktop and mobile checks confirmed the Search surface remains minimal while its in-flight lifecycle now continuously advances after the qualifying stage. Source mutation failures show their returned error text immediately rather than leaving a static 82% view. Profile preserves its personalized composition while the photo change, Feed entry, and sign-out actions use compact accessible icon controls with descriptive labels. No source search was run during these checks.

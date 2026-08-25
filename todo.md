@@ -249,3 +249,6 @@
 - [x] Widen the Search workspace and simplify its hierarchy into a cleaner visual-first search surface.
 - [x] Reduce explanatory copy while preserving clear search modes, brief input, and result visibility.
 - [x] Add regression coverage, verify desktop/mobile Search presentation, and checkpoint the refinement.
+- [x] Repair Search progress so active runs keep visibly advancing and source failures surface promptly without a stuck 82% state.
+- [x] Simplify Profile actions into accessible icon-led controls while preserving the existing personalized profile experience.
+- [x] Add lifecycle/Profile regression coverage, verify desktop/mobile presentation, and checkpoint the update.
