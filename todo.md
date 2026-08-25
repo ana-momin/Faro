@@ -236,7 +236,7 @@
 - [x] Use the calibration evidence to update query families and qualification rules offline, validate locally, document results, and checkpoint the core discovery improvement.
 - [x] Add per-monitor, per-query-family cursor and sync telemetry persistence for multi-page collection.
 - [x] Implement bounded multi-family pagination with adaptive TwitterAPI.io pacing, deduplication, and auditable source-call metrics.
-- [ ] Keep multiple monitors active, rotate them fairly through scheduled ingestion, and stop pausing earlier searches automatically.
+- [x] Keep multiple monitors active, rotate them fairly through scheduled ingestion, and stop pausing earlier searches automatically.
 - [x] Surface truthful stream-versus-polling freshness, query/page progress, queue state, and source budget in Feed and Search.
 - [x] Add regression coverage for cursor lifecycle, source budgets, concurrency, scheduler fairness, and source-state UI; validate locally.
-- [ ] Run one explicitly bounded live validation, document every source call, explain live-stream prerequisites, and checkpoint the polling-first core.
+- [x] Run one explicitly bounded live validation, document every source call, explain live-stream prerequisites, and checkpoint the polling-first core.

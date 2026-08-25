@@ -21,6 +21,12 @@ The provider queue remains globally serialized. Its default 5.2-second start int
 
 > **Live validation status:** Offline coverage, TypeScript, and production-build checks are complete. No new TwitterAPI.io request has been made for this deployment. The next high-volume validation must be a user-visible, explicitly bounded run; its exact planned provider-page count must be approved before it starts.
 
+### Managed polling and bounded validation record
+
+The production deployment now has one enabled managed heartbeat named `faro-hourly-bounded-poll`. It invokes `/api/scheduled/ingest` at the top of each UTC hour. Each run selects the stalest active monitor and permits only one provider page; the server-side daily ledger still hard-stops at 24 recorded page attempts. This is intentionally polling, not a stream.
+
+On 25 August 2026, Faro ran one explicitly bounded high-volume validation against the existing AI-agent demand monitor with a maximum of four provider pages. The first provider request returned **HTTP 429** with the provider’s free-tier message requiring at least five seconds between requests. Faro issued **no automatic retry**, did not request a second page or query family, persisted the monitor as rate-limited, and did not save new posts. The validation therefore consumed exactly **one attempted provider request** and did not establish volume scaling against live data. Failed provider pages are now also recorded in the per-page source ledger so future rate-limit attempts remain auditable.
+
 ## Root cause found
 
 The earlier implementation did not have a provider outage. Recent manual briefs were recorded as healthy while saving **zero** posts because query setup retained low-signal instruction words such as `find`, `who`, and `operators`, then paired them with a narrow service-demand clause. The strict first-party buyer gate ran before persistence and again in the Feed, so posts could be removed before the user saw them. The Search screen also reported a saved-post count as “screened,” obscuring the difference between source results, duplicates, candidates, and a genuinely empty result.

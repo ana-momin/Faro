@@ -132,6 +132,7 @@ describe("bounded multi-family sync", () => {
 
     await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1 })).rejects.toThrow("rate limited");
     expect(mocks.recordSync).toHaveBeenCalledWith(17, expect.objectContaining({ status: "rate_limited", latencyLabel: "TwitterAPI.io rate limit active", retryCount: 1 }));
+    expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ monitorId: 17, familyId: "direct_demand", status: "rate_limited", rawReceived: 0, persistedPosts: 0 }));
     expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
   });
 

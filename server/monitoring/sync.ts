@@ -31,6 +31,18 @@ type FetchCoverageContext = {
   policy?: Partial<CollectionPolicy>;
 };
 
+type PageFailureMetadata = {
+  familyId: string;
+  queryHash: string;
+  pageNumber: number;
+  durationMs: number;
+};
+
+function pageFailureMetadata(error: unknown): PageFailureMetadata | undefined {
+  if (!error || typeof error !== "object" || !("faroPage" in error)) return undefined;
+  return (error as { faroPage?: PageFailureMetadata }).faroPage;
+}
+
 function candidatePosts(monitor: Monitor, posts: XApiPost[]) {
   return posts.filter(post => isPotentialBuyerOpportunity({
     body: post.text,
@@ -102,7 +114,20 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
       : plan.newestPostId
         ? { newestId: plan.newestPostId }
         : undefined;
-    const result = await fetchPublicPosts(plan.family.query, cursor);
+    let result: PublicSearchResult;
+    try {
+      result = await fetchPublicPosts(plan.family.query, cursor);
+    } catch (error) {
+      if (error && typeof error === "object") {
+        (error as { faroPage?: PageFailureMetadata }).faroPage = {
+          familyId: plan.family.id,
+          queryHash: plan.hash,
+          pageNumber: plan.pagesFetched + 1,
+          durationMs: Date.now() - startedAt,
+        };
+      }
+      throw error;
+    }
     const localUnique = dedupePosts(result.posts);
     const newAcrossCycle = localUnique.filter(post => {
       if (seenIds.has(post.id)) return false;
@@ -298,6 +323,24 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
     };
   } catch (error) {
     const state = classifySyncFailure(error);
+    const failedPage = pageFailureMetadata(error);
+    if (failedPage) {
+      await db.recordMonitorSyncRun({
+        monitorId: monitor.id,
+        familyId: failedPage.familyId,
+        queryHash: failedPage.queryHash,
+        pageNumber: failedPage.pageNumber,
+        source: error instanceof XApiError && error.message.startsWith("TwitterAPI.io:") ? "twitterapi_io" : "recent_search",
+        status: state.status === "error" ? "error" : state.status,
+        rawReceived: 0,
+        deduplicatedPosts: 0,
+        buyerCandidates: 0,
+        persistedPosts: 0,
+        queueWaitMs: 0,
+        durationMs: failedPage.durationMs,
+        error: error instanceof Error ? error.message.slice(0, 1000) : "Unknown provider failure",
+      });
+    }
     await db.recordSync(monitor.id, {
       source: "recent_search",
       status: state.status,
