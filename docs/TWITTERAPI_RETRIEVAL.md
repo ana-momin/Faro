@@ -2,11 +2,30 @@
 
 Faro AI uses **TwitterAPI.io Advanced Search** as its sole active development and testing source. It does not use an unofficial scraper, browser cookies, personal X credentials, or automated outreach. The provider’s Advanced Search endpoint accepts a `Latest` query and a cursor, returns up to 20 posts per page, and indicates whether another page is available.[1]
 
+## Current operational policy — 25 August 2026
+
+Faro now runs in an explicit **polling-first** mode on autoscale hosting. This is not a persistent live stream. The Feed and Search surfaces label its status as polling, show the latest recorded source check, and distinguish saved posts from actively collected posts. The existing official-X filtered-stream worker remains disabled until Faro is moved to persistent hosting and an official X filtered-stream entitlement is verified.
+
+| Control | Default | Purpose |
+| --- | ---: | --- |
+| Named query families per collection cycle | Up to 3 | Checks direct demand, task-help, and recommendation wording independently. |
+| Provider pages per manual sync | Up to 4 | Allows later pages while keeping a hard per-sync source-call ceiling. |
+| Pages per individual family per cycle | Up to 2 | Prevents one broad family from consuming the entire cycle. |
+| Active monitors per account | 5 | Allows concurrent saved searches without unlimited background coverage. |
+| Scheduled polling batch | 1 monitor × 1 page | Provides a predictable future background cadence once the managed heartbeat is enabled. |
+| Daily provider-page ledger | 24 pages | Stops all further provider requests once the server-side daily cap is reached. |
+
+Each query family stores its own cursor, newest post ID, completion state, and page count. Faro deduplicates X post IDs across all pages and families **before** buyer qualification and semantic processing. Every successful provider page records raw received, deduplicated, buyer-candidate, persisted, queue-wait, and duration data in a source ledger. A 429 response increases the shared rate-limit penalty but is not retried automatically, so a failed request cannot silently exceed the configured source budget.
+
+The provider queue remains globally serialized. Its default 5.2-second start interval is configurable server-side and adapts upward after rate-limit responses. The aim is controlled useful coverage, not unsafe parallelism.
+
+> **Live validation status:** Offline coverage, TypeScript, and production-build checks are complete. No new TwitterAPI.io request has been made for this deployment. The next high-volume validation must be a user-visible, explicitly bounded run; its exact planned provider-page count must be approved before it starts.
+
 ## Root cause found
 
 The earlier implementation did not have a provider outage. Recent manual briefs were recorded as healthy while saving **zero** posts because query setup retained low-signal instruction words such as `find`, `who`, and `operators`, then paired them with a narrow service-demand clause. The strict first-party buyer gate ran before persistence and again in the Feed, so posts could be removed before the user saw them. The Search screen also reported a saved-post count as “screened,” obscuring the difference between source results, duplicates, candidates, and a genuinely empty result.
 
-## Repaired credit-aware discovery plan
+## Archived one-call discovery policy — superseded
 
 | Retrieval situation | Maximum source calls | Faro AI behavior |
 | --- | ---: | --- |
@@ -39,7 +58,7 @@ No further live calls were made after the credit response. This preserves the us
 
 Faro AI cannot guarantee multiple qualified opportunities for every brief: X may have no current first-party buyer requests matching a narrow topic, and the provider’s page composition is outside Faro AI’s control. The current provider account also requires sufficient credits to complete the remaining live validations. When credits are available, re-run the same three briefs; Faro AI will pace calls and record the exact raw, deduplicated, qualified, persisted, and displayed counts.
 
-## Credit safety policy — 24 August 2026
+## Archived credit safety policy — 24 August 2026
 
 After a refreshed provider key was supplied, testing exceeded the intended budget. All temporary live-test runners were removed. The replacement key received exactly **one** lightweight authenticated validation request, which passed. Faro now enforces **one protected TwitterAPI.io request per manually initiated search**: there is no automatic query expansion, automatic continuation fetch, retry search, or background live refresh. Feed pagination, duplicate suppression, time filters, post expansion, and Search result display operate entirely on already-saved rows and never contact the provider.
 
@@ -63,7 +82,7 @@ The user explicitly approved a one-time calibration ceiling of four TwitterAPI.i
 
 Manual inspection showed that semantic confirmation alone was still too permissive for some job notices and question-led service advertisements. Faro therefore now excludes observed job, hiring, compensation, training, and promotion noise from the direct query family; rejects question-led provider ads; lets plausible flexible buyer wording reach semantic classification; and preserves a high-confidence semantic buyer confirmation in Feed only when the post also states a concrete delivery task. The calibration runner did **not** persist its sample to the product Feed, preventing experimental rows from appearing as production opportunities.
 
-Normal user-initiated searches remain capped at one protected provider request. The next safe product validation is one deliberate manual search using the refined direct-demand query, followed by manual Keep/Dismiss review of every returned opportunity.
+The one-request manual-search rule above was superseded on 25 August 2026 by the bounded multi-family polling policy. The historical calibration limit remains unchanged: its four calls do not authorize additional testing calls.
 
 ## Reference
 

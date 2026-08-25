@@ -54,16 +54,14 @@ describe("TwitterAPI.io public-post adapter", () => {
     expect(requestedUrl).toContain("cursor=saved-cursor");
   });
 
-  it("retries one free-tier rate-limit response before returning the provider page", async () => {
+  it("records a rate-limit penalty without issuing an unbudgeted automatic retry", async () => {
     process.env.VITEST = "true";
     process.env.TWITTERAPI_IO_KEY = "test-key";
     globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Too Many Requests" }), { status: 429 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ tweets: [], has_next_page: false }), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Too Many Requests" }), { status: 429 }));
 
-    const result = await fetchTwitterApiIoSearch("automation");
+    await expect(fetchTwitterApiIoSearch("automation")).rejects.toThrow("Too Many Requests");
 
-    expect(result.posts).toEqual([]);
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 });

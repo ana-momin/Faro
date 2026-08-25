@@ -106,6 +106,14 @@ const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend a developer" OR 
 const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "need someone to automate" OR "need someone to build" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent")';
 const OBSERVED_PROVIDER_NOISE_TERMS = ["job", "hiring", "full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
 
+export type CoverageQueryFamilyId = "direct_demand" | "task_help" | "recommendation";
+
+export type CoverageQueryFamily = {
+  id: CoverageQueryFamilyId;
+  query: string;
+  priority: number;
+};
+
 function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
   const topics = discoveryTerms(includeTerms).slice(0, 5);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
@@ -119,16 +127,26 @@ export function buildServiceDemandQuery(includeTerms: string[], excludeTerms: st
 }
 
 /**
- * Two complementary, goal-derived query families. The first identifies
- * explicit provider demand; the second is only used when that primary page
- * produces too few deterministic buyer candidates. This caps an initial
- * search at two TwitterAPI.io calls and continuation pages at one call.
+ * Named families let the collection dispatcher persist an independent cursor
+ * for every query rather than losing progress when it changes family.
  */
+export function buildCoverageQueryFamilies(includeTerms: string[], excludeTerms: string[] = []): CoverageQueryFamily[] {
+  const candidates: CoverageQueryFamily[] = [
+    { id: "direct_demand", query: buildBoundedDemandQuery(includeTerms, excludeTerms, PRIMARY_SERVICE_REQUEST_QUERY), priority: 1 },
+    { id: "task_help", query: buildBoundedDemandQuery(includeTerms, excludeTerms, TERTIARY_SERVICE_REQUEST_QUERY), priority: 2 },
+    { id: "recommendation", query: buildBoundedDemandQuery(includeTerms, excludeTerms, SECONDARY_SERVICE_REQUEST_QUERY), priority: 3 },
+  ];
+  const seen = new Set<string>();
+  return candidates.filter(family => {
+    if (seen.has(family.query)) return false;
+    seen.add(family.query);
+    return true;
+  });
+}
+
+/** Backwards-compatible query-only form for callers that do not need family identity. */
 export function buildCoverageQueries(includeTerms: string[], excludeTerms: string[] = []) {
-  const primary = buildBoundedDemandQuery(includeTerms, excludeTerms, PRIMARY_SERVICE_REQUEST_QUERY);
-  const secondary = buildBoundedDemandQuery(includeTerms, excludeTerms, SECONDARY_SERVICE_REQUEST_QUERY);
-  const tertiary = buildBoundedDemandQuery(includeTerms, excludeTerms, TERTIARY_SERVICE_REQUEST_QUERY);
-  return Array.from(new Set([primary, secondary, tertiary]));
+  return buildCoverageQueryFamilies(includeTerms, excludeTerms).map(family => family.query);
 }
 
 export function requireServiceRequestQuery(query: string) {

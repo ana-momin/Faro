@@ -1,9 +1,11 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   listenedPosts,
   monitoringCriteria,
+  monitorQueryStates,
+  monitorSyncRuns,
   monitorSyncs,
   postReviews,
   users,
@@ -130,6 +132,20 @@ export async function listActiveMonitors() {
   return db.select().from(monitoringCriteria).where(eq(monitoringCriteria.status, "active"));
 }
 
+/** Select an oldest-first slice so recurring polls cannot starve earlier monitors. */
+export async function listActiveMonitorsForPolling(limit: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ monitor: monitoringCriteria })
+    .from(monitoringCriteria)
+    .leftJoin(monitorSyncs, eq(monitorSyncs.monitorId, monitoringCriteria.id))
+    .where(eq(monitoringCriteria.status, "active"))
+    .orderBy(asc(monitorSyncs.lastSyncedAt), asc(monitoringCriteria.id))
+    .limit(Math.min(Math.max(limit, 1), 20));
+  return rows.map(row => row.monitor);
+}
+
 export async function createMonitor(input: typeof monitoringCriteria.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -202,6 +218,64 @@ export async function getSyncState(monitorId: number) {
   if (!db) return undefined;
   const rows = await db.select().from(monitorSyncs).where(eq(monitorSyncs.monitorId, monitorId)).limit(1);
   return rows[0];
+}
+
+export async function listMonitorQueryStates(monitorId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(monitorQueryStates)
+    .where(eq(monitorQueryStates.monitorId, monitorId))
+    .orderBy(desc(monitorQueryStates.updatedAt));
+}
+
+export async function saveMonitorQueryState(
+  monitorId: number,
+  state: Omit<typeof monitorQueryStates.$inferInsert, "monitorId">,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(monitorQueryStates).values({ monitorId, ...state }).onDuplicateKeyUpdate({
+    set: { ...state, updatedAt: new Date() },
+  });
+}
+
+export async function recordMonitorSyncRun(input: typeof monitorSyncRuns.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(monitorSyncRuns).values(input);
+}
+
+export async function listRecentMonitorSyncRuns(monitorId: number, limit = 24) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(monitorSyncRuns)
+    .where(eq(monitorSyncRuns.monitorId, monitorId))
+    .orderBy(desc(monitorSyncRuns.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 100));
+}
+
+export async function countMonitorSyncRunsSince(startedAt: Date) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .select({ id: monitorSyncRuns.id })
+    .from(monitorSyncRuns)
+    .where(gte(monitorSyncRuns.createdAt, startedAt));
+  return rows.length;
+}
+
+export async function countActiveMonitorsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const monitors = await db
+    .select({ id: monitoringCriteria.id })
+    .from(monitoringCriteria)
+    .where(and(eq(monitoringCriteria.userId, userId), eq(monitoringCriteria.status, "active")));
+  return monitors.length;
 }
 
 export async function saveReview(postId: number, userId: number, decision: "approved" | "rejected", note?: string) {

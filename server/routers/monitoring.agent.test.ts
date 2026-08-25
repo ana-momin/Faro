@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createMonitor: vi.fn(),
   getMonitorForUser: vi.fn(),
-  listMonitorsWithSync: vi.fn(),
+  countActiveMonitorsForUser: vi.fn(),
   suggestCriteria: vi.fn(),
   syncMonitorRecord: vi.fn(),
   classifySyncFailure: vi.fn(),
@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../db", () => ({
   createMonitor: mocks.createMonitor,
   getMonitorForUser: mocks.getMonitorForUser,
-  listMonitorsWithSync: mocks.listMonitorsWithSync,
+  countActiveMonitorsForUser: mocks.countActiveMonitorsForUser,
   updateMonitorStatus: mocks.updateMonitorStatus,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
@@ -33,10 +33,13 @@ const criteria = {
 };
 
 describe("monitoring.agentStart", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("maps, saves, and checks a single user-requested service brief", async () => {
     mocks.suggestCriteria.mockResolvedValueOnce(criteria);
-    mocks.listMonitorsWithSync.mockResolvedValueOnce([{ monitor: { id: 13, status: "active" } }]);
-    mocks.updateMonitorStatus.mockResolvedValueOnce(undefined);
+    mocks.countActiveMonitorsForUser.mockResolvedValueOnce(1);
     mocks.createMonitor.mockResolvedValueOnce(42);
     mocks.getMonitorForUser.mockResolvedValueOnce({ id: 42 });
     mocks.syncMonitorRecord.mockResolvedValueOnce({ inserted: 3 });
@@ -50,14 +53,14 @@ describe("monitoring.agentStart", () => {
       categories: ["service request", "human review", "agent-assisted"],
       xQuery: expect.stringContaining("need someone"),
     }));
-    expect(mocks.updateMonitorStatus).toHaveBeenCalledWith(13, 7, "paused");
+    expect(mocks.updateMonitorStatus).not.toHaveBeenCalled();
     expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42 });
-    expect(result).toMatchObject({ monitorId: 42, humanReviewOnly: true, syncError: null, sourceStatus: "healthy" });
+    expect(result).toMatchObject({ monitorId: 42, humanReviewOnly: true, syncError: null, sourceStatus: "healthy", monitorCapacity: { active: 1, limit: 5 } });
   });
 
   it("keeps the saved brief and reports sync trouble without taking external action", async () => {
     mocks.suggestCriteria.mockResolvedValueOnce(criteria);
-    mocks.listMonitorsWithSync.mockResolvedValueOnce([]);
+    mocks.countActiveMonitorsForUser.mockResolvedValueOnce(0);
     mocks.createMonitor.mockResolvedValueOnce(43);
     mocks.getMonitorForUser.mockResolvedValueOnce({ id: 43 });
     mocks.syncMonitorRecord.mockRejectedValueOnce(new Error("source unavailable"));
@@ -67,5 +70,18 @@ describe("monitoring.agentStart", () => {
     const result = await caller.agentStart({ brief: "Operators who need a provider for AI video production" });
 
     expect(result).toMatchObject({ monitorId: 43, humanReviewOnly: true, sync: null, syncError: "source unavailable", sourceStatus: "error" });
+  });
+
+  it("protects provider cost by refusing another active monitor at the configured capacity", async () => {
+    mocks.suggestCriteria.mockResolvedValueOnce(criteria);
+    mocks.countActiveMonitorsForUser.mockResolvedValueOnce(5);
+
+    const caller = monitoringRouter.createCaller({ user } as any);
+
+    await expect(caller.agentStart({ brief: "Founders who need an expert to build an AI workflow" })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: expect.stringContaining("Pause an existing saved search"),
+    });
+    expect(mocks.createMonitor).not.toHaveBeenCalled();
   });
 });

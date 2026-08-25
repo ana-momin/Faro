@@ -9,7 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { sdk } from "./sdk";
 import { serveStatic, setupVite } from "./vite";
-import { startFilteredStreamWorker, syncAllActiveMonitors } from "../monitoring/sync";
+import { startFilteredStreamWorker, syncScheduledMonitorBatch } from "../monitoring/sync";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -42,7 +42,7 @@ async function startServer() {
     try {
       const user = await sdk.authenticateRequest(req);
       if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
-      const result = await syncAllActiveMonitors();
+      const result = await syncScheduledMonitorBatch();
       return res.json({ ok: true, ...result });
     } catch (error) {
       return res.status(500).json({

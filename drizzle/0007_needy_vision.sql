@@ -1,0 +1,1 @@
+ALTER TABLE `monitor_query_states` ADD `pagesFetched` int DEFAULT 0 NOT NULL;

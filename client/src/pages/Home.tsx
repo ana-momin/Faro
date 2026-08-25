@@ -22,6 +22,7 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
+  const collection = overview.data?.collection;
   const allQualified = useMemo(() => prioritizeCurrentMonth(getAllQualifiedPosts(overview.data?.posts ?? [])), [overview.data?.posts]);
   const filteredQualified = useMemo(() => filterFeedByTime(allQualified, timeFilter), [allQualified, timeFilter]);
   const visible = useMemo(() => getDiscoverPreview(filteredQualified, visibleCount), [filteredQualified, visibleCount]);
@@ -45,9 +46,16 @@ export default function Home() {
 
   return <div className="mx-auto w-full max-w-4xl pb-10">
     <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 border-b border-[#eadfd2] pb-5"><h1 className="text-xl font-extrabold tracking-[-0.06em] text-[#422d20]">Posts</h1><Button onClick={() => setLocation("/search")} className="h-9 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search">Search</Button></header>
+    {collection ? <PollingStatus collection={collection} active={active} /> : null}
     {content}
     <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} />
   </div>;
+}
+
+function PollingStatus({ collection, active }: { collection: { activeMonitors: number; activeMonitorLimit: number; scheduledMonitorBatchSize: number; lastCheckedAt: string | Date | null; perSyncPageBudget: number; perSyncFamilyBudget: number; callsToday: number; dailyCallBudget: number; label: string }; active: any }) {
+  const sync = active?.sync;
+  const checkedAt = sync?.lastSuccessAt || sync?.lastSyncedAt || collection.lastCheckedAt;
+  return <section className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[#eadfd2] bg-[#fffaf5] px-3.5 py-3 text-[10px] text-[#866653] shadow-[0_7px_20px_rgba(90,53,29,0.035)]"><span className="inline-flex items-center gap-1.5 font-extrabold text-[#8e4f39]"><Radar className="h-3.5 w-3.5" />Polling, not live stream</span><span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5 text-[#a97b64]" />{checkedAt ? `Last checked ${formatRelativeTime(checkedAt)}` : "Awaiting first source check"}</span><span>{collection.activeMonitors}/{collection.activeMonitorLimit} active monitors</span><span>{collection.callsToday}/{collection.dailyCallBudget} calls today</span><span>{collection.perSyncPageBudget} page budget · {collection.perSyncFamilyBudget} query families</span>{sync?.latencyLabel ? <span className="ml-auto max-w-full truncate font-semibold text-[#9b785f]">{sync.latencyLabel}</span> : null}</section>;
 }
 
 function FeedTimeFilters({ value, onChange }: { value: FeedTimeFilter; onChange: (value: FeedTimeFilter) => void }) {
@@ -84,6 +92,7 @@ function PostDetailDialog({ item, open, pending, onOpenChange, onReview }: { ite
 }
 
 function formatPostDate(value: string | Date | undefined) { if (!value) return "Saved request"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "Saved request" : date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+function formatRelativeTime(value: string | Date) { const date = new Date(value); const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000)); if (seconds < 60) return "just now"; if (seconds < 3_600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86_400) return `${Math.floor(seconds / 3_600)}h ago`; return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 function EmptyFeed({ onSearch }: { onSearch: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-dashed border-[#ead7c5] bg-[#fffdfa] px-6 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-[#f6e6d4] text-[#a55a42]"><Radar className="h-4 w-4" /></span><h2 className="mt-3 text-base font-extrabold tracking-[-0.04em]">Ready for request posts.</h2><p className="mx-auto mt-1.5 max-w-sm text-[10px] leading-5 text-[#9a8474]">Run one focused X search. Faro keeps only real requests for help.</p><Button onClick={onSearch} className="mt-4 h-10 rounded-xl bg-[#b85f45] text-xs font-extrabold text-white hover:bg-[#9f4d36]"><Search className="mr-2 h-3.5 w-3.5" />Search</Button></div></div>; }
 function NoRequests({ screened, filtered, onSearch }: { screened: number; filtered: boolean; onSearch: () => void }) { return <div className="mt-4 grid min-h-44 place-items-center rounded-[24px] border border-dashed border-[#ead7c5] bg-[#fffdfa] px-6 text-center"><div><BadgeCheck className="mx-auto h-5 w-5 text-[#6c9b7b]" /><h2 className="mt-3 text-sm font-extrabold">{filtered ? "No saved posts in this period." : "Nothing qualified yet."}</h2><p className="mx-auto mt-1.5 max-w-md text-[10px] leading-5 text-[#9a8474]">{filtered ? "Try a wider local time filter. This does not run another X search." : `Faro screened ${screened} stored public posts for this search. Service offers and topic chatter were filtered as noise, not lost.`}</p>{filtered ? null : <button onClick={onSearch} className="mt-3 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#99523c] hover:text-[#713c2b]">Refine search <ArrowRight className="h-3 w-3" /></button>}</div></div>; }
 function FeedError({ onRetry }: { onRetry: () => void }) { return <div className="mt-7 grid min-h-64 place-items-center rounded-[26px] border border-[#efd4c7] bg-[#fff7f1] px-6 text-center"><div><Radar className="mx-auto h-5 w-5 text-[#b8654a]" /><h2 className="mt-3 text-base font-extrabold">Feed needs a refresh.</h2><p className="mt-1.5 text-[10px] text-[#9a8474]">Saved requests are safe. This does not start another source search.</p><Button onClick={onRetry} variant="outline" className="mt-4 h-9 rounded-xl border-[#e2bfae] bg-white text-xs font-extrabold text-[#98513a] hover:bg-[#fffaf7]">Retry loading</Button></div></div>; }

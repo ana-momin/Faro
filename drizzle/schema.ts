@@ -65,6 +65,65 @@ export const monitorSyncs = mysqlTable(
   table => [uniqueIndex("monitor_sync_monitor_unique").on(table.monitorId)],
 );
 
+/**
+ * Independent continuation state for each discovery-query family. Keeping this
+ * separate from the monitor summary prevents one family from overwriting the
+ * paging cursor of another family during a bounded polling cycle.
+ */
+export const monitorQueryStates = mysqlTable(
+  "monitor_query_states",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    monitorId: int("monitorId").notNull(),
+    familyId: varchar("familyId", { length: 48 }).notNull(),
+    queryHash: varchar("queryHash", { length: 64 }).notNull(),
+    queryPreview: varchar("queryPreview", { length: 240 }).notNull(),
+    nextToken: text("nextToken"),
+    newestPostId: varchar("newestPostId", { length: 64 }),
+    pagesFetched: int("pagesFetched").default(0).notNull(),
+    exhausted: mysqlEnum("exhausted", ["no", "yes"]).default("no").notNull(),
+    lastSyncedAt: timestamp("lastSyncedAt"),
+    lastSuccessAt: timestamp("lastSuccessAt"),
+    lastError: text("lastError"),
+    retryCount: int("retryCount").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("monitor_query_state_unique").on(table.monitorId, table.familyId, table.queryHash),
+    index("monitor_query_state_monitor_idx").on(table.monitorId, table.updatedAt),
+  ],
+);
+
+/**
+ * One immutable ledger row per provider request/page. It makes provider spend
+ * and discovery yield inspectable without storing provider credentials.
+ */
+export const monitorSyncRuns = mysqlTable(
+  "monitor_sync_runs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    monitorId: int("monitorId").notNull(),
+    familyId: varchar("familyId", { length: 48 }).notNull(),
+    queryHash: varchar("queryHash", { length: 64 }).notNull(),
+    pageNumber: int("pageNumber").notNull(),
+    source: mysqlEnum("source", ["filtered_stream", "recent_search", "twitterapi_io", "demo"]).default("twitterapi_io").notNull(),
+    status: mysqlEnum("status", ["healthy", "degraded", "rate_limited", "payment_required", "error"]).notNull(),
+    rawReceived: int("rawReceived").default(0).notNull(),
+    deduplicatedPosts: int("deduplicatedPosts").default(0).notNull(),
+    buyerCandidates: int("buyerCandidates").default(0).notNull(),
+    persistedPosts: int("persistedPosts").default(0).notNull(),
+    queueWaitMs: int("queueWaitMs").default(0).notNull(),
+    durationMs: int("durationMs").default(0).notNull(),
+    error: varchar("error", { length: 1000 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    index("monitor_sync_run_monitor_idx").on(table.monitorId, table.createdAt),
+    index("monitor_sync_run_family_idx").on(table.monitorId, table.familyId, table.createdAt),
+  ],
+);
+
 export const listenedPosts = mysqlTable(
   "listened_posts",
   {
@@ -111,3 +170,5 @@ export const postReviews = mysqlTable(
 
 export type MonitoringCriterion = typeof monitoringCriteria.$inferSelect;
 export type ListenedPost = typeof listenedPosts.$inferSelect;
+export type MonitorQueryState = typeof monitorQueryStates.$inferSelect;
+export type MonitorSyncRun = typeof monitorSyncRuns.$inferSelect;

@@ -21,11 +21,16 @@ const suggestions = [
 
 type RetrievalMetrics = {
   sourceCalls: number;
+  plannedPageRequests: number;
   queryFamilies: number;
+  queryFamilyBudget: number;
+  pagesChecked: number;
+  pageBudget: number;
   rawReceived: number;
   deduplicatedPosts: number;
   buyerCandidates: number;
   persisted: number;
+  queueWaitMs: number;
 };
 
 type SearchResult = {
@@ -105,7 +110,7 @@ export default function Search() {
           <p className="mt-3 text-[10px] leading-5 text-[#9a7d68]">Faro still keeps only people asking for help. Keywords guide the search; they do not surface service providers.</p>
         </>}
         <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="max-w-md text-[10px] leading-5 text-[#987b67]">Each manual run uses one protected source check only. “View more” in Feed and Search results never spend another source call.</p>
+          <p className="max-w-md text-[10px] leading-5 text-[#987b67]">A new monitor uses a bounded polling budget across named buyer-demand queries and continuation pages. “View more” only reveals saved posts and never starts another source check.</p>
           <Button type="submit" disabled={!ready || pending} className="h-11 shrink-0 rounded-2xl bg-[#b85f45] px-5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">
             {pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Radar className="mr-2 h-4 w-4" />Run Faro</>}
           </Button>
@@ -129,8 +134,8 @@ function SearchState({ phase, state, result, onOpen }: { phase: SearchLifecycle;
     ? result?.syncError || state.detail
     : metrics
       ? metrics.buyerCandidates
-        ? `${metrics.persisted} qualified buyer post${metrics.persisted === 1 ? "" : "s"} saved from ${metrics.deduplicatedPosts} unique posts (${metrics.rawReceived} received across ${metrics.sourceCalls} targeted source check${metrics.sourceCalls === 1 ? "" : "s"}).`
-        : `Faro checked ${metrics.deduplicatedPosts} unique posts (${metrics.rawReceived} received across ${metrics.sourceCalls} targeted source check${metrics.sourceCalls === 1 ? "" : "s"}) and found no concrete buyer-side requests for this brief.`
+        ? `${metrics.persisted} qualified buyer post${metrics.persisted === 1 ? "" : "s"} saved from ${metrics.deduplicatedPosts} unique posts. Faro checked ${metrics.pagesChecked}/${metrics.pageBudget} planned pages across ${metrics.queryFamilies}/${metrics.queryFamilyBudget} query families using ${metrics.sourceCalls} provider request${metrics.sourceCalls === 1 ? "" : "s"}.`
+        : `Faro checked ${metrics.deduplicatedPosts} unique posts from ${metrics.pagesChecked}/${metrics.pageBudget} planned pages across ${metrics.queryFamilies}/${metrics.queryFamilyBudget} query families (${metrics.sourceCalls} provider request${metrics.sourceCalls === 1 ? "" : "s"}) and found no concrete buyer-side requests for this brief.`
       : state.detail;
 
   return <div className={`mt-6 rounded-2xl border p-4 ${alert ? "border-[#edcaba] bg-[#fff4ed]" : done ? "border-[#cae4d1] bg-[#f4fbf4]" : "border-[#ead9c4] bg-white/70"}`}>

@@ -19,6 +19,8 @@ export type RecentSearchResult = {
 export type PublicSearchResult = RecentSearchResult & {
   source: "recent_search" | "twitterapi_io";
   latencyLabel: string;
+  queueWaitMs: number;
+  providerAttempts: number;
 };
 
 export function dedupePosts(posts: XApiPost[]) {
@@ -45,23 +47,50 @@ export class XApiError extends Error {
 }
 
 const X_API_BASE = "https://api.x.com/2";
-const TWITTERAPI_IO_MIN_INTERVAL_MS = 5_200;
+const DEFAULT_TWITTERAPI_IO_MIN_INTERVAL_MS = 5_200;
+const MAX_TWITTERAPI_IO_INTERVAL_MS = 60_000;
 let twitterApiIoQueue: Promise<void> = Promise.resolve();
 let lastTwitterApiIoRequestAt = 0;
+let twitterApiIoBackoffUntil = 0;
+let twitterApiIoRateLimitPenaltyMs = 0;
+
+function twitterApiIoMinIntervalMs() {
+  const configured = Number(process.env.FARO_TWITTERAPI_IO_MIN_INTERVAL_MS);
+  if (!Number.isFinite(configured)) return DEFAULT_TWITTERAPI_IO_MIN_INTERVAL_MS;
+  return Math.min(Math.max(Math.floor(configured), 1_000), MAX_TWITTERAPI_IO_INTERVAL_MS);
+}
+
+function registerTwitterApiIoRateLimit() {
+  twitterApiIoRateLimitPenaltyMs = Math.min(
+    Math.max(twitterApiIoMinIntervalMs() * 2, twitterApiIoRateLimitPenaltyMs * 2),
+    MAX_TWITTERAPI_IO_INTERVAL_MS,
+  );
+  twitterApiIoBackoffUntil = Date.now() + twitterApiIoRateLimitPenaltyMs;
+}
+
+function registerTwitterApiIoSuccess() {
+  twitterApiIoRateLimitPenaltyMs = Math.max(0, Math.floor(twitterApiIoRateLimitPenaltyMs / 2));
+}
 
 async function waitForTwitterApiIoRequestSlot() {
-  if (process.env.VITEST) return;
+  if (process.env.VITEST) return 0;
+  const queuedAt = Date.now();
   let releaseSlot: (() => void) | undefined;
   const previous = twitterApiIoQueue;
   twitterApiIoQueue = new Promise<void>(resolve => { releaseSlot = resolve; });
   await previous;
   try {
-    const delay = Math.max(0, lastTwitterApiIoRequestAt + TWITTERAPI_IO_MIN_INTERVAL_MS - Date.now());
+    const delay = Math.max(
+      0,
+      lastTwitterApiIoRequestAt + Math.max(twitterApiIoMinIntervalMs(), twitterApiIoRateLimitPenaltyMs) - Date.now(),
+      twitterApiIoBackoffUntil - Date.now(),
+    );
     if (delay) await new Promise(resolve => setTimeout(resolve, delay));
     lastTwitterApiIoRequestAt = Date.now();
   } finally {
     releaseSlot?.();
   }
+  return Date.now() - queuedAt;
 }
 
 function bearerToken() {
@@ -144,12 +173,19 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
   const apiKey = twitterApiIoKey();
   if (!apiKey) throw new XApiError(401, "TwitterAPI.io key is not configured.");
   const params = new URLSearchParams({ query: twitterApiIoQuery(query), queryType: "Latest", cursor: cursor ?? "" });
-  const request = async (attempt = 0): Promise<Response> => {
-    await waitForTwitterApiIoRequestSlot();
+  let queueWaitMs = 0;
+  let providerAttempts = 0;
+  const request = async (): Promise<Response> => {
+    queueWaitMs += await waitForTwitterApiIoRequestSlot();
+    providerAttempts += 1;
     const response = await fetch(`https://api.twitterapi.io/twitter/tweet/advanced_search?${params.toString()}`, {
       headers: { "X-API-Key": apiKey },
     });
-    if (response.status === 429 && attempt < 1) return request(attempt + 1);
+    if (response.status === 429) {
+      registerTwitterApiIoRateLimit();
+    } else if (response.ok) {
+      registerTwitterApiIoSuccess();
+    }
     return response;
   };
   const response = await request();
@@ -187,6 +223,8 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
     nextToken: payload.has_next_page === false || payload.hasNextPage === false ? undefined : payload.next_cursor ?? payload.nextCursor,
     source: "twitterapi_io",
     latencyLabel: "TwitterAPI.io Advanced Search · latest public posts",
+    queueWaitMs,
+    providerAttempts,
   };
 }
 
@@ -195,7 +233,7 @@ export async function fetchPublicPosts(query: string, cursor?: { newestId?: stri
     return fetchTwitterApiIoSearch(query, cursor?.nextToken);
   }
   const result = await fetchRecentSearch(query, cursor);
-  return { ...result, ...recentSearchStatus(filteredStreamRequested()) };
+  return { ...result, ...recentSearchStatus(filteredStreamRequested()), queueWaitMs: 0, providerAttempts: 1 };
 }
 
 export async function upsertFilteredStreamRule(value: string, tag: string) {
