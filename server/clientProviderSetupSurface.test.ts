@@ -23,6 +23,14 @@ describe("client-owned provider setup", () => {
     expect(providerSource).toContain("Find first posts");
   });
 
+  it("shows saved provider state only for the provider the client selected", () => {
+    expect(providerSource).toContain("const selectedProviderConnected = Boolean(setup?.configured && setup.provider === provider)");
+    expect(providerSource).toContain("{selectedProviderConnected ?");
+    expect(providerSource).toContain("onClick={() => chooseProvider(option)}");
+    expect(providerSource).toContain("Connect ${selected.name}");
+    expect(providerSource).toContain("setCredential(\"\")");
+  });
+
   it("opens Provider from Feed inside Settings and centralizes secondary workspace controls there", () => {
     expect(homeSource).toContain('setLocation("/settings?section=provider")');
     expect(homeSource).toContain('setLocation("/search?firstBatch=1")');

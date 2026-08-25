@@ -318,3 +318,5 @@
 - [x] Trace the Feed-page tRPC “Failed to fetch” error through current browser, network, and server logs without starting collection.
 - [x] Correct the underlying request failure and add resilient client-facing Feed error handling.
 - [x] Add regression coverage, verify request stability without provider calls, publish the fix, and push the matching GitHub update.
+- [x] Scope saved-provider status, key hints, and first-batch actions to the provider currently selected in Settings.
+- [x] Add selector regression coverage, verify without provider calls, publish the correction, and push the matching GitHub update.
