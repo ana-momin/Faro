@@ -18,6 +18,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain('label="Pages"');
     expect(searchSource).toContain("Qualified requests");
     expect(searchSource).toContain("still needs final review");
-    expect(searchSource).toContain('max-w-6xl');
+    expect(searchSource).toContain('max-w-[1160px]');
+    expect(searchSource).toContain("SearchVisualPanel");
   });
 });

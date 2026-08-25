@@ -39,3 +39,7 @@ Mobile verification confirms that the concise match reason remains legible benea
 ## Immediate saved state correction — 25 August 2026
 
 The Feed remains stable after the post-detail save correction. Regression coverage verifies that a save intent updates the open detail state immediately, replaces the action with a non-clickable Saved indicator, and restores the previous state if persistence fails. No source request or post interaction was triggered during verification.
+
+## LLM-style Search redesign — 25 August 2026
+
+Desktop and mobile verification confirms that Search now provides a focused LLM-style prompt workspace: a display-scale buyer-intent headline, concise Brief and Keyword modes, an abstract espresso signal visual, prompt suggestions, and a compact run control. The desktop two-column composition collapses into a clear vertical prompt-and-signal sequence on mobile with no horizontal overflow. No source request was triggered during these checks.

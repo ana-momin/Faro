@@ -266,3 +266,6 @@
 - [x] Update the post-detail save state optimistically so saved posts do not retain an actionable Save control.
 - [x] Confirm Monitor manager and high-confidence preferred-topic alert behavior remains visible and documented.
 - [x] Add regression coverage, verify responsive post-detail behavior, and checkpoint the correction.
+- [x] Redesign Search as a clean LLM-style prompt workspace with purposeful visual depth and minimal copy.
+- [x] Refine Search results, loading, empty, and error states to match the new visual language.
+- [x] Add regression coverage, verify desktop/mobile Search presentation, and checkpoint the redesign.
