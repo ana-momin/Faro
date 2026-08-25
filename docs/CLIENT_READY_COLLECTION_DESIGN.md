@@ -37,3 +37,7 @@ Mobile verification at 375 px confirms the direct Provider setup view and cleane
 ## Compact sidebar account menu — 25 August 2026
 
 The main sidebar now retains only Feed, Search, and Profile. Saved, Monitors, and Provider are available from the account menu at the bottom, avoiding a crowded primary list. A visible desktop minimize/expand control is restored beside the wordmark and the compact icon state retains navigation tooltips. Desktop and 375 px mobile Feed and Provider checks confirmed the new placement without provider activity.
+
+## Bottom minimize control — 25 August 2026
+
+The sidebar minimize/expand control now sits in the footer directly above the signed-in account name and email, matching the requested placement. Desktop verification confirmed that it is visible, centered, and separated from the account action; the mobile header control remains unchanged. No provider request was triggered.
