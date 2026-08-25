@@ -29,7 +29,7 @@ describe("Faro Feed workflow wiring", () => {
 
   it("renders Feed as full post cards instead of a dense table", () => {
     expect(homeSource).toContain(">Posts<");
-    expect(homeSource).toContain(">All posts<");
+    expect(homeSource).toContain(">Latest practical requests<");
     expect(homeSource).toContain("getAllQualifiedPosts");
     expect(homeSource).toContain("function RequestCard");
     expect(homeSource).toContain("whitespace-pre-wrap");

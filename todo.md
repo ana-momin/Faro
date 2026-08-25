@@ -243,3 +243,6 @@
 - [x] Add an explicit Feed refresh action that performs a bounded current-post collection and immediately re-sorts persisted results by recency.
 - [x] Repair Search result visibility after a run and improve the Search result layout, metrics, and empty/error states.
 - [x] Add coverage for manual refresh safeguards and Search result rendering; verify responsive UI and checkpoint the update.
+- [x] Remove dense polling telemetry from Feed and refine the post-first visual hierarchy.
+- [x] Improve the post-detail popup and highlight the concrete buyer-request wording that qualified each post.
+- [x] Add regression coverage, verify desktop/mobile Feed interaction, and checkpoint the refinement.

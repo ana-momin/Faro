@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReviewDialogContent, personalizedGreeting, summarizePostForAgent } from "../client/src/lib/discoverAgent";
+import { buildReviewDialogContent, getBuyerRequestEvidence, personalizedGreeting, summarizePostForAgent } from "../client/src/lib/discoverAgent";
 
 describe("Faro AI Discover helpers", () => {
   it("uses the authenticated user’s first name in a time-aware greeting", () => {
@@ -23,5 +23,12 @@ describe("Faro AI Discover helpers", () => {
     expect(content.handleLabel).toBe("@norapatel");
     expect(content.fullPost).toContain("complete AI workflow");
     expect(content.agentRead.confidence).toBe("High confidence");
+  });
+
+  it("extracts the concrete buyer request and delivery wording for honest popup highlighting", () => {
+    const evidence = getBuyerRequestEvidence({ body: "Our team is looking for a developer to automate the client intake workflow with AI." });
+    expect(evidence.map(item => item.label)).toEqual(["Buyer request", "Delivery scope"]);
+    expect(evidence[0]?.phrase).toContain("looking for a developer");
+    expect(evidence[1]?.phrase).toContain("automate the client intake workflow");
   });
 });

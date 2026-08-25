@@ -13,3 +13,7 @@ Desktop checks confirmed that Feed now exposes a compact **Refresh** control nex
 Search retains its focused brief input and now has a results presentation designed for qualified X posts: collection coverage chips, a richer account/category/result-card format, and clearer no-result explanations. The refreshed Search flow waits for the overview query to refetch before rendering a completed run’s results, preventing the prior race where the result view could evaluate stale saved-post data.
 
 Mobile checks confirmed that Feed keeps Refresh and Search as separate compact actions, retains the visible polling status rail, and preserves post-card controls without horizontal overflow. The Search brief form remains readable at 375 px, including category suggestions and the Run Faro action. No Refresh or Run Faro action was clicked during this visual check, so no provider request was made.
+
+## Feed detail refinement — 25 August 2026
+
+Desktop and mobile Feed checks confirmed that the dense polling telemetry rail has been removed. The Feed now starts with a concise **Buyer-side signals / Latest practical requests** heading, followed by the local Time control and post cards. Refresh remains available in the header without exposing operational counters. No provider request was made during this visual verification.

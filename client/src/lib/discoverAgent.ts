@@ -1,4 +1,5 @@
 export type AgentReason = { label: string; points: number };
+export type BuyerRequestEvidence = { label: string; phrase: string };
 
 export type AgentPostInput = {
   body: string;
@@ -46,4 +47,14 @@ export function buildReviewDialogContent(post: ReviewDialogPostInput) {
     fullPost: post.body,
     agentRead: summarizePostForAgent(post),
   };
+}
+
+export function getBuyerRequestEvidence(post: Pick<AgentPostInput, "body">): BuyerRequestEvidence[] {
+  const body = post.body ?? "";
+  const evidence: BuyerRequestEvidence[] = [];
+  const request = body.match(/\b(?:looking for|looking to hire|need(?:s)?|seeking|can someone|who can|does anyone know|anyone know|recommend(?:ations)? for)\b[^.!?\n]{0,130}/i)?.[0]?.trim();
+  if (request) evidence.push({ label: "Buyer request", phrase: request });
+  const delivery = body.match(/\b(?:build|implement|set up|automate|integrate|configure|develop|create|produce|edit|manage|design|test|validate|research|audit|debug|fix|migrate)\b[^.!?\n]{0,95}/i)?.[0]?.trim();
+  if (delivery) evidence.push({ label: "Delivery scope", phrase: delivery });
+  return evidence.slice(0, 2);
 }
