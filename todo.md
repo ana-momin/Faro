@@ -315,3 +315,6 @@
 - [x] Add an accessible show/hide control for provider credentials while they are being entered.
 - [x] Give a configured provider with no monitor/results a clear first-batch path that creates a search brief and starts bounded collection.
 - [x] Unify provider-ready empty states, add regressions, verify responsive behavior without provider calls, publish the fix, and push the matching GitHub update.
+- [x] Trace the Feed-page tRPC “Failed to fetch” error through current browser, network, and server logs without starting collection.
+- [x] Correct the underlying request failure and add resilient client-facing Feed error handling.
+- [x] Add regression coverage, verify request stability without provider calls, publish the fix, and push the matching GitHub update.

@@ -5,16 +5,24 @@ export function isHtmlApiFallback(response: Pick<Response, "headers">) {
 }
 
 export async function fetchTrpcWithRetry(input: RequestInfo | URL, init?: RequestInit) {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await globalThis.fetch(input, {
-      ...(init ?? {}),
-      credentials: "include",
-      cache: "no-store",
-    });
+  let lastFailure: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await globalThis.fetch(input, {
+        ...(init ?? {}),
+        credentials: "include",
+        cache: "no-store",
+      });
 
-    if (!isHtmlApiFallback(response)) return response;
-    if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, TRPC_RECONNECT_DELAY_MS));
+      if (!isHtmlApiFallback(response)) return response;
+      lastFailure = new Error("Faro received an API fallback response.");
+    } catch (error) {
+      lastFailure = error;
+    }
+
+    if (attempt < 2) await new Promise(resolve => globalThis.setTimeout(resolve, TRPC_RECONNECT_DELAY_MS * (attempt + 1)));
   }
 
-  throw new Error("Faro is reconnecting to its API. Please retry in a moment.");
+  const suffix = lastFailure instanceof Error && lastFailure.message ? ` (${lastFailure.message})` : "";
+  throw new Error(`Faro could not reach its API after reconnecting. Please retry in a moment.${suffix}`);
 }
