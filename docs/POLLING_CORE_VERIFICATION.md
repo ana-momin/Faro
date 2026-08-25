@@ -47,3 +47,7 @@ Desktop and mobile verification confirms that Search now provides a focused LLM-
 ## Centered Search command interface — 25 August 2026
 
 Desktop and mobile verification confirms that Search now uses a centered, rectangular LLM-style command bar beneath a personalized morning greeting. The bar keeps Ask Faro and Keyword search modes, exposes six icon-led task presets, and maintains a compact Run Faro control. The mobile presentation is clean, centered, and free of horizontal overflow. No source request was triggered during these checks.
+
+## Compact Search command refinement — 25 August 2026
+
+Desktop and mobile verification confirms that the greeting and decorative mark are removed. The centered rectangular command bar now contains Ask Faro, Keyword search, and a Suggestions dropdown for full prompt lines. Active collection progress is rendered inside this command surface rather than as a detached status area. No source request was triggered during these checks.

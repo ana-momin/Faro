@@ -19,7 +19,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("Qualified requests");
     expect(searchSource).toContain("still needs final review");
     expect(searchSource).toContain('max-w-[1040px]');
-    expect(searchSource).toContain("Morning, {greetingName}.");
-    expect(searchSource).toContain("TaskIcon");
+    expect(searchSource).toContain("Suggestions");
+    expect(searchSource).toContain("CommandProgress");
   });
 });

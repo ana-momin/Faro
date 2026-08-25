@@ -272,3 +272,6 @@
 - [x] Add a personalized morning greeting from authenticated user data to the Search command interface.
 - [x] Rebuild Search around a centered rectangular task-aware command bar with concise visual task icons.
 - [x] Preserve responsive Search lifecycle/results, add regression coverage, and checkpoint the refined command interface.
+- [x] Remove Search greeting and decorative mark, retaining a clean centered command interface.
+- [x] Replace inline task icons with a Suggestions dropdown containing complete actionable prompt lines.
+- [x] Render active collection progress inside the command bar; add regressions, verify responsive UI, and checkpoint the refinement.
