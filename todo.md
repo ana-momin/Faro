@@ -240,3 +240,6 @@
 - [x] Surface truthful stream-versus-polling freshness, query/page progress, queue state, and source budget in Feed and Search.
 - [x] Add regression coverage for cursor lifecycle, source budgets, concurrency, scheduler fairness, and source-state UI; validate locally.
 - [x] Run one explicitly bounded live validation, document every source call, explain live-stream prerequisites, and checkpoint the polling-first core.
+- [x] Add an explicit Feed refresh action that performs a bounded current-post collection and immediately re-sorts persisted results by recency.
+- [x] Repair Search result visibility after a run and improve the Search result layout, metrics, and empty/error states.
+- [x] Add coverage for manual refresh safeguards and Search result rendering; verify responsive UI and checkpoint the update.

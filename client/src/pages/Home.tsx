@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getRequestCategory, prioritizeCurrentMonth, type FeedTimeFilter } from "@/lib/discoverFeed";
 import { buildReviewDialogContent } from "@/lib/discoverAgent";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BadgeCheck, Bot, Check, ChevronDown, Clapperboard, ClipboardCheck, Clock3, Code2, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, Search, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Trophy, Workflow, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bot, Check, ChevronDown, Clapperboard, ClipboardCheck, Clock3, Code2, ExternalLink, Heart, Lightbulb, Loader2, Megaphone, MessageCircle, Radar, RefreshCw, Search, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Trophy, Workflow, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -22,6 +22,20 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
+  const refresh = trpc.monitoring.sync.useMutation({
+    onSuccess: async sync => {
+      await utils.monitoring.overview.invalidate();
+      const retrieval = sync.retrieval;
+      if (sync.skipped === "daily_budget") {
+        toast.message("Today’s source-call budget is reached. Saved posts remain available.");
+      } else if (retrieval?.persisted) {
+        toast.success(`${retrieval.persisted} new qualified post${retrieval.persisted === 1 ? "" : "s"} saved from ${retrieval.pagesChecked} checked page${retrieval.pagesChecked === 1 ? "" : "s"}.`);
+      } else {
+        toast.message(`Refresh completed: ${retrieval?.pagesChecked ?? 0} source page${retrieval?.pagesChecked === 1 ? "" : "s"} checked; no new qualified posts yet.`);
+      }
+    },
+    onError: error => toast.error(error.message),
+  });
   const collection = overview.data?.collection;
   const allQualified = useMemo(() => prioritizeCurrentMonth(getAllQualifiedPosts(overview.data?.posts ?? [])), [overview.data?.posts]);
   const filteredQualified = useMemo(() => filterFeedByTime(allQualified, timeFilter), [allQualified, timeFilter]);
@@ -45,7 +59,7 @@ export default function Home() {
   }
 
   return <div className="mx-auto w-full max-w-4xl pb-10">
-    <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 border-b border-[#eadfd2] pb-5"><h1 className="text-xl font-extrabold tracking-[-0.06em] text-[#422d20]">Posts</h1><Button onClick={() => setLocation("/search")} className="h-9 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search">Search</Button></header>
+    <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 border-b border-[#eadfd2] pb-5"><h1 className="text-xl font-extrabold tracking-[-0.06em] text-[#422d20]">Posts</h1><div className="flex items-center gap-2"><Button variant="outline" onClick={() => active && refresh.mutate({ monitorId: active.monitor.id })} disabled={!active || refresh.isPending} className="h-9 rounded-xl border-[#e2cbb6] bg-white px-3 text-xs font-extrabold text-[#8c503a] hover:bg-[#fff5eb]" aria-label="Refresh current X posts" title="Uses the active monitor’s bounded source-call budget"><>{refresh.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}Refresh</></Button><Button onClick={() => setLocation("/search")} className="h-9 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search">Search</Button></div></header>
     {collection ? <PollingStatus collection={collection} active={active} /> : null}
     {content}
     <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} />
