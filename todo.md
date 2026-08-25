@@ -252,3 +252,7 @@
 - [x] Repair Search progress so active runs keep visibly advancing and source failures surface promptly without a stuck 82% state.
 - [x] Simplify Profile actions into accessible icon-led controls while preserving the existing personalized profile experience.
 - [x] Add lifecycle/Profile regression coverage, verify desktop/mobile presentation, and checkpoint the update.
+- [x] Add saved-post persistence and feedback-derived preference signals without automated outreach or external actions.
+- [x] Replace post-detail Keep/Dismiss text actions with accessible icon controls and subtle feedback confirmation.
+- [x] Personalize future Feed ordering from user feedback and add a Saved posts area in Profile.
+- [x] Add regression coverage, validate responsive UI, and checkpoint the saved-and-personalized feedback experience.

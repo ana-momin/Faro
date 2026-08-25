@@ -6,6 +6,7 @@ import { seedDemo } from "../monitoring/demo";
 import { collectionPolicy } from "../monitoring/policy";
 import { deterministicSuggestion, requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
+import { derivePreferredTopics, preferenceBoost } from "../monitoring/preferences";
 import { classifySyncFailure, syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
 
@@ -34,8 +35,9 @@ export const monitoringRouter = router({
         db.listPostsForUser(ctx.user.id, input?.monitorId),
         db.countMonitorSyncRunsSince(dayStart),
       ]);
+      const preferredTopics = derivePreferredTopics(posts);
       const rescoredPosts = posts
-        .map(({ post, monitorName, monitor }) => {
+        .map(({ post, monitorName, monitor, savedAt }) => {
           const ranking = rankOpportunity({
             body: post.body,
             postedAt: new Date(post.postedAt),
@@ -47,7 +49,11 @@ export const monitoringRouter = router({
             aiConfidence: post.aiIntent.confidence,
             aiLabel: post.aiIntent.label,
           });
-          return { post: { ...post, ruleScore: ranking.score, scoreExplanation: ranking.components }, monitorName, monitor };
+          const preference = preferenceBoost(post.body, preferredTopics);
+          const scoreExplanation = preference.points
+            ? [...ranking.components, { label: "Matches your kept topics", points: preference.points }]
+            : ranking.components;
+          return { post: { ...post, ruleScore: Math.min(100, ranking.score + preference.points), scoreExplanation }, monitorName, monitor, savedAt };
         })
         .sort((left, right) => right.post.ruleScore - left.post.ruleScore || right.post.postedAt.getTime() - left.post.postedAt.getTime());
       const pending = rescoredPosts.filter(({ post }) => post.reviewStatus === "pending").length;
@@ -59,7 +65,7 @@ export const monitoringRouter = router({
       return {
         monitors,
         posts: rescoredPosts,
-        summary: { total: rescoredPosts.length, pending, approved: rescoredPosts.filter(({ post }) => post.reviewStatus === "approved").length },
+        summary: { total: rescoredPosts.length, pending, approved: rescoredPosts.filter(({ post }) => post.reviewStatus === "approved").length, saved: rescoredPosts.filter(({ savedAt }) => Boolean(savedAt)).length, preferredTopics },
         collection: {
           mode: "polling" as const,
           label: policy.pollingLabel,
@@ -182,6 +188,18 @@ export const monitoringRouter = router({
       await db.saveReview(input.postId, ctx.user.id, input.decision, input.note);
       return { ok: true, humanReviewOnly: true };
     }),
+
+  save: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive(), saved: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const post = await db.getPostForUser(input.postId, ctx.user.id);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+      if (input.saved) await db.savePostForUser(input.postId, ctx.user.id);
+      else await db.unsavePostForUser(input.postId, ctx.user.id);
+      return { ok: true, saved: input.saved, humanReviewOnly: true };
+    }),
+
+  saved: protectedProcedure.query(async ({ ctx }) => db.listSavedPostsForUser(ctx.user.id)),
 
   seedDemo: protectedProcedure.mutation(async ({ ctx }) => seedDemo(ctx.user.id)),
 });

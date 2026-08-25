@@ -168,7 +168,23 @@ export const postReviews = mysqlTable(
   table => [index("post_review_post_idx").on(table.postId)],
 );
 
+/** A private bookmark list; saving never triggers an external X action. */
+export const savedPosts = mysqlTable(
+  "saved_posts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    postId: int("postId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("saved_post_user_post_unique").on(table.userId, table.postId),
+    index("saved_post_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
 export type MonitoringCriterion = typeof monitoringCriteria.$inferSelect;
 export type ListenedPost = typeof listenedPosts.$inferSelect;
 export type MonitorQueryState = typeof monitorQueryStates.$inferSelect;
 export type MonitorSyncRun = typeof monitorSyncRuns.$inferSelect;
+export type SavedPost = typeof savedPosts.$inferSelect;

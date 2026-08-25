@@ -8,6 +8,7 @@ import {
   monitorSyncRuns,
   monitorSyncs,
   postReviews,
+  savedPosts,
   users,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -168,12 +169,38 @@ export async function listPostsForUser(userId: number, monitorId?: number) {
   const conditions = [eq(monitoringCriteria.userId, userId)];
   if (monitorId) conditions.push(eq(listenedPosts.monitorId, monitorId));
   return db
-    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria })
+    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt })
     .from(listenedPosts)
     .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
+    .leftJoin(savedPosts, and(eq(savedPosts.postId, listenedPosts.id), eq(savedPosts.userId, userId)))
     .where(and(...conditions))
     .orderBy(desc(listenedPosts.ruleScore), desc(listenedPosts.postedAt))
     .limit(200);
+}
+
+export async function listSavedPostsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt })
+    .from(savedPosts)
+    .innerJoin(listenedPosts, eq(listenedPosts.id, savedPosts.postId))
+    .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
+    .where(and(eq(savedPosts.userId, userId), eq(monitoringCriteria.userId, userId)))
+    .orderBy(desc(savedPosts.createdAt))
+    .limit(100);
+}
+
+export async function savePostForUser(postId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(savedPosts).values({ postId, userId }).onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+}
+
+export async function unsavePostForUser(postId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(savedPosts).where(and(eq(savedPosts.postId, postId), eq(savedPosts.userId, userId)));
 }
 
 export async function listPostsForMonitor(monitorId: number) {

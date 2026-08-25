@@ -25,3 +25,7 @@ Desktop verification confirms that Search now uses a wider workspace, a short **
 ## Search lifecycle and Profile actions — 25 August 2026
 
 Desktop and mobile checks confirmed the Search surface remains minimal while its in-flight lifecycle now continuously advances after the qualifying stage. Source mutation failures show their returned error text immediately rather than leaving a static 82% view. Profile preserves its personalized composition while the photo change, Feed entry, and sign-out actions use compact accessible icon controls with descriptive labels. No source search was run during these checks.
+
+## Saved feedback experience — 25 August 2026
+
+Desktop and mobile checks confirmed that Profile now exposes a compact Saved tab with a count, while its personalized workspace remains intact. Feed continues to use compact detail entry controls; icon-only feedback and save actions are available inside the post detail view, where their text labels remain available to assistive technology and browser tooltips. No feedback, save action, or source request was triggered during these checks.
