@@ -19,14 +19,16 @@ describe("client-owned provider setup", () => {
     expect(providerSource).toContain("credentialHint");
   });
 
-  it("opens Provider directly from Feed and keeps Saved, Monitors, and Provider in the sidebar rather than a Profile tab bar", () => {
+  it("opens Provider directly from Feed and keeps Saved, Monitors, and Provider in the compact account menu rather than a Profile tab bar", () => {
     expect(homeSource).toContain('setLocation("/provider")');
     expect(appSource).toContain('path={"/provider"}');
     expect(appSource).toContain('path={"/saved"}');
     expect(appSource).toContain('path={"/monitors"}');
-    expect(sidebarSource).toContain('label: "Saved", path: "/saved"');
-    expect(sidebarSource).toContain('label: "Monitors", path: "/monitors"');
-    expect(sidebarSource).toContain('label: "Provider", path: "/provider"');
+    expect(sidebarSource).toContain('setLocation("/saved")');
+    expect(sidebarSource).toContain('setLocation("/monitors")');
+    expect(sidebarSource).toContain('setLocation("/provider")');
+    expect(sidebarSource).toContain('collapsible="icon"');
+    expect(sidebarSource).toContain("Minimize sidebar");
     expect(profileSource).not.toContain('setTab(');
   });
 

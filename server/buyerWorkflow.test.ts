@@ -31,8 +31,8 @@ describe("Faro buyer-demand workflow", () => {
     const logo = readFileSync(new URL("../client/src/components/FaroLogo.tsx", import.meta.url), "utf8");
 
     expect(app).toContain("<DashboardLayout>");
-    expect(sidebar).toContain('collapsible="offcanvas"');
-    expect(sidebar).not.toContain("toggleSidebar");
+    expect(sidebar).toContain('collapsible="icon"');
+    expect(sidebar).toContain("SidebarTrigger");
     expect(sidebar).not.toContain("cursor-col-resize");
     expect(avatar).toContain("delayMs = 150");
     expect(logo).toContain('loading="eager"');

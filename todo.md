@@ -295,3 +295,6 @@
 - [x] Make the Feed Configure provider action open the Provider setup view directly and improve its empty-state placement.
 - [x] Replace Profile’s crowded Saved, Monitors, and Provider top tabs with clear sidebar navigation destinations.
 - [x] Add navigation regressions, verify desktop/mobile behavior without provider calls, publish the update, and push the matching GitHub code.
+- [x] Move Saved, Monitors, and Provider from the crowded primary sidebar list into a cleaner secondary navigation location.
+- [x] Restore a visible, accessible sidebar minimize control and preserve stable navigation behavior.
+- [x] Add regressions, verify desktop/mobile layout without provider calls, publish the refinement, and push the matching GitHub update.

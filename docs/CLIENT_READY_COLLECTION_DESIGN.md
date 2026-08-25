@@ -33,3 +33,7 @@ The no-monitor Feed state now distinguishes the prerequisite provider setup from
 Saved, Monitors, and Provider are now first-class sidebar destinations rather than crowded Profile top-bar tabs. The Feed configuration action routes directly to `/provider`, where the credential setup surface is immediately visible; the Profile page now retains only personal account content. Desktop checks confirmed correct route highlighting and no source request was triggered.
 
 Mobile verification at 375 px confirms the direct Provider setup view and cleaner Profile page remain readable without the former top-tab row. No provider credential was entered and no source request was triggered.
+
+## Compact sidebar account menu — 25 August 2026
+
+The main sidebar now retains only Feed, Search, and Profile. Saved, Monitors, and Provider are available from the account menu at the bottom, avoiding a crowded primary list. A visible desktop minimize/expand control is restored beside the wordmark and the compact icon state retains navigation tooltips. Desktop and 375 px mobile Feed and Provider checks confirmed the new placement without provider activity.
