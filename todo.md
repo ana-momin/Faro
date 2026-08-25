@@ -299,3 +299,4 @@
 - [x] Restore a visible, accessible sidebar minimize control and preserve stable navigation behavior.
 - [x] Add regressions, verify desktop/mobile layout without provider calls, publish the refinement, and push the matching GitHub update.
 - [x] Move the sidebar minimize control to the bottom, immediately above the account name and email area.
+- [x] Add a visible settings cue to the bottom account menu and remove its duplicate Profile entry.

@@ -29,6 +29,9 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain('setLocation("/provider")');
     expect(sidebarSource).toContain('collapsible="icon"');
     expect(sidebarSource).toContain("Minimize sidebar");
+    expect(sidebarSource).toContain("Open workspace settings");
+    expect(sidebarSource).toContain("<Settings2");
+    expect(sidebarSource).not.toContain('DropdownMenuItem onClick={() => setLocation("/profile")}');
     expect(profileSource).not.toContain('setTab(');
   });
 

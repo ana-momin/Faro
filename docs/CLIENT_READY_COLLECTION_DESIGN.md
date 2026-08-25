@@ -41,3 +41,7 @@ The main sidebar now retains only Feed, Search, and Profile. Saved, Monitors, an
 ## Bottom minimize control — 25 August 2026
 
 The sidebar minimize/expand control now sits in the footer directly above the signed-in account name and email, matching the requested placement. Desktop verification confirmed that it is visible, centered, and separated from the account action; the mobile header control remains unchanged. No provider request was triggered.
+
+## Account settings cue — 25 August 2026
+
+The bottom account entry now includes a subtle settings icon and an accessible “Open workspace settings” label, making the available Saved, Monitors, Provider, and sign-out controls discoverable. The duplicate Profile item has been removed because Profile is already a primary sidebar destination. Desktop and 375 px mobile checks remained stable with no provider activity.
