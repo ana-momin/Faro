@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { derivePreferredTopics, preferenceBoost } from "../server/monitoring/preferences";
 
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
-const profileSource = readFileSync(resolve(process.cwd(), "client/src/pages/Profile.tsx"), "utf8");
+const settingsSource = readFileSync(resolve(process.cwd(), "client/src/pages/Settings.tsx"), "utf8");
 
 describe("Faro saved feedback experience", () => {
   it("only boosts topics the user explicitly kept or saved", () => {
@@ -18,7 +18,7 @@ describe("Faro saved feedback experience", () => {
     expect(preferenceBoost("Need an API developer.", topics).points).toBe(0);
   });
 
-  it("keeps feedback actions compact and makes saved posts visible in Profile", () => {
+  it("keeps feedback actions compact and makes saved posts visible in Settings", () => {
     expect(homeSource).toContain("trpc.monitoring.save.useMutation");
     expect(homeSource).toContain('onMutate: () => { toast.success("Thanks for the feedback.", { position: "bottom-right"');
     expect(homeSource).toContain('onSuccess: () => { void utils.monitoring.overview.invalidate(); }');
@@ -28,7 +28,7 @@ describe("Faro saved feedback experience", () => {
     expect(homeSource).toContain('aria-label="Dismiss this kind of post"');
     expect(homeSource).toContain('aria-label="Saved to Profile"');
     expect(homeSource).toContain('onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })}');
-    expect(profileSource).toContain("trpc.monitoring.saved.useQuery");
-    expect(profileSource).toContain(">Saved posts<");
+    expect(settingsSource).toContain("trpc.monitoring.saved.useQuery");
+    expect(settingsSource).toContain("SavedOrganizer");
   });
 });

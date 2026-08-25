@@ -300,3 +300,7 @@
 - [x] Add regressions, verify desktop/mobile layout without provider calls, publish the refinement, and push the matching GitHub update.
 - [x] Move the sidebar minimize control to the bottom, immediately above the account name and email area.
 - [x] Add a visible settings cue to the bottom account menu and remove its duplicate Profile entry.
+- [x] Add a dedicated Settings destination between Search and Profile that centralizes Provider, Monitors, and Saved sections.
+- [x] Remove the repeated “Your Faro AI space,” greeting, and private-workspace chrome from Provider, Monitors, and Saved views.
+- [x] Remove the bottom account dropdown and settings cue after moving secondary controls into Settings.
+- [x] Add responsive Settings navigation, regression coverage, and visual verification without provider calls; publish and push the matching GitHub update.

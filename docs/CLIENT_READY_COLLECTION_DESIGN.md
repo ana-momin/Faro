@@ -45,3 +45,11 @@ The sidebar minimize/expand control now sits in the footer directly above the si
 ## Account settings cue — 25 August 2026
 
 The bottom account entry now includes a subtle settings icon and an accessible “Open workspace settings” label, making the available Saved, Monitors, Provider, and sign-out controls discoverable. The duplicate Profile item has been removed because Profile is already a primary sidebar destination. Desktop and 375 px mobile checks remained stable with no provider activity.
+
+## Dedicated Settings workspace — 25 August 2026
+
+Provider, Monitors, and Saved are now consolidated into a dedicated Settings workspace that is placed between Search and Profile in the primary navigation. The desktop Provider default view confirms the repeated “Your Faro AI space,” personalized greeting, and private-workspace badge are no longer present on secondary controls. The old bottom account dropdown has been removed. No credential or source request was used during verification.
+
+Direct desktop route checks confirm that Monitors and Saved dynamically render inside the same Settings layout with the correct active side-panel state. The Settings workspace preserves monitor status controls and saved-post notes/priority tools while keeping Profile’s personal header out of these secondary views. No credential or source request was used.
+
+Mobile verification at 375 px confirms Provider, Monitors, and Saved remain dynamically reachable through a horizontally scrollable, active-state Settings control strip. The content stays readable without reintroducing the Profile greeting or bottom account dropdown. No credential or source request was used.

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const profileSource = readFileSync(resolve(process.cwd(), "client/src/pages/Profile.tsx"), "utf8");
+const settingsSource = readFileSync(resolve(process.cwd(), "client/src/pages/Settings.tsx"), "utf8");
 const providerSource = readFileSync(resolve(process.cwd(), "client/src/pages/ProfileProviderSetup.tsx"), "utf8");
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const appSource = readFileSync(resolve(process.cwd(), "client/src/App.tsx"), "utf8");
@@ -11,27 +12,26 @@ const routerSource = readFileSync(resolve(process.cwd(), "server/routers/monitor
 const syncSource = readFileSync(resolve(process.cwd(), "server/monitoring/sync.ts"), "utf8");
 
 describe("client-owned provider setup", () => {
-  it("keeps provider configuration in Profile with official guidance links and masked-key treatment", () => {
-    expect(profileSource).toContain("ProviderSetup");
+  it("keeps provider configuration in Settings with official guidance links and masked-key treatment", () => {
+    expect(settingsSource).toContain("ProviderSetup");
+    expect(profileSource).not.toContain("ProviderSetup");
     expect(providerSource).toContain("https://twitterapi.io/pricing");
     expect(providerSource).toContain("https://docs.x.com/x-api/getting-started/pricing");
     expect(providerSource).toContain('type="password"');
     expect(providerSource).toContain("credentialHint");
   });
 
-  it("opens Provider directly from Feed and keeps Saved, Monitors, and Provider in the compact account menu rather than a Profile tab bar", () => {
-    expect(homeSource).toContain('setLocation("/provider")');
+  it("opens Provider from Feed inside Settings and centralizes secondary workspace controls there", () => {
+    expect(homeSource).toContain('setLocation("/settings?section=provider")');
+    expect(appSource).toContain('path={"/settings"}');
     expect(appSource).toContain('path={"/provider"}');
     expect(appSource).toContain('path={"/saved"}');
     expect(appSource).toContain('path={"/monitors"}');
-    expect(sidebarSource).toContain('setLocation("/saved")');
-    expect(sidebarSource).toContain('setLocation("/monitors")');
-    expect(sidebarSource).toContain('setLocation("/provider")');
+    expect(sidebarSource).toContain('label: "Settings", path: "/settings"');
     expect(sidebarSource).toContain('collapsible="icon"');
     expect(sidebarSource).toContain("Minimize sidebar");
-    expect(sidebarSource).toContain("Open workspace settings");
-    expect(sidebarSource).toContain("<Settings2");
-    expect(sidebarSource).not.toContain('DropdownMenuItem onClick={() => setLocation("/profile")}');
+    expect(settingsSource).toContain("SavedOrganizer");
+    expect(settingsSource).toContain("MonitorManager");
     expect(profileSource).not.toContain('setTab(');
   });
 

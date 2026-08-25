@@ -60,7 +60,7 @@ export default function Home() {
   } else if (overview.isError) {
     content = <FeedError onRetry={() => overview.refetch()} />;
   } else if (!active) {
-    content = <EmptyFeed providerReady={providerReady} onConfigure={() => setLocation("/provider")} onSearch={() => setLocation("/search")} />;
+    content = <EmptyFeed providerReady={providerReady} onConfigure={() => setLocation("/settings?section=provider")} onSearch={() => setLocation("/search")} />;
   } else {
     content = <section className="mx-auto mt-6 max-w-3xl">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#eadfd2] pb-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#a25d47]">Buyer-side signals</p><h2 className="mt-1 text-base font-extrabold tracking-[-0.04em] text-[#4b3123]">Latest practical requests</h2></div><FeedTimeFilters value={timeFilter} onChange={setTimeFilter} /></div>
