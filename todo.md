@@ -324,3 +324,7 @@
 - [x] Give immediate Search results the same clickable full-post review, save, feedback, and Open X actions as Feed.
 - [x] Add a compact zero-credit Search history that reopens each saved search’s stored result set by monitor.
 - [x] Add regression coverage, verify desktop/mobile interactions without provider calls, publish the Search/Feed history release, and push the matching GitHub update.
+- [x] Align all icons and controls precisely in Faro AI’s collapsed sidebar.
+- [x] Move Search history out of the main command view into a cleaner dedicated workspace location.
+- [x] Add a client-owned safe action to remove an individual stored post from Feed without triggering provider collection.
+- [x] Add regression coverage, verify responsive behavior without provider calls, publish the refinement, and push the matching GitHub update.

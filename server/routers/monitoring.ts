@@ -42,12 +42,15 @@ export const monitoringRouter = router({
     .query(async ({ ctx, input }) => {
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);
-      const [monitors, posts, connection, callsToday] = await Promise.all([
+      const [monitors, storedPosts, connection, callsToday, hiddenPostIds] = await Promise.all([
         db.listMonitorsWithSync(ctx.user.id),
         db.listPostsForUser(ctx.user.id, input?.monitorId),
         db.getProviderConnectionForUser(ctx.user.id),
         db.countMonitorSyncRunsForUserSince(ctx.user.id, dayStart),
+        db.listHiddenPostIdsForUser(ctx.user.id),
       ]);
+      const hidden = new Set(hiddenPostIds);
+      const posts = storedPosts.filter(({ post }) => !hidden.has(post.xPostId));
       const preferredTopics = derivePreferredTopics(posts);
       const rescoredPosts = posts
         .map(({ post, monitorName, monitor, savedAt }) => {
@@ -285,7 +288,19 @@ export const monitoringRouter = router({
       return { ok: true };
     }),
 
-  saved: protectedProcedure.query(async ({ ctx }) => db.listSavedPostsForUser(ctx.user.id)),
+  removeFromFeed: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const removed = await db.hidePostForUser(input.postId, ctx.user.id);
+      if (!removed) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+      return { ok: true };
+    }),
+
+  saved: protectedProcedure.query(async ({ ctx }) => {
+    const [rows, hiddenPostIds] = await Promise.all([db.listSavedPostsForUser(ctx.user.id), db.listHiddenPostIdsForUser(ctx.user.id)]);
+    const hidden = new Set(hiddenPostIds);
+    return rows.filter(({ post }) => !hidden.has(post.xPostId));
+  }),
 
   seedDemo: protectedProcedure.mutation(async ({ ctx }) => seedDemo(ctx.user.id)),
 });

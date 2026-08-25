@@ -34,12 +34,12 @@ export default function Search() {
   const [phase, setPhase] = useState<SearchLifecycle>("idle");
   const [result, setResult] = useState<SearchResult | null>(null);
   const [historyMonitorId, setHistoryMonitorId] = useState<number | null>(null);
-  const [historyVisibleCount, setHistoryVisibleCount] = useState(5);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const overview = trpc.monitoring.overview.useQuery(undefined, { staleTime: 5_000 });
   const firstBatch = new URLSearchParams(location.split("?")[1] ?? "").get("firstBatch") === "1";
+  const historyFromLocation = Number(new URLSearchParams(location.split("?")[1] ?? "").get("history"));
   const review = trpc.monitoring.review.useMutation({
     onMutate: () => { toast.success("Thanks for the feedback.", { position: "bottom-right", duration: 1500 }); },
     onSuccess: () => { void utils.monitoring.overview.invalidate(); },
@@ -54,12 +54,28 @@ export default function Search() {
     onSuccess: result => { void utils.monitoring.overview.invalidate(); toast.success(result.saved ? "Saved to Profile." : "Removed from saved posts.", { position: "bottom-right", duration: 1500 }); },
     onError: (error, _input, context) => { setSelectedItem(context?.previous ?? null); toast.error(error.message, { position: "bottom-right" }); },
   });
+  const removeFromFeed = trpc.monitoring.removeFromFeed.useMutation({
+    onSuccess: async () => {
+      setSelectedItem(null);
+      await utils.monitoring.overview.invalidate();
+      await utils.monitoring.saved.invalidate();
+      toast.success("Removed from Feed.", { position: "bottom-right", duration: 1500 });
+    },
+    onError: error => toast.error(error.message, { position: "bottom-right" }),
+  });
 
   useEffect(() => {
     if (!firstBatch) return;
     setMode("agent");
     setBrief(current => current.trim() ? current : firstBatchBrief);
   }, [firstBatch]);
+  useEffect(() => {
+    if (!Number.isInteger(historyFromLocation) || historyFromLocation < 1) return;
+    setHistoryMonitorId(historyFromLocation);
+    setResult(null);
+    setRunError(null);
+    setPhase("idle");
+  }, [historyFromLocation]);
 
   const finish = async (data: { monitorId: number; sync?: { inserted: number; retrieval?: RetrievalMetrics } | null; sourceStatus: string; syncError?: string | null }) => {
     const retrieval = data.sync?.retrieval;
@@ -92,13 +108,13 @@ export default function Search() {
     setRunError(null);
     setElapsedSeconds(0);
     setPhase("brief");
+    if (historyMonitorId) setLocation("/search");
     if (mode === "agent") agent.mutate({ brief });
     else keyword.mutate({ keywords });
   };
   const chooseTask = (value: string) => { setMode("agent"); setBrief(value); setPhase("idle"); setResult(null); setHistoryMonitorId(null); };
   const state = getSearchLifecycleDetails(phase, elapsedSeconds);
   const ready = mode === "agent" ? brief.trim().length >= 12 : keywords.trim().length >= 2;
-  const historyRows = useMemo(() => (overview.data?.monitors ?? []).map(({ monitor, sync }) => ({ monitor, sync, resultCount: getQualifiedPosts(overview.data?.posts ?? [], monitor.id, false).length })), [overview.data?.monitors, overview.data?.posts]);
   const resultSet = useMemo<ResultSet | null>(() => {
     const monitorId = result?.monitorId ?? historyMonitorId;
     if (!monitorId) return null;
@@ -107,21 +123,6 @@ export default function Search() {
     return { monitorId, monitorName: row?.monitor.name ?? "Saved search", goal: row?.monitor.goal ?? "", items, persisted: result?.retrieval?.persisted ?? items.length, fromHistory: !result && Boolean(historyMonitorId) };
   }, [historyMonitorId, overview.data?.monitors, overview.data?.posts, result]);
   const showResultSet = Boolean(resultSet && ((result && (phase === "complete" || phase === "empty")) || historyMonitorId));
-  const openHistory = (monitorId: number) => {
-    setHistoryMonitorId(monitorId);
-    setResult(null);
-    setRunError(null);
-    setPhase("idle");
-    window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-  };
-  const startNewSearch = () => {
-    setHistoryMonitorId(null);
-    setResult(null);
-    setRunError(null);
-    setPhase("idle");
-    document.getElementById("search-command")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
-
   return <div className="mx-auto w-full max-w-[1040px] pb-12">
     <header className="flex items-center justify-between border-b border-[#eadfd2] pb-5"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#a25d47]">Faro AI</p><h1 className="mt-0.5 text-lg font-extrabold tracking-[-0.05em] text-[#3d2e23]">Search</h1></div><span className="rounded-full border border-[#ead9c4] bg-white px-3 py-1.5 text-[10px] font-bold text-[#94624a]">Buyer-side only</span></header>
     <section className="mx-auto flex min-h-[470px] max-w-4xl flex-col items-center justify-center px-1 py-12 text-center sm:py-16"><h2 className="text-3xl font-extrabold tracking-[-0.07em] text-[#3f2b20] sm:text-4xl">{firstBatch ? "Run your first bounded batch." : "What would you like to find?"}</h2><p className="mt-3 max-w-md text-sm leading-6 text-[#907564]">{firstBatch ? "Your provider is connected. Review the starter brief, then explicitly run one source request to collect qualified buyer posts." : "Describe a buyer need or use a ready-made prompt."}</p>
@@ -129,8 +130,7 @@ export default function Search() {
     </section>
     {phase !== "idle" && !pending ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onOpen={() => setLocation("/")} /> : null}
     {showResultSet && resultSet ? <SearchResults resultSet={resultSet} loading={overview.isFetching} onOpenFeed={() => setLocation("/")} onOpen={setSelectedItem} /> : null}
-    <SearchHistory rows={historyRows} visibleCount={historyVisibleCount} activeMonitorId={resultSet?.monitorId ?? null} onOpen={openHistory} onNewSearch={startNewSearch} onMore={() => setHistoryVisibleCount(count => Math.min(count + 5, historyRows.length))} />
-    <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} />
+    <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending || removeFromFeed.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} onRemove={() => { if (selectedItem && window.confirm("Remove this stored post from your Feed? It will stay hidden from your future stored result views.")) removeFromFeed.mutate({ postId: selectedItem.post.id }); }} />
   </div>;
 }
 
@@ -141,5 +141,3 @@ function SearchState({ phase, state, result, errorDetail, onOpen }: { phase: Sea
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-[#eadfd2] bg-white px-3 py-2"><p className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a78a76]">{label}</p><p className="mt-0.5 text-xs font-extrabold text-[#604132]">{value}</p></div>; }
 
 function SearchResults({ resultSet, loading, onOpenFeed, onOpen }: { resultSet: ResultSet; loading: boolean; onOpenFeed: () => void; onOpen: (item: any) => void }) { const support = resultSet.fromHistory ? `Reopened saved results from ${resultSet.monitorName}. Reopening stored results never uses a provider request.` : "This result set is saved and can be reopened from Search history without another provider request."; return <section id="search-results" className="mt-8 border-t border-[#eadfd2] pt-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">{resultSet.fromHistory ? "Saved result set" : "Faro found"}</p><h2 className="mt-1 text-xl font-extrabold tracking-[-0.05em] text-[#4b3123]">Top qualified requests</h2><p className="mt-1 max-w-xl text-[10px] font-medium leading-5 text-[#9a7b68]">{support}</p></div><button onClick={onOpenFeed} className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">View all in Feed <ArrowRight className="h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-28 place-items-center rounded-[22px] border border-[#ead9c4] bg-white"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : resultSet.items.length ? <div className="mt-4 space-y-4">{resultSet.items.map(item => <RequestCard key={item.post.id} item={item} onOpen={() => onOpen(item)} />)}</div> : <div className="mt-4 rounded-[22px] border border-dashed border-[#ead9c4] bg-[#fffdfa] p-5 text-[11px] text-[#92735f]">{resultSet.persisted ? `${resultSet.persisted} saved post${resultSet.persisted === 1 ? "" : "s"} still needs final review.` : "No qualified requests were saved for this search."}</div>}</section>; }
-
-function SearchHistory({ rows, visibleCount, activeMonitorId, onOpen, onNewSearch, onMore }: { rows: Array<{ monitor: any; sync: any; resultCount: number }>; visibleCount: number; activeMonitorId: number | null; onOpen: (monitorId: number) => void; onNewSearch: () => void; onMore: () => void }) { if (!rows.length) return null; const visibleRows = rows.slice(0, visibleCount); const remaining = rows.length - visibleRows.length; return <section className="mt-10 border-t border-[#eadfd2] pt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">Saved searches</p><h2 className="mt-1 text-xl font-extrabold tracking-[-0.05em] text-[#4b3123]">Search history</h2><p className="mt-1 text-[10px] text-[#9a7b68]">Open any saved result set again with zero provider requests.</p></div><button type="button" onClick={onNewSearch} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ead5c2] bg-white px-3 text-[10px] font-extrabold text-[#80503a] transition hover:bg-[#fff4e8]">New search <ArrowRight className="h-3.5 w-3.5" /></button></div><div className="mt-4 space-y-2">{visibleRows.map(({ monitor, resultCount }) => { const active = activeMonitorId === monitor.id; return <button key={monitor.id} type="button" onClick={() => onOpen(monitor.id)} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${active ? "border-[#d69b79] bg-[#fff4e8]" : "border-[#eadfd2] bg-white hover:border-[#dfbda3] hover:bg-[#fffaf5]"}`} aria-label={`Open results for ${monitor.name}`}><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? "bg-[#f3d5be] text-[#99523c]" : "bg-[#f8eee5] text-[#9b715b]"}`}><WandSparkles className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-[11px] font-extrabold text-[#563a2b]">{monitor.name}</span><span className="mt-0.5 block truncate text-[10px] text-[#9a7c68]">{monitor.goal}</span></span><span className="hidden rounded-full bg-[#f4eee8] px-2 py-1 text-[9px] font-extrabold text-[#805540] sm:inline">{resultCount} qualified</span><span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-extrabold text-[#9a523b]">{active ? "Open" : "Open results"}<ArrowRight className="h-3 w-3" /></span></button>; })}</div>{remaining > 0 ? <button type="button" onClick={onMore} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-[#ddc4b0] bg-[#fffaf5] px-3 text-[10px] font-extrabold text-[#92543d] transition hover:bg-[#fff2e6]">Show {Math.min(remaining, 5)} more searches <ArrowRight className="h-3.5 w-3.5" /></button> : null}</section>; }

@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
+  hiddenPosts,
   listenedPosts,
   monitoringCriteria,
   monitorQueryStates,
@@ -239,6 +240,29 @@ export async function unsavePostForUser(postId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   await db.delete(savedPosts).where(and(eq(savedPosts.postId, postId), eq(savedPosts.userId, userId)));
+}
+
+export async function hidePostForUser(postId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const owned = await tx
+      .select({ xPostId: listenedPosts.xPostId })
+      .from(listenedPosts)
+      .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
+      .where(and(eq(listenedPosts.id, postId), eq(monitoringCriteria.userId, userId)))
+      .limit(1);
+    if (!owned[0]) return false;
+    await tx.insert(hiddenPosts).values({ userId, xPostId: owned[0].xPostId }).onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+    return true;
+  });
+}
+
+export async function listHiddenPostIdsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ xPostId: hiddenPosts.xPostId }).from(hiddenPosts).where(eq(hiddenPosts.userId, userId));
+  return rows.map(row => row.xPostId);
 }
 
 export async function updateSavedPostForUser(postId: number, userId: number, input: { note?: string | null; priority?: "normal" | "high" }) {

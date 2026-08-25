@@ -78,6 +78,13 @@
       "when": 1787666399993,
       "tag": "0010_living_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1787687766908,
+      "tag": "0011_lucky_pestilence",
+      "breakpoints": true
     }
   ]
 }

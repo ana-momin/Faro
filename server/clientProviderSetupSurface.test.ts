@@ -44,13 +44,20 @@ describe("client-owned provider setup", () => {
     expect(settingsSource).toContain("SavedOrganizer");
     expect(settingsSource).toContain("MonitorManager");
     expect(settingsSource).toContain("ProviderSetup");
+    expect(settingsSource).toContain("SearchHistoryPanel");
+    expect(settingsSource).toContain('label: "History"');
+    expect(settingsSource).toContain('setLocation(`/search?history=${monitorId}`)');
     expect(settingsSource).toContain("selectSection");
     expect(settingsSource).not.toContain("Workspace controls");
     expect(sidebarSource).toContain('aria-label="Open account actions"');
     expect(sidebarSource).toContain("<MoreHorizontal");
     expect(sidebarSource).toContain("Open Profile");
+    expect(sidebarSource).toContain('const collapsed = state === "collapsed"');
+    expect(sidebarSource).toContain("!h-11 !w-11 !justify-center !px-0");
     expect(sidebarSource).toContain('className="h-8 w-8 rounded-xl');
     expect(profileSource).not.toContain('setTab(');
+    expect(settingsSource).toContain("Manage searches");
+    expect(settingsSource).toContain("<details");
   });
 
   it("uses a per-client encrypted connection and locks each collection batch to one provider request", () => {

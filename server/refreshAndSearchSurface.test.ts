@@ -35,17 +35,14 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("Run your first bounded batch.");
   });
 
-  it("keeps rich post actions and prior result sets available in Search without another provider request", () => {
+  it("keeps rich post actions available in Search and lets saved history reopen result sets without another provider request", () => {
     expect(homeSource).toContain("All your search results");
     expect(homeSource).toContain("Top qualified requests");
     expect(searchSource).toContain("<RequestCard");
     expect(searchSource).toContain("<PostDetailDialog");
-    expect(searchSource).toContain("Search history");
     expect(searchSource).toContain("historyMonitorId");
-    expect(searchSource).toContain("historyVisibleCount");
-    expect(searchSource).toContain("Open results");
-    expect(searchSource).toContain("Show {Math.min(remaining, 5)} more searches");
+    expect(searchSource).toContain("historyFromLocation");
     expect(searchSource).toContain("Reopening stored results never uses a provider request.");
-    expect(searchSource).toContain("getQualifiedPosts(overview.data?.posts ?? [], monitor.id, false)");
+    expect(searchSource).not.toContain("function SearchHistory");
   });
 });

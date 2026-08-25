@@ -207,6 +207,21 @@ export const savedPosts = mysqlTable(
   ],
 );
 
+/** A private suppression list; hiding a post never triggers an external X action. */
+export const hiddenPosts = mysqlTable(
+  "hidden_posts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    xPostId: varchar("xPostId", { length: 64 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("hidden_post_user_x_post_unique").on(table.userId, table.xPostId),
+    index("hidden_post_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
 /** One owner-alert claim per user/post prevents recurring polls from notifying twice. */
 export const postAlertDeliveries = mysqlTable(
   "post_alert_deliveries",
@@ -228,3 +243,4 @@ export type ProviderConnection = typeof providerConnections.$inferSelect;
 export type MonitorQueryState = typeof monitorQueryStates.$inferSelect;
 export type MonitorSyncRun = typeof monitorSyncRuns.$inferSelect;
 export type SavedPost = typeof savedPosts.$inferSelect;
+export type HiddenPost = typeof hiddenPosts.$inferSelect;
