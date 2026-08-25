@@ -51,3 +51,7 @@ Desktop and mobile verification confirms that Search now uses a centered, rectan
 ## Compact Search command refinement — 25 August 2026
 
 Desktop and mobile verification confirms that the greeting and decorative mark are removed. The centered rectangular command bar now contains Ask Faro, Keyword search, and a Suggestions dropdown for full prompt lines. Active collection progress is rendered inside this command surface rather than as a detached status area. No source request was triggered during these checks.
+
+## Suggestions control placement — 25 August 2026
+
+Desktop and mobile verification confirms that the redundant “Real requests only” helper label is removed. The keyboard-accessible Suggestions dropdown now occupies that lower-left command-bar position, balanced against Run Faro. No source request was triggered during these checks.
