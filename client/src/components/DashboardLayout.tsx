@@ -7,7 +7,7 @@ import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { useWarmProfileImage } from "@/hooks/useWarmProfileImage";
 import { PRODUCT_INTRO_PATH } from "@/lib/productIntro";
-import { Compass, LogOut, Radar, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Bookmark, Compass, LogOut, PlugZap, Radar, Search, ShieldCheck, SlidersHorizontal, UserRound } from "lucide-react";
 import { CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -17,6 +17,9 @@ const menuItems = [
   { icon: Compass, label: "Feed", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: UserRound, label: "Profile", path: "/profile" },
+  { icon: Bookmark, label: "Saved", path: "/saved" },
+  { icon: SlidersHorizontal, label: "Monitors", path: "/monitors" },
+  { icon: PlugZap, label: "Provider", path: "/provider" },
 ];
 const DEFAULT_WIDTH = 248;
 

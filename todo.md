@@ -292,3 +292,6 @@
 - [x] Replace the pre-configuration empty Feed copy with a provider-aware setup state and an accessible disabled first-batch control.
 - [x] Verify the provider-configured empty Feed state directs users to create a search brief without calling a source.
 - [x] Add regressions, validate responsive presentation without provider calls, publish the fix, and push the matching GitHub update.
+- [x] Make the Feed Configure provider action open the Provider setup view directly and improve its empty-state placement.
+- [x] Replace Profile’s crowded Saved, Monitors, and Provider top tabs with clear sidebar navigation destinations.
+- [x] Add navigation regressions, verify desktop/mobile behavior without provider calls, publish the update, and push the matching GitHub code.

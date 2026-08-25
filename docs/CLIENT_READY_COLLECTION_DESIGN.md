@@ -27,3 +27,9 @@ Desktop and 375 px mobile checks confirm that Feed retains a compact Refresh ent
 ## Provider-aware Feed onboarding — 25 August 2026
 
 The no-monitor Feed state now distinguishes the prerequisite provider setup from creating a buyer brief. Without a provider, Faro directs the client to **Profile → Provider** and renders a truly disabled **Run first batch** control; once configured, it directs the client to create their first search brief. Desktop and 375 px mobile Feed checks remained stable. No provider request was triggered during these checks.
+
+## Direct Provider navigation — 25 August 2026
+
+Saved, Monitors, and Provider are now first-class sidebar destinations rather than crowded Profile top-bar tabs. The Feed configuration action routes directly to `/provider`, where the credential setup surface is immediately visible; the Profile page now retains only personal account content. Desktop checks confirmed correct route highlighting and no source request was triggered.
+
+Mobile verification at 375 px confirms the direct Provider setup view and cleaner Profile page remain readable without the former top-tab row. No provider credential was entered and no source request was triggered.

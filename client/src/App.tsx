@@ -15,7 +15,7 @@ function Router() {
   const pathname = location.split("?")[0];
 
   if (pathname === "/faro") return <ProductIntro />;
-  if (!pathname || !["/", "/search", "/profile"].includes(pathname)) return <NotFound />;
+  if (!pathname || !["/", "/search", "/profile", "/saved", "/monitors", "/provider"].includes(pathname)) return <NotFound />;
 
   // The workspace shell remains mounted while only its page content changes.
   // This keeps the Faro mark, member image, and fixed sidebar stable in motion.
@@ -25,6 +25,9 @@ function Router() {
         <Route path={"/"} component={Home} />
         <Route path={"/search"} component={Search} />
         <Route path={"/profile"} component={Profile} />
+        <Route path={"/saved"} component={Profile} />
+        <Route path={"/monitors"} component={Profile} />
+        <Route path={"/provider"} component={Profile} />
       </Switch>
     </DashboardLayout>
   );
