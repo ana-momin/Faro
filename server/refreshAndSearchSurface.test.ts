@@ -13,12 +13,13 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(homeSource).toContain("Refresh completed:");
   });
 
-  it("refetches saved overview data before rendering completed Search results in the cleaner wide workspace", () => {
+  it("refetches saved overview data before rendering completed Search results in the centered command workspace", () => {
     expect(searchSource).toContain("await overview.refetch()");
     expect(searchSource).toContain('label="Pages"');
     expect(searchSource).toContain("Qualified requests");
     expect(searchSource).toContain("still needs final review");
-    expect(searchSource).toContain('max-w-[1160px]');
-    expect(searchSource).toContain("SearchVisualPanel");
+    expect(searchSource).toContain('max-w-[1040px]');
+    expect(searchSource).toContain("Morning, {greetingName}.");
+    expect(searchSource).toContain("TaskIcon");
   });
 });

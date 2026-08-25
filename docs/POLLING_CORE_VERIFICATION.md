@@ -43,3 +43,7 @@ The Feed remains stable after the post-detail save correction. Regression covera
 ## LLM-style Search redesign — 25 August 2026
 
 Desktop and mobile verification confirms that Search now provides a focused LLM-style prompt workspace: a display-scale buyer-intent headline, concise Brief and Keyword modes, an abstract espresso signal visual, prompt suggestions, and a compact run control. The desktop two-column composition collapses into a clear vertical prompt-and-signal sequence on mobile with no horizontal overflow. No source request was triggered during these checks.
+
+## Centered Search command interface — 25 August 2026
+
+Desktop and mobile verification confirms that Search now uses a centered, rectangular LLM-style command bar beneath a personalized morning greeting. The bar keeps Ask Faro and Keyword search modes, exposes six icon-led task presets, and maintains a compact Run Faro control. The mobile presentation is clean, centered, and free of horizontal overflow. No source request was triggered during these checks.

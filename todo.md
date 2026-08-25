@@ -269,3 +269,6 @@
 - [x] Redesign Search as a clean LLM-style prompt workspace with purposeful visual depth and minimal copy.
 - [x] Refine Search results, loading, empty, and error states to match the new visual language.
 - [x] Add regression coverage, verify desktop/mobile Search presentation, and checkpoint the redesign.
+- [x] Add a personalized morning greeting from authenticated user data to the Search command interface.
+- [x] Rebuild Search around a centered rectangular task-aware command bar with concise visual task icons.
+- [x] Preserve responsive Search lifecycle/results, add regression coverage, and checkpoint the refined command interface.
