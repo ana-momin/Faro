@@ -17,12 +17,15 @@ describe("client-owned provider setup", () => {
     expect(profileSource).not.toContain("ProviderSetup");
     expect(providerSource).toContain("https://twitterapi.io/pricing");
     expect(providerSource).toContain("https://docs.x.com/x-api/getting-started/pricing");
-    expect(providerSource).toContain('type="password"');
+    expect(providerSource).toContain('type={showCredential ? "text" : "password"}');
     expect(providerSource).toContain("credentialHint");
+    expect(providerSource).toContain('aria-label={showCredential ? "Hide credential" : "Show credential"}');
+    expect(providerSource).toContain("Find first posts");
   });
 
   it("opens Provider from Feed inside Settings and centralizes secondary workspace controls there", () => {
     expect(homeSource).toContain('setLocation("/settings?section=provider")');
+    expect(homeSource).toContain('setLocation("/search?firstBatch=1")');
     expect(appSource).toContain('path={"/settings"}');
     expect(appSource).toContain('path={"/provider"}');
     expect(appSource).toContain('path={"/saved"}');
@@ -32,6 +35,7 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain("Minimize sidebar");
     expect(settingsSource).toContain("SavedOrganizer");
     expect(settingsSource).toContain("MonitorManager");
+    expect(settingsSource).toContain("ProviderSetup");
     expect(settingsSource).toContain("selectSection");
     expect(settingsSource).not.toContain("Workspace controls");
     expect(sidebarSource).toContain('aria-label="Open account actions"');

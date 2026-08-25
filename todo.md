@@ -312,3 +312,6 @@
 - [x] Right-align the compact sidebar minimize control.
 - [x] Replace the passive bottom account link with useful compact account actions.
 - [x] Add regressions, verify desktop/mobile presentation without provider calls, publish the UX refinement, and push the matching GitHub update.
+- [x] Add an accessible show/hide control for provider credentials while they are being entered.
+- [x] Give a configured provider with no monitor/results a clear first-batch path that creates a search brief and starts bounded collection.
+- [x] Unify provider-ready empty states, add regressions, verify responsive behavior without provider calls, publish the fix, and push the matching GitHub update.

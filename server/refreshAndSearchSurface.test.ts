@@ -14,7 +14,10 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(homeSource).toContain("Connect your X data provider.");
     expect(homeSource).toContain("Configure provider");
     expect(homeSource).toContain("Run first X batch unavailable until a provider is configured");
-    expect(homeSource).toContain("Create your first buyer search.");
+    expect(homeSource).toContain("Your provider is ready for a first batch.");
+    expect(homeSource).toContain("Prepare first batch");
+    expect(homeSource).toContain("1 source request");
+    expect(homeSource).toContain('setLocation("/search?firstBatch=1")');
   });
 
   it("refetches saved overview data before rendering completed Search results in the centered command workspace", () => {
@@ -27,5 +30,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("CommandProgress");
     expect(searchSource).toContain('side="bottom"');
     expect(searchSource).toContain("overflow-y-auto");
+    expect(searchSource).toContain("firstBatchBrief");
+    expect(searchSource).toContain("Run your first bounded batch.");
   });
 });

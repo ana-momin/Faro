@@ -65,3 +65,7 @@ Mobile verification at 375 px confirms Provider and Monitors switch their conten
 The Settings workspace now has a deliberate top inset, softer navigation-card depth, and clearer active-state hierarchy. The compact minimize control is right aligned above the account row. The account row now visibly opens an account-action menu, signaled by an overflow affordance and providing Profile and sign-out actions. Desktop checks confirmed the layout without provider activity.
 
 Mobile verification at 375 px confirms the added Settings breathing room and clean horizontal section navigation; Profile remains distinct and readable. No credential or source request was used.
+
+## Credential visibility and first collection — 25 August 2026
+
+The Provider credential field now includes an accessible eye control that reveals only the unsaved value for entry verification; saved credentials remain encrypted and masked. A configured connection exposes a **Find first posts** action, while Feed’s provider-ready empty state prepares a prefilled first-batch Search that requires an explicit one-request run. Focused source-surface tests cover the handoff. No provider request was made during verification.
