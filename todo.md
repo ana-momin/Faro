@@ -284,3 +284,8 @@
 - [x] Add Profile provider setup for securely storing and switching a client-owned TwitterAPI.io or Official X API credential.
 - [x] Change Feed and Search to strict client-scoped one-provider-request batches while retaining prior qualified posts and capped result windows.
 - [x] Add per-client provider usage visibility plus verified provider info tooltips and official purchase links.
+- [x] Audit production portability, authentication dependencies, deployment constraints, and the current GitHub repository state.
+- [x] Add final production documentation covering local setup, database migrations, client provider configuration, authentication, and deployment requirements.
+- [x] Apply any safe final hardening changes found during the production audit without triggering provider calls.
+- [x] Re-run the full offline suite, type check, build, and responsive production-surface verification.
+- [ ] Organize, commit, and push the complete production-ready Faro AI codebase and documentation to the user’s GitHub repository.

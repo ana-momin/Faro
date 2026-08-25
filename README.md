@@ -1,57 +1,76 @@
-# Faro AI 🦊
+<p align="center">
+  <img src="client/public/favicon.svg" width="72" height="72" alt="Faro AI logo" />
+</p>
 
-> **Human-led social listening for buyer-side service requests on X.**
+<h1 align="center">Faro AI</h1>
 
-Faro AI helps teams find public X posts from people who are actively seeking practical help—such as AI agents, workflow automation, product testing, development, content production, and AI video. It prioritizes **real buyer demand** and keeps every external action human-controlled.
+<p align="center"><strong>Human-led social listening for buyer-side service requests on X.</strong></p>
 
-## Why Faro
+<p align="center">
+  <a href="#client-workflow">Workflow</a> ·
+  <a href="#client-provider-setup">Provider setup</a> ·
+  <a href="#development">Development</a> ·
+  <a href="#production-deployment">Deployment</a>
+</p>
 
-Most social listening tools return broad keyword matches. Faro is designed to surface the more valuable signal: a person or team expressing a concrete need for delivered work.
+Faro AI finds public X posts from people who are actively seeking practical help with AI agents, automation, development, product testing, AI video, content, and related delivery work. It is designed to surface **buyer-side demand**, not service offers, jobs, promotions, networking, or generic discussion.
 
-| Faro surfaces | Faro excludes |
-| --- | --- |
-| First-party buyer requests for a defined service or outcome | People offering or promoting their own services |
-| AI agents, workflows, automation, AI video, testing, development, and practical project work | Jobs, hiring, co-founder searches, networking, education, and generic discussion |
-| Full public post context for a human reviewer | Automated outreach, messages, follows, or posting |
+> **Human-control boundary:** Faro never sends messages, replies, follows, likes, or posts on X. It provides evidence and ranking for a human reviewer to decide what happens next.
 
-> **Human-control boundary.** Faro never sends a message, reply, follow, or post. A user reviews every qualifying request and decides what to do next.
+## Client workflow
 
-## Product workflow
+| Step | What happens | Provider usage |
+| --- | --- | --- |
+| **Provider** | A client connects their own TwitterAPI.io key or Official X API bearer token in **Profile → Provider**. | No request is made when saving a key. |
+| **Search** | The client writes a buyer-intent brief or uses a ready-made suggestion. Faro creates a saved monitor and collects one fresh batch. | **At most one provider request.** |
+| **Feed** | Faro shows the first ten qualified requests and keeps earlier qualified posts stored for review. | Viewing saved results uses **no** provider request. |
+| **Refresh** | The client deliberately collects the next cursor/query-family batch. | **At most one provider request.** |
+| **Review** | The client opens full X-post context, saves a private bookmark or note, and keeps or dismisses the signal. | No provider request and no external action. |
 
-1. **Search** — Describe the buyer request in plain language or enter focused keywords. One deliberate source check runs per search.
-2. **Feed** — Review complete buyer-request posts with author identity, category, signal context, and a direct link to X.
-3. **Review** — Keep or dismiss a request in a dedicated human decision workspace. Decisions remain internal to Faro.
+Faro rotates through persisted discovery-query cursors so sequential batches broaden coverage while preserving earlier qualified results. Automatic source collection is **off by default**. Each client has an adjustable daily request limit in Profile, tracked independently from other accounts.
+
+## Client provider setup
+
+Faro stores exactly one active provider connection for each account. The key is encrypted with AES-256-GCM before it is stored, and the browser receives only a masked final-four-character hint after setup. Full credentials are never rendered back into the UI or committed to the repository.
+
+| Provider | When to use it | Client account links |
+| --- | --- | --- |
+| **TwitterAPI.io** | A third-party X data provider using its own account, credits, and advanced-search endpoint. | [Pricing](https://twitterapi.io/pricing) · [Dashboard / key setup](https://twitterapi.io/dashboard) · [Advanced Search docs](https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search) |
+| **Official X API** | The direct X developer platform with the client’s own bearer token and account entitlements. | [Pricing and credits](https://docs.x.com/x-api/getting-started/pricing) · [Developer Console](https://developer.x.com/) |
+
+Provider rates, limits, account entitlements, and endpoint costs are controlled by the provider and may change. Faro therefore promises only its own deterministic guardrails—**one provider request per client-initiated collection batch**—rather than a fixed cash or credit cost.
 
 ## Core capabilities
 
-| Area | What it provides |
+| Area | Capability |
 | --- | --- |
-| Buyer-only ranking | Strict first-party request checks plus exclusion rules for providers, jobs, promotions, generic discussion, and networking noise. |
-| Practical demand coverage | Search starting points for AI agents, automation, AI video, product testing, development, content/social work, contests, research, and design. |
-| Full-post Feed | Social-style request cards with the complete post, author, handle, task category, signal score, engagement context, source link, and review action. |
-| Credit-aware retrieval | Saved-result expansion never creates another provider request. New source checks happen only after an explicit user search. |
-| Human review | Keep/Dismiss decisions are persisted without triggering communication or other external actions. |
-| Member profile | Secure JPG, PNG, and WebP profile-photo uploads stored outside the database. |
+| **Buyer-only ranking** | Strong request-intent signals, delivery-scope evidence, personalized preference boosts, duplicate grouping, and promotional/noise suppression. |
+| **Social Feed** | Full X-style cards with author context, category, confidence, why-it-matched evidence, direct X links, compact feedback controls, and private saved posts. |
+| **Search workspace** | Centered LLM-style command bar, full-line suggestion prompts, keyword mode, in-bar progress, and top-ten qualified results. |
+| **Monitor manager** | Rename, pause/resume, or delete saved searches from Profile. |
+| **Client credit protection** | Encrypted client-owned data-provider setup, strict batch caps, client-scoped daily request allowance, and no background collection by default. |
+| **Safe review** | Keep/Dismiss and private notes guide later Faro ranking while never automating outreach or other X actions. |
 
-## Technology
-
-Faro is a full-stack TypeScript application built with **React 19**, **Vite**, **Tailwind CSS**, **tRPC**, **Express**, **Drizzle ORM**, and **MySQL-compatible storage**. It uses server-side source integrations and structured AI assistance without exposing provider credentials to the browser.
+## Architecture
 
 ```text
-client/        React workspace, Feed, Search, Review, Profile, and UI components
-server/        tRPC procedures, buyer-intent ranking, source synchronization, and storage logic
-drizzle/       Database schema and migrations
-shared/        Shared constants and typed utilities
-docs/          Demo guidance and external-source notes
+client/     React 19 + Vite + Tailwind interface
+server/     Express + tRPC, collection policy, intent/ranking, encrypted provider settings
+drizzle/    MySQL-compatible schema and ordered migrations
+docs/       Provider, collection, verification, and deployment documentation
+shared/     Typed utilities and shared constants
 ```
 
-## Local development
+The application uses React 19, TypeScript, Vite, Tailwind CSS, Express, tRPC, Drizzle ORM, and MySQL-compatible storage. Provider calls remain server-side; no provider credential is exposed in the browser.
+
+## Development
 
 ### Requirements
 
-- Node.js 22+
-- pnpm 10+
+- Node.js 22 or later
+- pnpm 10 or later
 - A MySQL-compatible database
+- Authentication configuration for the chosen runtime
 
 ### Install and run
 
@@ -60,41 +79,64 @@ pnpm install
 pnpm dev
 ```
 
-The application requires its normal server environment for authentication, database access, and source integrations. Keep all credentials in environment variables or the host platform’s secure secret manager—never commit them to the repository.
+### Database migrations
 
-### Common environment variables
-
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | MySQL-compatible database connection string. |
-| `JWT_SECRET` | Session signing secret. |
-| `TWITTERAPI_IO_KEY` | Optional server-side key for controlled public X searches. |
-| `X_API_BEARER_TOKEN` | Optional server-side X API access path. |
-| `BUILT_IN_FORGE_API_KEY` | Server-side platform integration key when using the managed runtime. |
-
-## Quality checks
+The migrations in `drizzle/` are ordered and must be applied before running a version that depends on them.
 
 ```bash
-# Type safety
+# Generate a migration only after changing drizzle/schema.ts
+pnpm drizzle-kit generate
+
+# Apply existing migrations to the configured database
+pnpm drizzle-kit migrate
+```
+
+The current schema includes `provider_connections`, which stores an encrypted client-owned credential and its request-limit preference. Do not insert plaintext provider keys directly into this table.
+
+### Quality checks
+
+```bash
 pnpm check
-
-# Full automated test suite
-pnpm test
-
-# Production build
+pnpm vitest run --exclude server/twitterApiIo.credentials.test.ts --exclude server/xApi.credentials.test.ts
 pnpm build
 ```
 
-The test suite covers buyer-intent rules, service-offer rejection, source handling, search lifecycle behavior, Feed selection, profile image validation, and review-safe interactions.
+Credential endpoint probes are intentionally excluded from routine offline validation because they contact a provider account. Treat any live provider test as a deliberate client-authorized operation with an explicit cap.
 
-## Data, privacy, and safety
+## Production deployment
 
-Faro works with public X post data and preserves the distinction between a source signal and a verified business opportunity. It does not access private content, does not store source credentials in the client, and does not automate outreach.
+### Recommended launch path
 
-## Contributing
+The current project is production-ready for its managed deployment: it includes the full Express/tRPC backend, MySQL-compatible database, session authentication, secure secret management, encrypted client provider credentials, and published migrations. A custom domain can be attached in the hosting settings.
 
-Keep changes focused, typed, and covered by tests. Before opening a pull request, run `pnpm check` and `pnpm test`, avoid committing generated runtime files or secrets, and preserve Faro’s buyer-only and human-control constraints.
+### Authentication decision
+
+**Do not remove authentication for this multi-client product.** Faro stores private bookmarks, notes, monitors, and encrypted provider credentials. Removing login would make client isolation and credential ownership unsafe. The current managed OAuth integration is appropriate for this deployment path and does not require Faro to purchase a separate identity API.
+
+If Faro moves to another host, its present login system is not portable as-is: `server/_core/oauth.ts` exchanges tokens through the managed OAuth service. A third-party deployment must replace that integration with a production identity provider or an owned authentication implementation before launch. This is a planned migration, not a one-click host change.
+
+### External-hosting assessment
+
+| Target | Current suitability | What would be required |
+| --- | --- | --- |
+| **Managed Faro deployment** | **Recommended now.** The existing backend, database, session flow, storage, and scheduled-work integration are already wired together. | Configure a custom domain if desired; keep secrets managed by the host. |
+| **Vercel** | **Not a direct deploy today.** Faro is an Express server, not a serverless function layout, and relies on managed OAuth/runtime integrations. | Convert Express/tRPC endpoints to Vercel functions, provision MySQL and object storage, replace managed OAuth, and rework any scheduled tasks. |
+| **Google Cloud Run** | **The more natural external target** for this Express application, but still a migration. | Deploy the Node server container, use Cloud SQL or compatible MySQL, configure object storage, replace OAuth, add a secret manager, configure HTTPS/domain, and migrate scheduled jobs. |
+
+For launch, keep the managed deployment. Move to Cloud Run only when you intentionally want to own the full cloud stack and have completed the authentication, storage, secret-management, and database migration work. Do not treat a Vercel or Google Cloud deployment as equivalent until that migration is implemented and tested.
+
+## Security and privacy
+
+- Provider credentials are accepted only through authenticated server procedures and encrypted at rest with AES-256-GCM.
+- The client interface only receives a masked credential hint after a key is saved.
+- Provider calls are client-scoped, deliberately bounded, and are never made during normal UI rendering.
+- Public X posts are treated as signals; a human reviewer makes all business decisions and external actions.
+- Keep `DATABASE_URL`, `JWT_SECRET`, OAuth settings, provider keys, and managed-runtime secrets in a secure host secret manager. Never commit them.
+
+## Repository hygiene
+
+The repository deliberately excludes dependency folders, build output, local environment files, logs, runtime artifacts, and generated preview files. Before opening a pull request or deploying a code change, run the quality checks above and review every database migration.
 
 ## License
 
-This project is released under the [MIT License](./LICENSE).
+Released under the [MIT License](./LICENSE).
