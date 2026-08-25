@@ -21,5 +21,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain('max-w-[1040px]');
     expect(searchSource).toContain("Suggestions");
     expect(searchSource).toContain("CommandProgress");
+    expect(searchSource).toContain('side="bottom"');
+    expect(searchSource).toContain("overflow-y-auto");
   });
 });

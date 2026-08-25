@@ -276,3 +276,4 @@
 - [x] Replace inline task icons with a Suggestions dropdown containing complete actionable prompt lines.
 - [x] Render active collection progress inside the command bar; add regressions, verify responsive UI, and checkpoint the refinement.
 - [x] Remove the “Real requests only” helper label and move the Suggestions control into that position.
+- [x] Make the lower command-bar Suggestions dropdown open downward with a bounded, scrollable prompt list.

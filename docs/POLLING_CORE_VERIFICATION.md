@@ -55,3 +55,7 @@ Desktop and mobile verification confirms that the greeting and decorative mark a
 ## Suggestions control placement — 25 August 2026
 
 Desktop and mobile verification confirms that the redundant “Real requests only” helper label is removed. The keyboard-accessible Suggestions dropdown now occupies that lower-left command-bar position, balanced against Run Faro. No source request was triggered during these checks.
+
+## Downward scrollable Suggestions menu — 25 August 2026
+
+The Suggestions menu is explicitly positioned below its lower-left command-bar trigger and caps its content height at 18 rem with an internal vertical scroll area. This preserves the full ready-to-use prompt list without forcing the viewport to scroll. Desktop and mobile checks confirmed the command surface remains balanced and usable. No source request was triggered during these checks.
