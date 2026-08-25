@@ -328,3 +328,7 @@
 - [x] Move Search history out of the main command view into a cleaner dedicated workspace location.
 - [x] Add a client-owned safe action to remove an individual stored post from Feed without triggering provider collection.
 - [x] Add regression coverage, verify responsive behavior without provider calls, publish the refinement, and push the matching GitHub update.
+- [x] Precisely align the active brown navigation indicator in expanded and collapsed sidebar states.
+- [x] Repair saved-provider daily request limit updates and add a clear provider-specific edit state.
+- [x] Show reliable local provider usage context without making a provider call or fabricating credit balances.
+- [x] Add regression coverage, verify responsive behavior without provider calls, publish the refinement, and push the matching GitHub update.

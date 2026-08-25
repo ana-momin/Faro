@@ -137,6 +137,15 @@ export const monitoringRouter = router({
       return { ok: true, provider, credentialHint: credentialHint(input.credential), dailyRequestLimit: input.dailyRequestLimit };
     }),
 
+  updateProviderDailyLimit: protectedProcedure
+    .input(z.object({ dailyRequestLimit: z.number().int().min(1).max(100) }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await db.getProviderConnectionForUser(ctx.user.id);
+      if (!connection) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Connect a provider before updating its daily limit." });
+      await db.updateProviderDailyRequestLimitForUser(ctx.user.id, input.dailyRequestLimit);
+      return { ok: true, provider: connection.provider, dailyRequestLimit: input.dailyRequestLimit };
+    }),
+
   removeProviderSetup: protectedProcedure.mutation(async ({ ctx }) => {
     await db.deleteProviderConnectionForUser(ctx.user.id);
     return { ok: true };

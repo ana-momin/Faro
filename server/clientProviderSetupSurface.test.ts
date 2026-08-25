@@ -31,6 +31,17 @@ describe("client-owned provider setup", () => {
     expect(providerSource).toContain("setCredential(\"\")");
   });
 
+  it("keeps active navigation alignment explicit and lets a saved provider update its limit without replacing the key", () => {
+    expect(sidebarSource).toContain('!h-10 !w-full !justify-start !gap-3 !px-3');
+    expect(sidebarSource).toContain('!h-11 !w-11 !justify-center !px-0');
+    expect(providerSource).toContain("updateProviderDailyLimit");
+    expect(providerSource).toContain("Save daily limit");
+    expect(providerSource).toContain("Editing applies only to this connected provider.");
+    expect(providerSource).toContain("Provider credit balance stays in your");
+    expect(routerSource).toContain("updateProviderDailyLimit");
+    expect(routerSource).toContain("updateProviderDailyRequestLimitForUser");
+  });
+
   it("opens Provider from Feed inside Settings and centralizes secondary workspace controls there", () => {
     expect(homeSource).toContain('setLocation("/settings?section=provider")');
     expect(homeSource).toContain('setLocation("/search?firstBatch=1")');

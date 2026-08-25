@@ -419,6 +419,12 @@ export async function upsertProviderConnectionForUser(input: typeof providerConn
   });
 }
 
+export async function updateProviderDailyRequestLimitForUser(userId: number, dailyRequestLimit: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(providerConnections).set({ dailyRequestLimit, updatedAt: new Date() }).where(eq(providerConnections.userId, userId));
+}
+
 export async function deleteProviderConnectionForUser(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
