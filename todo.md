@@ -289,3 +289,6 @@
 - [x] Apply any safe final hardening changes found during the production audit without triggering provider calls.
 - [x] Re-run the full offline suite, type check, build, and responsive production-surface verification.
 - [x] Organize, commit, and push the complete production-ready Faro AI codebase and documentation to the user’s GitHub repository.
+- [x] Replace the pre-configuration empty Feed copy with a provider-aware setup state and an accessible disabled first-batch control.
+- [x] Verify the provider-configured empty Feed state directs users to create a search brief without calling a source.
+- [x] Add regressions, validate responsive presentation without provider calls, publish the fix, and push the matching GitHub update.

@@ -11,6 +11,10 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(homeSource).toContain("refresh.mutate({ monitorId: active.monitor.id })");
     expect(homeSource).toContain("Collects one new source batch");
     expect(homeSource).toContain("saved results");
+    expect(homeSource).toContain("Connect your X data provider.");
+    expect(homeSource).toContain("Configure provider");
+    expect(homeSource).toContain("Run first X batch unavailable until a provider is configured");
+    expect(homeSource).toContain("Create your first buyer search.");
   });
 
   it("refetches saved overview data before rendering completed Search results in the centered command workspace", () => {

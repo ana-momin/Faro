@@ -23,3 +23,7 @@ Desktop and 375 px mobile checks confirm that the Profile navigation now include
 ## Feed and Search verification
 
 Desktop and 375 px mobile checks confirm that Feed retains a compact Refresh entry and Search retains its centered command bar after the client-ready collection changes. Feed continues to begin with ten visible posts and Search is labeled to return the top ten qualified requests. No Refresh, Search, or provider request was triggered during these checks.
+
+## Provider-aware Feed onboarding — 25 August 2026
+
+The no-monitor Feed state now distinguishes the prerequisite provider setup from creating a buyer brief. Without a provider, Faro directs the client to **Profile → Provider** and renders a truly disabled **Run first batch** control; once configured, it directs the client to create their first search brief. Desktop and 375 px mobile Feed checks remained stable. No provider request was triggered during these checks.
