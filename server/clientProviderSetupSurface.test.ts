@@ -34,6 +34,7 @@ describe("client-owned provider setup", () => {
   it("keeps active navigation alignment explicit and lets a saved provider update its limit without replacing the key", () => {
     expect(sidebarSource).toContain('!h-10 !w-full !justify-start !gap-3 !px-3');
     expect(sidebarSource).toContain('!h-11 !w-11 !justify-center !px-0');
+    expect(sidebarSource).toContain('data-[active=true]:-translate-x-1');
     expect(providerSource).toContain("updateProviderDailyLimit");
     expect(providerSource).toContain("Save daily limit");
     expect(providerSource).toContain("Editing applies only to this connected provider.");

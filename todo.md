@@ -334,3 +334,5 @@
 - [x] Add regression coverage, verify responsive behavior without provider calls, publish the refinement, and push the matching GitHub update.
 - [x] Center the account avatar fallback icon within its warm circular background across sidebar states.
 - [x] Add regression coverage, verify the visual fix, publish it, and push the matching GitHub update.
+- [x] Nudge the selected-page background left so it fits the active navigation icon precisely.
+- [x] Verify, publish, and push the matching active-indicator adjustment.
