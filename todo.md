@@ -308,3 +308,7 @@
 - [x] Remove the redundant Settings introduction block while preserving a clean section layout.
 - [x] Make the bottom account area interactive again and left-align a compact minimize control.
 - [x] Add regressions, verify responsive behavior without provider calls, publish the correction, and push the matching GitHub update.
+- [x] Improve Settings spacing and visual hierarchy, including more top breathing room.
+- [x] Right-align the compact sidebar minimize control.
+- [x] Replace the passive bottom account link with useful compact account actions.
+- [x] Add regressions, verify desktop/mobile presentation without provider calls, publish the UX refinement, and push the matching GitHub update.

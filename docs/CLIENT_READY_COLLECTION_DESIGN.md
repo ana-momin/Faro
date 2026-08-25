@@ -59,3 +59,9 @@ Mobile verification at 375 px confirms Provider, Monitors, and Saved remain dyna
 The Settings selector now updates its displayed content immediately on click as well as on direct route changes; desktop verification confirmed Provider and Monitors render correctly. The Settings introduction block has been removed. The footer account row is again a clear Profile action with a disclosure chevron, while the minimize control is a compact left-aligned icon above it rather than a full-width bar. No credential or source request was used.
 
 Mobile verification at 375 px confirms Provider and Monitors switch their content correctly, the removed Settings introduction does not return, and the Profile entry remains a clear distinct destination. No credential or source request was used.
+
+## Settings hierarchy and account actions — 25 August 2026
+
+The Settings workspace now has a deliberate top inset, softer navigation-card depth, and clearer active-state hierarchy. The compact minimize control is right aligned above the account row. The account row now visibly opens an account-action menu, signaled by an overflow affordance and providing Profile and sign-out actions. Desktop checks confirmed the layout without provider activity.
+
+Mobile verification at 375 px confirms the added Settings breathing room and clean horizontal section navigation; Profile remains distinct and readable. No credential or source request was used.
