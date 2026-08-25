@@ -20,7 +20,10 @@ describe("Faro saved feedback experience", () => {
 
   it("keeps feedback actions compact and makes saved posts visible in Profile", () => {
     expect(homeSource).toContain("trpc.monitoring.save.useMutation");
-    expect(homeSource).toContain('position: "bottom-left"');
+    expect(homeSource).toContain('onMutate: () => { toast.success("Thanks for the feedback.", { position: "bottom-right"');
+    expect(homeSource).toContain('onSuccess: () => { void utils.monitoring.overview.invalidate(); }');
+    expect(homeSource).not.toContain('position: "bottom-left"');
+    expect(homeSource).toContain('result.saved ? "Saved to Profile." : "Removed from saved posts.", { position: "bottom-right"');
     expect(homeSource).toContain('aria-label="Keep this kind of post"');
     expect(homeSource).toContain('aria-label="Dismiss this kind of post"');
     expect(homeSource).toContain('aria-label={item.savedAt ? "Remove from saved posts" : "Save post"}');

@@ -256,3 +256,5 @@
 - [x] Replace post-detail Keep/Dismiss text actions with accessible icon controls and subtle feedback confirmation.
 - [x] Personalize future Feed ordering from user feedback and add a Saved posts area in Profile.
 - [x] Add regression coverage, validate responsive UI, and checkpoint the saved-and-personalized feedback experience.
+- [x] Make post feedback acknowledgement immediate at bottom-right without waiting for persistence or Feed refresh.
+- [x] Standardize compact save feedback at bottom-right and add regression coverage for the non-blocking interaction.

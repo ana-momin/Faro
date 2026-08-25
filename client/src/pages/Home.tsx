@@ -18,12 +18,13 @@ export default function Home() {
   const [timeFilter, setTimeFilter] = useState<FeedTimeFilter>("all");
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const review = trpc.monitoring.review.useMutation({
-    onSuccess: async () => { await utils.monitoring.overview.invalidate(); toast.success("Thanks for the feedback.", { position: "bottom-left", duration: 1800 }); },
-    onError: error => toast.error(error.message),
+    onMutate: () => { toast.success("Thanks for the feedback.", { position: "bottom-right", duration: 1500 }); },
+    onSuccess: () => { void utils.monitoring.overview.invalidate(); },
+    onError: error => toast.error(error.message, { position: "bottom-right" }),
   });
   const save = trpc.monitoring.save.useMutation({
-    onSuccess: async result => { await utils.monitoring.overview.invalidate(); toast.success(result.saved ? "Saved to Profile." : "Removed from saved posts.", { position: "bottom-left", duration: 1800 }); },
-    onError: error => toast.error(error.message),
+    onSuccess: result => { void utils.monitoring.overview.invalidate(); toast.success(result.saved ? "Saved to Profile." : "Removed from saved posts.", { position: "bottom-right", duration: 1500 }); },
+    onError: error => toast.error(error.message, { position: "bottom-right" }),
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
   const refresh = trpc.monitoring.sync.useMutation({
