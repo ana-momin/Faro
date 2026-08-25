@@ -304,3 +304,7 @@
 - [x] Remove the repeated “Your Faro AI space,” greeting, and private-workspace chrome from Provider, Monitors, and Saved views.
 - [x] Remove the bottom account dropdown and settings cue after moving secondary controls into Settings.
 - [x] Add responsive Settings navigation, regression coverage, and visual verification without provider calls; publish and push the matching GitHub update.
+- [x] Fix Settings section switching so Provider, Monitors, and Saved always render when selected.
+- [x] Remove the redundant Settings introduction block while preserving a clean section layout.
+- [x] Make the bottom account area interactive again and left-align a compact minimize control.
+- [x] Add regressions, verify responsive behavior without provider calls, publish the correction, and push the matching GitHub update.

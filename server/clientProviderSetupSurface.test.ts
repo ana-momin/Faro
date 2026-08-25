@@ -32,6 +32,11 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain("Minimize sidebar");
     expect(settingsSource).toContain("SavedOrganizer");
     expect(settingsSource).toContain("MonitorManager");
+    expect(settingsSource).toContain("selectSection");
+    expect(settingsSource).not.toContain("Workspace controls");
+    expect(sidebarSource).toContain('aria-label="Open profile"');
+    expect(sidebarSource).toContain("<ChevronRight");
+    expect(sidebarSource).toContain('className="h-8 w-8 rounded-xl');
     expect(profileSource).not.toContain('setTab(');
   });
 

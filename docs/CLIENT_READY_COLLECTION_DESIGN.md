@@ -53,3 +53,9 @@ Provider, Monitors, and Saved are now consolidated into a dedicated Settings wor
 Direct desktop route checks confirm that Monitors and Saved dynamically render inside the same Settings layout with the correct active side-panel state. The Settings workspace preserves monitor status controls and saved-post notes/priority tools while keeping Profile’s personal header out of these secondary views. No credential or source request was used.
 
 Mobile verification at 375 px confirms Provider, Monitors, and Saved remain dynamically reachable through a horizontally scrollable, active-state Settings control strip. The content stays readable without reintroducing the Profile greeting or bottom account dropdown. No credential or source request was used.
+
+## Settings switching and footer refinement — 25 August 2026
+
+The Settings selector now updates its displayed content immediately on click as well as on direct route changes; desktop verification confirmed Provider and Monitors render correctly. The Settings introduction block has been removed. The footer account row is again a clear Profile action with a disclosure chevron, while the minimize control is a compact left-aligned icon above it rather than a full-width bar. No credential or source request was used.
+
+Mobile verification at 375 px confirms Provider and Monitors switch their content correctly, the removed Settings introduction does not return, and the Profile entry remains a clear distinct destination. No credential or source request was used.
