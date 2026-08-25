@@ -246,3 +246,6 @@
 - [x] Remove dense polling telemetry from Feed and refine the post-first visual hierarchy.
 - [x] Improve the post-detail popup and highlight the concrete buyer-request wording that qualified each post.
 - [x] Add regression coverage, verify desktop/mobile Feed interaction, and checkpoint the refinement.
+- [x] Widen the Search workspace and simplify its hierarchy into a cleaner visual-first search surface.
+- [x] Reduce explanatory copy while preserving clear search modes, brief input, and result visibility.
+- [x] Add regression coverage, verify desktop/mobile Search presentation, and checkpoint the refinement.

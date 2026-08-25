@@ -17,3 +17,7 @@ Mobile checks confirmed that Feed keeps Refresh and Search as separate compact a
 ## Feed detail refinement — 25 August 2026
 
 Desktop and mobile Feed checks confirmed that the dense polling telemetry rail has been removed. The Feed now starts with a concise **Buyer-side signals / Latest practical requests** heading, followed by the local Time control and post cards. Refresh remains available in the header without exposing operational counters. No provider request was made during this visual verification.
+
+## Wide Search refinement — 25 August 2026
+
+Desktop verification confirms that Search now uses a wider workspace, a short **Buyer requests / Search** heading, one expanded brief field, compact suggestion pills, and a dedicated buyer-only Run Faro action. Mobile verification confirms that the same controls stack cleanly without horizontal overflow or excess explanatory copy. No source search was run during this visual check.

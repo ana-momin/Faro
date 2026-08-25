@@ -41,7 +41,7 @@ describe("Faro Feed workflow wiring", () => {
 
   it("keeps completed qualified results in the Search workspace rather than requiring a Feed redirect", () => {
     expect(searchSource).toContain("function SearchResults");
-    expect(searchSource).toContain("Most recent qualified requests");
+    expect(searchSource).toContain("Qualified requests");
     expect(searchSource).toContain("getQualifiedPosts(overview.data?.posts ?? [], result.monitorId, false)");
   });
 });

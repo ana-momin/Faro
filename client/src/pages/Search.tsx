@@ -91,32 +91,21 @@ export default function Search() {
   const ready = mode === "agent" ? brief.trim().length >= 12 : keywords.trim().length >= 2;
   const qualifiedResults = useMemo(() => result ? getQualifiedPosts(overview.data?.posts ?? [], result.monitorId, false) : [], [overview.data?.posts, result]);
 
-  return <div className="mx-auto max-w-4xl pb-10">
-    <header className="flex items-center gap-3 border-b border-[#eadfd2] pb-6">
-      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f1d7b9] text-[#8f4e38]"><SearchIcon className="h-5 w-5" /></span>
-      <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#a25d47]">Search X demand</p><h1 className="mt-1 text-2xl font-extrabold tracking-[-0.06em]">Give Faro a signal to hunt.</h1></div>
+  return <div className="mx-auto w-full max-w-6xl pb-10">
+    <header className="flex items-center justify-between gap-4 border-b border-[#eadfd2] pb-5">
+      <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f1d7b9] text-[#8f4e38]"><SearchIcon className="h-5 w-5" /></span><div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#a25d47]">Buyer requests</p><h1 className="mt-0.5 text-2xl font-extrabold tracking-[-0.06em] text-[#3d2e23]">Search</h1></div></div>
+      <span className="hidden rounded-full bg-[#f8eadc] px-3 py-1.5 text-[10px] font-extrabold text-[#91503a] sm:inline">X demand</span>
     </header>
-    <section className="mt-7 overflow-hidden rounded-[30px] border border-[#ead9c4] bg-[#fbf2e5] p-5 shadow-[0_16px_36px_rgba(99,59,31,0.07)] sm:p-7">
+    <section className="mt-6 overflow-hidden rounded-[30px] border border-[#ead9c4] bg-[#fbf2e5] p-4 shadow-[0_16px_36px_rgba(99,59,31,0.06)] sm:p-6 lg:p-7">
       <div className="flex gap-2">
         <ModeButton active={mode === "agent"} icon={Sparkles} label="AI brief" onClick={() => { setMode("agent"); setPhase("idle"); setResult(null); }} />
         <ModeButton active={mode === "keyword"} icon={KeyRound} label="Keyword search" onClick={() => { setMode("keyword"); setPhase("idle"); setResult(null); }} />
       </div>
-      <form onSubmit={submit} className="mt-6">
-        {mode === "agent" ? <>
-          <label className="text-sm font-extrabold">What kind of buyer request should Faro find?</label>
-          <Textarea value={brief} onChange={event => setBrief(event.target.value)} className="mt-3 min-h-28 resize-none rounded-2xl border-[#e3cdb1] bg-white text-sm leading-6 focus-visible:ring-[#bd674c]" placeholder="Example: Find founders looking for someone to automate lead follow-up with AI." />
-          <div className="mt-3 flex flex-wrap gap-2">{suggestions.map(item => <button key={item.label} type="button" onClick={() => setBrief(item.value)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-bold transition ${brief === item.value ? "border-[#d49a78] bg-[#fff5ea] text-[#8d4d37]" : "border-[#ead9c4] bg-white/70 text-[#806452] hover:bg-white"}`}><WandSparkles className="h-3 w-3" />{item.label}</button>)}</div>
-        </> : <>
-          <label className="text-sm font-extrabold">Keywords or a focused phrase</label>
-          <Input value={keywords} onChange={event => setKeywords(event.target.value)} className="mt-3 h-13 rounded-2xl border-[#e3cdb1] bg-white px-4 text-sm focus-visible:ring-[#bd674c]" placeholder="Example: n8n automation for sales" />
-          <p className="mt-3 text-[10px] leading-5 text-[#9a7d68]">Faro still keeps only people asking for help. Keywords guide the search; they do not surface service providers.</p>
-        </>}
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="max-w-md text-[10px] leading-5 text-[#987b67]">A new monitor uses a bounded polling budget across named buyer-demand queries and continuation pages. “View more” only reveals saved posts and never starts another source check.</p>
-          <Button type="submit" disabled={!ready || pending} className="h-11 shrink-0 rounded-2xl bg-[#b85f45] px-5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">
-            {pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Radar className="mr-2 h-4 w-4" />Run Faro</>}
-          </Button>
+      <form onSubmit={submit} className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_190px] lg:items-stretch">
+        <div className="min-w-0">
+          {mode === "agent" ? <><label className="sr-only">Describe the buyer request Faro should find</label><Textarea value={brief} onChange={event => setBrief(event.target.value)} className="min-h-36 resize-none rounded-[22px] border-[#e3cdb1] bg-white px-4 py-3 text-sm leading-6 focus-visible:ring-[#bd674c]" placeholder="Describe the kind of buyer request you want to find…" /><div className="mt-3 flex flex-wrap gap-1.5">{suggestions.map(item => <button key={item.label} type="button" onClick={() => setBrief(item.value)} className={`inline-flex rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition ${brief === item.value ? "border-[#d49a78] bg-[#fff5ea] text-[#8d4d37]" : "border-[#ead9c4] bg-white/70 text-[#806452] hover:bg-white"}`}>{item.label}</button>)}</div></> : <><label className="sr-only">Keywords or a focused phrase</label><Input value={keywords} onChange={event => setKeywords(event.target.value)} className="h-16 rounded-[22px] border-[#e3cdb1] bg-white px-4 text-sm focus-visible:ring-[#bd674c]" placeholder="Keywords or a focused phrase" /></>}
         </div>
+        <div className="flex flex-col justify-between rounded-[22px] border border-[#edd9c3] bg-white/70 p-4"><span className="inline-flex w-fit rounded-full bg-[#f8eadc] px-2 py-1 text-[9px] font-extrabold text-[#92513c]">Buyer-only</span><Button type="submit" disabled={!ready || pending} className="mt-8 h-11 w-full rounded-2xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">{pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Radar className="mr-2 h-4 w-4" />Run Faro</>}</Button></div>
       </form>
       {phase !== "idle" ? <SearchState phase={phase} state={state} result={result} onOpen={() => setLocation("/")} /> : null}
       {result && (phase === "complete" || phase === "empty") ? <SearchResults items={qualifiedResults} loading={overview.isFetching} persisted={result.retrieval?.persisted ?? 0} onOpenFeed={() => setLocation("/")} /> : null}
@@ -136,8 +125,8 @@ function SearchState({ phase, state, result, onOpen }: { phase: SearchLifecycle;
     ? result?.syncError || state.detail
     : metrics
       ? metrics.buyerCandidates
-        ? `${metrics.persisted} qualified buyer post${metrics.persisted === 1 ? "" : "s"} saved from ${metrics.deduplicatedPosts} unique posts. Faro checked ${metrics.pagesChecked}/${metrics.pageBudget} planned pages across ${metrics.queryFamilies}/${metrics.queryFamilyBudget} query families using ${metrics.sourceCalls} provider request${metrics.sourceCalls === 1 ? "" : "s"}.`
-        : `Faro checked ${metrics.deduplicatedPosts} unique posts from ${metrics.pagesChecked}/${metrics.pageBudget} planned pages across ${metrics.queryFamilies}/${metrics.queryFamilyBudget} query families (${metrics.sourceCalls} provider request${metrics.sourceCalls === 1 ? "" : "s"}) and found no concrete buyer-side requests for this brief.`
+        ? `${metrics.persisted} qualified request${metrics.persisted === 1 ? "" : "s"} saved.`
+        : "No concrete buyer request saved this time."
       : state.detail;
 
   return <div className={`mt-6 rounded-2xl border p-4 ${alert ? "border-[#edcaba] bg-[#fff4ed]" : done ? "border-[#cae4d1] bg-[#f4fbf4]" : "border-[#ead9c4] bg-white/70"}`}>
@@ -151,7 +140,7 @@ function SearchState({ phase, state, result, onOpen }: { phase: SearchLifecycle;
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-[#eadfd2] bg-white/85 px-2.5 py-2"><p className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a78a76]">{label}</p><p className="mt-0.5 text-xs font-extrabold text-[#604132]">{value}</p></div>; }
 
 function SearchResults({ items, loading, persisted, onOpenFeed }: { items: any[]; loading: boolean; persisted: number; onOpenFeed: () => void }) {
-  return <section className="mt-6 border-t border-[#ead9c4] pt-5"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#a25d47]">Search results</p><h2 className="mt-1 text-base font-extrabold tracking-[-0.04em] text-[#4b3123]">Most recent qualified requests</h2></div><button onClick={onOpenFeed} className="text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">Open Feed <ArrowRight className="ml-1 inline h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-24 place-items-center rounded-2xl border border-[#ead9c4] bg-white/60"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : items.length ? <div className="mt-4 space-y-3">{items.slice(0, 10).map(item => <SearchResultCard key={item.post.id} item={item} />)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#ead9c4] bg-white/60 p-4 text-[11px] leading-5 text-[#92735f]"><p className="font-extrabold text-[#76513f]">{persisted ? `${persisted} saved post${persisted === 1 ? "" : "s"} still needs Faro’s final buyer-quality gate.` : "No concrete buyer request qualified in this run."}</p><p className="mt-1">Faro did not broaden this into offers, jobs, or generic discussion. You can refine the request or check Feed’s saved history without spending another source call.</p></div>}</section>;
+  return <section className="mt-6 border-t border-[#ead9c4] pt-5"><div className="flex items-center justify-between gap-3"><h2 className="text-base font-extrabold tracking-[-0.04em] text-[#4b3123]">Qualified requests</h2><button onClick={onOpenFeed} className="text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">Feed <ArrowRight className="ml-1 inline h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-24 place-items-center rounded-2xl border border-[#ead9c4] bg-white/60"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : items.length ? <div className="mt-4 space-y-3">{items.slice(0, 10).map(item => <SearchResultCard key={item.post.id} item={item} />)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#ead9c4] bg-white/60 p-4 text-[11px] text-[#92735f]">{persisted ? `${persisted} saved post${persisted === 1 ? "" : "s"} still needs final review.` : "No qualified requests saved this time."}</div>}</section>;
 }
 
 function SearchResultCard({ item }: { item: any }) {

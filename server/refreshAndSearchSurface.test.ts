@@ -13,10 +13,11 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(homeSource).toContain("Refresh completed:");
   });
 
-  it("refetches saved overview data before rendering completed Search results and exposes coverage metrics", () => {
+  it("refetches saved overview data before rendering completed Search results in the cleaner wide workspace", () => {
     expect(searchSource).toContain("await overview.refetch()");
     expect(searchSource).toContain('label="Pages"');
-    expect(searchSource).toContain("Most recent qualified requests");
-    expect(searchSource).toContain("final buyer-quality gate");
+    expect(searchSource).toContain("Qualified requests");
+    expect(searchSource).toContain("still needs final review");
+    expect(searchSource).toContain('max-w-6xl');
   });
 });
