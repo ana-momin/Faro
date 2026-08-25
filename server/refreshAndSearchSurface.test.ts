@@ -33,6 +33,8 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("overflow-y-auto");
     expect(searchSource).toContain("firstBatchBrief");
     expect(searchSource).toContain("Run your first bounded batch.");
+    expect(searchSource).not.toContain("Keyword search");
+    expect(searchSource).not.toContain("keywordStart.useMutation");
   });
 
   it("keeps rich post actions available in Search and lets saved history reopen result sets without another provider request", () => {

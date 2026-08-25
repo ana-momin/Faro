@@ -7,7 +7,7 @@ import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { useWarmProfileImage } from "@/hooks/useWarmProfileImage";
 import { PRODUCT_INTRO_PATH } from "@/lib/productIntro";
-import { CircleUserRound, Compass, LogOut, MoreHorizontal, Radar, Search, Settings2, ShieldCheck, UserRound } from "lucide-react";
+import { CircleUserRound, Compass, History, LogOut, MoreHorizontal, Radar, Search, Settings2, ShieldCheck, UserRound } from "lucide-react";
 import { CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -16,6 +16,7 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: Compass, label: "Feed", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
+  { icon: History, label: "History", path: "/monitors" },
   { icon: Settings2, label: "Settings", path: "/settings" },
   { icon: UserRound, label: "Profile", path: "/profile" },
 ];

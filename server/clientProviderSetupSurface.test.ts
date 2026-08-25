@@ -51,6 +51,7 @@ describe("client-owned provider setup", () => {
     expect(appSource).toContain('path={"/saved"}');
     expect(appSource).toContain('path={"/monitors"}');
     expect(sidebarSource).toContain('label: "Settings", path: "/settings"');
+    expect(sidebarSource).toContain('label: "History", path: "/monitors"');
     expect(sidebarSource).toContain('collapsible="icon"');
     expect(sidebarSource).toContain("Minimize sidebar");
     expect(settingsSource).toContain("SavedOrganizer");

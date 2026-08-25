@@ -336,3 +336,6 @@
 - [x] Add regression coverage, verify the visual fix, publish it, and push the matching GitHub update.
 - [x] Nudge the selected-page background left so it fits the active navigation icon precisely.
 - [x] Verify, publish, and push the matching active-indicator adjustment.
+- [x] Remove the separate Keyword search mode so Search has one agent-led request flow.
+- [x] Make the History destination clearly visible and directly accessible from Settings.
+- [x] Add regression coverage, verify without provider calls, publish the refinement, and push the matching GitHub update.
