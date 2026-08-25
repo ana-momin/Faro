@@ -320,3 +320,7 @@
 - [x] Add regression coverage, verify request stability without provider calls, publish the fix, and push the matching GitHub update.
 - [x] Scope saved-provider status, key hints, and first-batch actions to the provider currently selected in Settings.
 - [x] Add selector regression coverage, verify without provider calls, publish the correction, and push the matching GitHub update.
+- [x] Replace the Search result heading with “Top qualified requests” and frame Feed as all saved search results.
+- [x] Give immediate Search results the same clickable full-post review, save, feedback, and Open X actions as Feed.
+- [x] Add a compact zero-credit Search history that reopens each saved search’s stored result set by monitor.
+- [x] Add regression coverage, verify desktop/mobile interactions without provider calls, publish the Search/Feed history release, and push the matching GitHub update.

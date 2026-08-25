@@ -29,7 +29,8 @@ describe("Faro Feed workflow wiring", () => {
 
   it("renders Feed as full post cards instead of a dense table", () => {
     expect(homeSource).toContain(">Posts<");
-    expect(homeSource).toContain(">Latest practical requests<");
+    expect(homeSource).toContain(">All your search results<");
+    expect(homeSource).toContain(">Top qualified requests<");
     expect(homeSource).toContain("getAllQualifiedPosts");
     expect(homeSource).toContain("function RequestCard");
     expect(homeSource).toContain("whitespace-pre-wrap");
@@ -41,7 +42,8 @@ describe("Faro Feed workflow wiring", () => {
 
   it("keeps completed qualified results in the Search workspace rather than requiring a Feed redirect", () => {
     expect(searchSource).toContain("function SearchResults");
-    expect(searchSource).toContain("Top 10 qualified requests");
-    expect(searchSource).toContain("getQualifiedPosts(overview.data?.posts ?? [], result.monitorId, false)");
+    expect(searchSource).toContain("Top qualified requests");
+    expect(searchSource).toContain("const monitorId = result?.monitorId ?? historyMonitorId");
+    expect(searchSource).toContain("Reopening stored results never uses a provider request.");
   });
 });
