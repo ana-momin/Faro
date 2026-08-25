@@ -258,3 +258,8 @@
 - [x] Add regression coverage, validate responsive UI, and checkpoint the saved-and-personalized feedback experience.
 - [x] Make post feedback acknowledgement immediate at bottom-right without waiting for persistence or Feed refresh.
 - [x] Standardize compact save feedback at bottom-right and add regression coverage for the non-blocking interaction.
+- [x] Add buyer-safe duplicate grouping and noise suppression, plus concise match reasons on Feed cards.
+- [x] Add private notes and priority state for saved posts with durable user-scoped persistence.
+- [x] Add owned monitor controls for rename, pause/resume, and delete.
+- [x] Send one deduplicated owner alert for newly collected high-confidence posts matching retained preferences.
+- [x] Add regression coverage, validate responsive quality-and-control UI, and checkpoint the complete upgrade.

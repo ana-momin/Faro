@@ -7,6 +7,7 @@ import {
   monitorQueryStates,
   monitorSyncRuns,
   monitorSyncs,
+  postAlertDeliveries,
   postReviews,
   savedPosts,
   users,
@@ -99,6 +100,13 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0];
+}
+
 export async function updateUserAvatar(userId: number, avatarUrl: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -163,13 +171,42 @@ export async function updateMonitorStatus(monitorId: number, userId: number, sta
     .where(and(eq(monitoringCriteria.id, monitorId), eq(monitoringCriteria.userId, userId)));
 }
 
+export async function renameMonitor(monitorId: number, userId: number, name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(monitoringCriteria).set({ name }).where(and(eq(monitoringCriteria.id, monitorId), eq(monitoringCriteria.userId, userId)));
+}
+
+export async function deleteMonitorForUser(monitorId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const owned = await tx.select({ id: monitoringCriteria.id }).from(monitoringCriteria)
+      .where(and(eq(monitoringCriteria.id, monitorId), eq(monitoringCriteria.userId, userId))).limit(1);
+    if (!owned[0]) return false;
+    const postRows = await tx.select({ id: listenedPosts.id }).from(listenedPosts).where(eq(listenedPosts.monitorId, monitorId));
+    const postIds = postRows.map(row => row.id);
+    if (postIds.length) {
+      await tx.delete(postReviews).where(inArray(postReviews.postId, postIds));
+      await tx.delete(savedPosts).where(inArray(savedPosts.postId, postIds));
+      await tx.delete(postAlertDeliveries).where(inArray(postAlertDeliveries.postId, postIds));
+      await tx.delete(listenedPosts).where(inArray(listenedPosts.id, postIds));
+    }
+    await tx.delete(monitorQueryStates).where(eq(monitorQueryStates.monitorId, monitorId));
+    await tx.delete(monitorSyncRuns).where(eq(monitorSyncRuns.monitorId, monitorId));
+    await tx.delete(monitorSyncs).where(eq(monitorSyncs.monitorId, monitorId));
+    await tx.delete(monitoringCriteria).where(eq(monitoringCriteria.id, monitorId));
+    return true;
+  });
+}
+
 export async function listPostsForUser(userId: number, monitorId?: number) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(monitoringCriteria.userId, userId)];
   if (monitorId) conditions.push(eq(listenedPosts.monitorId, monitorId));
   return db
-    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt })
+    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt, savedNote: savedPosts.note, savedPriority: savedPosts.priority })
     .from(listenedPosts)
     .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
     .leftJoin(savedPosts, and(eq(savedPosts.postId, listenedPosts.id), eq(savedPosts.userId, userId)))
@@ -182,7 +219,7 @@ export async function listSavedPostsForUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db
-    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt })
+    .select({ post: listenedPosts, monitorName: monitoringCriteria.name, monitor: monitoringCriteria, savedAt: savedPosts.createdAt, savedNote: savedPosts.note, savedPriority: savedPosts.priority })
     .from(savedPosts)
     .innerJoin(listenedPosts, eq(listenedPosts.id, savedPosts.postId))
     .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
@@ -201,6 +238,32 @@ export async function unsavePostForUser(postId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   await db.delete(savedPosts).where(and(eq(savedPosts.postId, postId), eq(savedPosts.userId, userId)));
+}
+
+export async function updateSavedPostForUser(postId: number, userId: number, input: { note?: string | null; priority?: "normal" | "high" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const values: { note?: string | null; priority?: "normal" | "high"; updatedAt: Date } = { updatedAt: new Date() };
+  if (input.note !== undefined) values.note = input.note;
+  if (input.priority !== undefined) values.priority = input.priority;
+  await db.update(savedPosts).set(values).where(and(eq(savedPosts.postId, postId), eq(savedPosts.userId, userId)));
+}
+
+export async function claimPostAlertForUser(postId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    await db.insert(postAlertDeliveries).values({ postId, userId });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function releasePostAlertForUser(postId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(postAlertDeliveries).where(and(eq(postAlertDeliveries.postId, postId), eq(postAlertDeliveries.userId, userId)));
 }
 
 export async function listPostsForMonitor(monitorId: number) {
@@ -230,6 +293,9 @@ export async function upsertListenedPost(input: typeof listenedPosts.$inferInser
       aiIntent: input.aiIntent,
     },
   });
+  const rows = await db.select({ id: listenedPosts.id }).from(listenedPosts)
+    .where(and(eq(listenedPosts.monitorId, input.monitorId), eq(listenedPosts.xPostId, input.xPostId))).limit(1);
+  return rows[0]?.id;
 }
 
 export async function recordSync(monitorId: number, state: Omit<typeof monitorSyncs.$inferInsert, "monitorId">) {

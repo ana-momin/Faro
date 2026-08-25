@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest, prioritizeCurrentMonth } from "../client/src/lib/discoverFeed";
+import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getMatchReason, getQualifiedPosts, getRequestCategory, isConcreteBuyerRequest, prioritizeCurrentMonth } from "../client/src/lib/discoverFeed";
 
 const item = (id: number, monitorId: number, score: number, source = "twitterapi.io", body = "Looking to hire someone to automate our sales workflow") => ({ post: { id, source, ruleScore: score, body, reviewStatus: "pending" as const }, monitor: { id: monitorId } });
 
@@ -10,7 +10,7 @@ describe("Faro Discover feed selection", () => {
   });
 
   it("falls back to all qualified stored posts and limits the Discover preview without losing Review data", () => {
-    const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
+    const rows = [item(1, 10, 89, "twitterapi.io", "Looking to hire someone to automate our sales workflow"), item(2, 11, 92, "twitterapi.io", "We need a developer to build an API for our product"), item(3, 12, 81, "twitterapi.io", "Our company needs a product tester to validate a new AI feature")];
     const qualified = getQualifiedPosts(rows, 99);
     expect(qualified).toHaveLength(3);
     expect(getDiscoverPreview(qualified, 2).map(row => row.post.id)).toEqual([1, 2]);
@@ -57,7 +57,7 @@ describe("Faro Discover feed selection", () => {
   });
 
   it("keeps all qualifying saved buyer requests available to the Feed across prior briefs", () => {
-    const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 12, 81)];
+    const rows = [item(1, 10, 89, "twitterapi.io", "Looking to hire someone to automate our sales workflow"), item(2, 11, 92, "twitterapi.io", "We need a developer to build an API for our product"), item(3, 12, 81, "twitterapi.io", "Our company needs a product tester to validate a new AI feature")];
     expect(getAllQualifiedPosts(rows).map(row => row.post.id)).toEqual([1, 2, 3]);
   });
 
@@ -84,6 +84,20 @@ describe("Faro Discover feed selection", () => {
     const currentEarlier = { ...item(25, 10, 70), post: { ...item(25, 10, 70).post, postedAt: "2026-08-03T15:00:00.000Z" } };
     const currentLatest = { ...item(26, 10, 65), post: { ...item(26, 10, 65).post, postedAt: "2026-08-23T15:00:00.000Z" } };
     expect(prioritizeCurrentMonth([older, currentEarlier, currentLatest], new Date("2026-08-24T12:00:00.000Z")).map(row => row.post.id)).toEqual([26, 25, 24]);
+  });
+
+  it("groups conservative near-duplicates while keeping distinct buyer requests", () => {
+    const first = item(27, 10, 82, "twitterapi.io", "Our company needs someone to automate sales intake with n8n workflows.");
+    const repeat = item(28, 11, 84, "twitterapi.io", "Our company needs someone to automate sales intake with n8n workflow.");
+    const distinct = item(29, 11, 84, "twitterapi.io", "We need a developer to build an API for our product.");
+    expect(getAllQualifiedPosts([first, repeat, distinct]).map(row => row.post.id)).toEqual([27, 29]);
+  });
+
+  it("removes promotional provider noise and explains concrete buyer matches concisely", () => {
+    const promotion = item(30, 10, 95, "twitterapi.io", "My agency offers automation. Book a call and DM me for a free guide.");
+    const request = item(31, 10, 85, "twitterapi.io", "We need someone to automate our support workflow.");
+    expect(getAllQualifiedPosts([promotion, request]).map(row => row.post.id)).toEqual([31]);
+    expect(getMatchReason(request.post)).toBe("Direct request for automation help");
   });
 
   it("labels practical buyer-request work by task category", () => {

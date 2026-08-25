@@ -175,11 +175,29 @@ export const savedPosts = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: int("userId").notNull(),
     postId: int("postId").notNull(),
+    note: varchar("note", { length: 1000 }),
+    priority: mysqlEnum("priority", ["normal", "high"]).default("normal").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => [
     uniqueIndex("saved_post_user_post_unique").on(table.userId, table.postId),
     index("saved_post_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
+/** One owner-alert claim per user/post prevents recurring polls from notifying twice. */
+export const postAlertDeliveries = mysqlTable(
+  "post_alert_deliveries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    postId: int("postId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("post_alert_user_post_unique").on(table.userId, table.postId),
+    index("post_alert_user_created_idx").on(table.userId, table.createdAt),
   ],
 );
 

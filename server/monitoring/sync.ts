@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import * as db from "../db";
 import type { MonitorQueryState } from "../../drizzle/schema";
 import { persistNormalizedPost } from "./ingest";
+import { notifyPreferredHighConfidenceSignals } from "./alerts";
 import { collectionPolicy, type CollectionPolicy } from "./policy";
 import { buildCoverageQueryFamilies, type CoverageQueryFamily } from "./query";
 import { isPotentialBuyerOpportunity } from "./ranking";
@@ -259,6 +260,12 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
       }
     });
     const inserted = settled.length - rejected.length;
+    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" ? [outcome.value] : []);
+    try {
+      await notifyPreferredHighConfidenceSignals(monitor, persistedSignals);
+    } catch (error) {
+      console.warn("[Faro alerts]", error);
+    }
 
     await Promise.all(coverage.pages.map(async page => {
       await db.saveMonitorQueryState(monitor.id, {

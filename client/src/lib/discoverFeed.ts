@@ -25,13 +25,47 @@ export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorI
 
 export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {
   const seen = new Set<string>();
-  return items.filter(({ post }) => {
-    if (post.source === "demo" || post.ruleScore < 50 || !isConcreteBuyerRequest(post)) return false;
+  const accepted: T[] = [];
+  return items.filter(item => {
+    const { post } = item;
+    if (post.source === "demo" || post.ruleScore < 50 || !isConcreteBuyerRequest(post) || isLowSignalNoise(post)) return false;
     const key = post.xPostId ? `x:${post.xPostId}` : `saved:${post.id}`;
     if (seen.has(key)) return false;
+    if (accepted.some(previous => isNearDuplicate(previous.post, post))) return false;
     seen.add(key);
+    accepted.push(item);
     return true;
   });
+}
+
+function normalizedWords(body = "") {
+  return body.toLowerCase().replace(/https?:\/\/\S+|@\w+/g, " ").replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+    .filter(word => word.length > 2 && !["the", "and", "for", "with", "that", "this", "from", "your", "our", "you", "are", "was", "have", "need", "looking"].includes(word));
+}
+
+export function isNearDuplicate(first: { body?: string; authorHandle?: string | null }, second: { body?: string; authorHandle?: string | null }) {
+  const left = new Set(normalizedWords(first.body));
+  const right = new Set(normalizedWords(second.body));
+  if (!left.size || !right.size) return false;
+  const overlap = Array.from(left).filter(word => right.has(word)).length;
+  const similarity = overlap / Math.min(left.size, right.size);
+  const sameAuthor = Boolean(first.authorHandle && second.authorHandle && first.authorHandle === second.authorHandle);
+  return similarity >= 0.82 || (sameAuthor && similarity >= 0.58);
+}
+
+export function isLowSignalNoise(post: { body?: string }) {
+  const body = post.body ?? "";
+  const promotion = /\b(webinar|newsletter|link in bio|free guide|follow me|limited spots|book a call|dm me for|my agency|we offer)\b/i.test(body);
+  const explicitBuyerVoice = /\b(i(?:'m| am)|we(?:'re| are)|our|my)\b.{0,90}\b(need|looking for|seeking|hire|recommend)/i.test(body);
+  return promotion && !explicitBuyerVoice;
+}
+
+export function getMatchReason(post: { body?: string }) {
+  const body = post.body ?? "";
+  const category = getRequestCategory({ body });
+  if (/\b(recommend|does anyone know|anyone know|recommendations?)\b/i.test(body)) return `Seeking a ${category.toLowerCase()} recommendation`;
+  if (/\b(need|needs|looking for|seeking|hire|outsource)\b/i.test(body)) return `Direct request for ${category.toLowerCase()} help`;
+  return `Concrete ${category.toLowerCase()} delivery need`;
 }
 
 export function prioritizeCurrentMonth<T extends FeedItem>(items: T[], now = new Date()) {

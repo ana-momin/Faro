@@ -168,6 +168,23 @@ export const monitoringRouter = router({
       return { ok: true };
     }),
 
+  rename: protectedProcedure
+    .input(z.object({ monitorId: z.number().int().positive(), name: z.string().trim().min(3).max(120) }))
+    .mutation(async ({ ctx, input }) => {
+      const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
+      if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
+      await db.renameMonitor(input.monitorId, ctx.user.id, input.name);
+      return { ok: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ monitorId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const deleted = await db.deleteMonitorForUser(input.monitorId, ctx.user.id);
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
+      return { ok: true };
+    }),
+
   sync: protectedProcedure
     .input(z.object({ monitorId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
@@ -197,6 +214,15 @@ export const monitoringRouter = router({
       if (input.saved) await db.savePostForUser(input.postId, ctx.user.id);
       else await db.unsavePostForUser(input.postId, ctx.user.id);
       return { ok: true, saved: input.saved, humanReviewOnly: true };
+    }),
+
+  updateSaved: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive(), note: z.string().trim().max(1000).nullable().optional(), priority: z.enum(["normal", "high"]).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const post = await db.getPostForUser(input.postId, ctx.user.id);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." });
+      await db.updateSavedPostForUser(input.postId, ctx.user.id, { note: input.note, priority: input.priority });
+      return { ok: true };
     }),
 
   saved: protectedProcedure.query(async ({ ctx }) => db.listSavedPostsForUser(ctx.user.id)),

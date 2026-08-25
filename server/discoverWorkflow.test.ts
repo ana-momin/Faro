@@ -34,7 +34,7 @@ describe("Faro Feed workflow wiring", () => {
     expect(homeSource).toContain("function RequestCard");
     expect(homeSource).toContain("whitespace-pre-wrap");
     expect(homeSource).toContain("Open X");
-    expect(homeSource).toContain("Matched from");
+    expect(homeSource).toContain("Why it matched:");
     expect(homeSource).not.toContain("Request feed");
     expect(homeSource).not.toContain('grid-cols-[minmax(0,1fr)_130px_60px_28px]');
   });

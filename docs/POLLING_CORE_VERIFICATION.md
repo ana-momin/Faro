@@ -29,3 +29,9 @@ Desktop and mobile checks confirmed the Search surface remains minimal while its
 ## Saved feedback experience — 25 August 2026
 
 Desktop and mobile checks confirmed that Profile now exposes a compact Saved tab with a count, while its personalized workspace remains intact. Feed continues to use compact detail entry controls; icon-only feedback and save actions are available inside the post detail view, where their text labels remain available to assistive technology and browser tooltips. No feedback, save action, or source request was triggered during these checks.
+
+## Quality and control upgrade — 25 August 2026
+
+Desktop verification confirms that Feed now presents a concise **Why it matched** line beneath each qualified post and Profile exposes compact Profile, Saved, and Monitors navigation. Saved and Monitor panels are interaction-driven, with source-level regression coverage for private notes, priority, pause/resume, rename, and deletion controls. No provider request, feedback action, save mutation, monitor action, or owner notification was triggered during visual verification.
+
+Mobile verification confirms that the concise match reason remains legible beneath Feed cards and the three Profile controls fit cleanly without horizontal overflow. No source, feedback, save, monitor, or notification action was triggered during this check.

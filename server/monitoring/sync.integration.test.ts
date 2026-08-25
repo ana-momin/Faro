@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   saveMonitorQueryState: vi.fn(),
   recordMonitorSyncRun: vi.fn(),
   recordSync: vi.fn(),
+  getUserById: vi.fn(),
   fetchPublicPosts: vi.fn(),
   upsertFilteredStreamRule: vi.fn(),
   persistNormalizedPost: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("../db", () => ({
   saveMonitorQueryState: mocks.saveMonitorQueryState,
   recordMonitorSyncRun: mocks.recordMonitorSyncRun,
   recordSync: mocks.recordSync,
+  getUserById: mocks.getUserById,
   listActiveMonitors: vi.fn(),
   listActiveMonitorsForPolling: vi.fn(),
 }));
@@ -69,6 +71,7 @@ describe("bounded multi-family sync", () => {
     mocks.saveMonitorQueryState.mockResolvedValue(undefined);
     mocks.recordMonitorSyncRun.mockResolvedValue(undefined);
     mocks.recordSync.mockResolvedValue(undefined);
+    mocks.getUserById.mockResolvedValue(undefined);
     mocks.persistNormalizedPost.mockResolvedValue(undefined);
   });
 
