@@ -332,3 +332,5 @@
 - [x] Repair saved-provider daily request limit updates and add a clear provider-specific edit state.
 - [x] Show reliable local provider usage context without making a provider call or fabricating credit balances.
 - [x] Add regression coverage, verify responsive behavior without provider calls, publish the refinement, and push the matching GitHub update.
+- [x] Center the account avatar fallback icon within its warm circular background across sidebar states.
+- [x] Add regression coverage, verify the visual fix, publish it, and push the matching GitHub update.
