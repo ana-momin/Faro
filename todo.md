@@ -277,3 +277,10 @@
 - [x] Render active collection progress inside the command bar; add regressions, verify responsive UI, and checkpoint the refinement.
 - [x] Remove the “Real requests only” helper label and move the Suggestions control into that position.
 - [x] Make the lower command-bar Suggestions dropdown open downward with a bounded, scrollable prompt list.
+- [x] Audit the current provider-key ownership, source-call limits, pagination cursor, Feed refresh, and saved-post behavior for a client-ready workflow.
+- [x] Define client-owned provider credential handling and explicit bounded collection policies without making unverified vendor credit claims.
+- [x] Implement stable Feed and Search result caps with manual next-batch collection that preserves previously collected qualified posts.
+- [x] Add clear client-facing collection limits and usage state, regression coverage, and responsive verification for the credit-protected product workflow.
+- [x] Add Profile provider setup for securely storing and switching a client-owned TwitterAPI.io or Official X API credential.
+- [x] Change Feed and Search to strict client-scoped one-provider-request batches while retaining prior qualified posts and capped result windows.
+- [x] Add per-client provider usage visibility plus verified provider info tooltips and official purchase links.

@@ -1,4 +1,4 @@
-import { index, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -124,6 +124,27 @@ export const monitorSyncRuns = mysqlTable(
   ],
 );
 
+/**
+ * One encrypted, client-owned X data-provider credential per Faro account.
+ * Plaintext is never returned through tRPC and is decrypted only while an
+ * authenticated source request is being issued.
+ */
+export const providerConnections = mysqlTable(
+  "provider_connections",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    provider: mysqlEnum("provider", ["twitterapi_io", "official_x"]).notNull(),
+    encryptedCredential: text("encryptedCredential").notNull(),
+    credentialHint: varchar("credentialHint", { length: 16 }).notNull(),
+    dailyRequestLimit: int("dailyRequestLimit").default(20).notNull(),
+    automaticCollection: boolean("automaticCollection").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("provider_connection_user_unique").on(table.userId)],
+);
+
 export const listenedPosts = mysqlTable(
   "listened_posts",
   {
@@ -203,6 +224,7 @@ export const postAlertDeliveries = mysqlTable(
 
 export type MonitoringCriterion = typeof monitoringCriteria.$inferSelect;
 export type ListenedPost = typeof listenedPosts.$inferSelect;
+export type ProviderConnection = typeof providerConnections.$inferSelect;
 export type MonitorQueryState = typeof monitorQueryStates.$inferSelect;
 export type MonitorSyncRun = typeof monitorSyncRuns.$inferSelect;
 export type SavedPost = typeof savedPosts.$inferSelect;

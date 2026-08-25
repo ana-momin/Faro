@@ -23,6 +23,11 @@ export type PublicSearchResult = RecentSearchResult & {
   providerAttempts: number;
 };
 
+export type ClientProviderCredential = {
+  provider: "twitterapi_io" | "official_x";
+  credential: string;
+};
+
 export function dedupePosts(posts: XApiPost[]) {
   const seen = new Set<string>();
   return posts.filter(post => {
@@ -93,16 +98,16 @@ async function waitForTwitterApiIoRequestSlot() {
   return Date.now() - queuedAt;
 }
 
-function bearerToken() {
-  const token = process.env.X_API_BEARER_TOKEN;
+function bearerToken(override?: string) {
+  const token = override ?? process.env.X_API_BEARER_TOKEN;
   if (!token) throw new XApiError(401, "X API token is not configured.");
   return token;
 }
 
-async function xRequest(path: string, init: RequestInit = {}, attempt = 0): Promise<Response> {
+async function xRequest(path: string, init: RequestInit = {}, attempt = 0, accessToken?: string): Promise<Response> {
   const response = await fetch(`${X_API_BASE}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${bearerToken()}`, ...(init.headers ?? {}) },
+    headers: { Authorization: `Bearer ${bearerToken(accessToken)}`, ...(init.headers ?? {}) },
   });
 
   const transient = response.status === 429 || response.status >= 500;
@@ -110,7 +115,7 @@ async function xRequest(path: string, init: RequestInit = {}, attempt = 0): Prom
     const retryAfterHeader = Number(response.headers.get("retry-after") || 0);
     const retryAfterMs = retryAfterHeader > 0 ? Math.min(retryAfterHeader * 1000, 4_000) : 600 * (attempt + 1);
     await new Promise(resolve => setTimeout(resolve, retryAfterMs));
-    return xRequest(path, init, attempt + 1);
+    return xRequest(path, init, attempt + 1, accessToken);
   }
 
   if (!response.ok) {
@@ -120,7 +125,7 @@ async function xRequest(path: string, init: RequestInit = {}, attempt = 0): Prom
   return response;
 }
 
-export async function fetchRecentSearch(query: string, cursor?: { newestId?: string | null; nextToken?: string | null }) {
+export async function fetchRecentSearch(query: string, cursor?: { newestId?: string | null; nextToken?: string | null }, accessToken?: string) {
   const params = new URLSearchParams({
     query,
     max_results: "25",
@@ -131,7 +136,7 @@ export async function fetchRecentSearch(query: string, cursor?: { newestId?: str
   if (cursor?.newestId) params.set("since_id", cursor.newestId);
   if (cursor?.nextToken) params.set("next_token", cursor.nextToken);
 
-  const response = await xRequest(`/tweets/search/recent?${params.toString()}`);
+  const response = await xRequest(`/tweets/search/recent?${params.toString()}`, {}, 0, accessToken);
   const payload = (await response.json()) as {
     data?: XApiPost[];
     includes?: { users?: XApiUser[] };
@@ -161,16 +166,16 @@ type TwitterApiIoTweet = {
   author?: { id?: string; userName?: string; username?: string; name?: string; profilePicture?: string; profileImageUrl?: string; profile_image_url?: string; avatar?: string };
 };
 
-function twitterApiIoKey() {
-  return process.env.TWITTERAPI_IO_KEY;
+function twitterApiIoKey(override?: string) {
+  return override ?? process.env.TWITTERAPI_IO_KEY;
 }
 
 function twitterApiIoQuery(query: string) {
   return query.replaceAll("-is:retweet", "-filter:retweets");
 }
 
-export async function fetchTwitterApiIoSearch(query: string, cursor?: string | null): Promise<PublicSearchResult> {
-  const apiKey = twitterApiIoKey();
+export async function fetchTwitterApiIoSearch(query: string, cursor?: string | null, clientKey?: string): Promise<PublicSearchResult> {
+  const apiKey = twitterApiIoKey(clientKey);
   if (!apiKey) throw new XApiError(401, "TwitterAPI.io key is not configured.");
   const params = new URLSearchParams({ query: twitterApiIoQuery(query), queryType: "Latest", cursor: cursor ?? "" });
   let queueWaitMs = 0;
@@ -228,11 +233,11 @@ export async function fetchTwitterApiIoSearch(query: string, cursor?: string | n
   };
 }
 
-export async function fetchPublicPosts(query: string, cursor?: { newestId?: string | null; nextToken?: string | null }): Promise<PublicSearchResult> {
-  if (twitterApiIoKey()) {
-    return fetchTwitterApiIoSearch(query, cursor?.nextToken);
+export async function fetchPublicPosts(query: string, cursor: { newestId?: string | null; nextToken?: string | null } | undefined, provider: ClientProviderCredential): Promise<PublicSearchResult> {
+  if (provider.provider === "twitterapi_io") {
+    return fetchTwitterApiIoSearch(query, cursor?.nextToken, provider.credential);
   }
-  const result = await fetchRecentSearch(query, cursor);
+  const result = await fetchRecentSearch(query, cursor, provider.credential);
   return { ...result, ...recentSearchStatus(filteredStreamRequested()), queueWaitMs: 0, providerAttempts: 1 };
 }
 

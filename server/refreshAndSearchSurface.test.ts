@@ -9,14 +9,14 @@ describe("Faro refresh and Search result surfaces", () => {
   it("makes source collection an explicit bounded Feed action rather than a passive page refresh", () => {
     expect(homeSource).toContain("trpc.monitoring.sync.useMutation");
     expect(homeSource).toContain("refresh.mutate({ monitorId: active.monitor.id })");
-    expect(homeSource).toContain("Uses the active monitor’s bounded source-call budget");
-    expect(homeSource).toContain("Refresh completed:");
+    expect(homeSource).toContain("Collects one new source batch");
+    expect(homeSource).toContain("saved results");
   });
 
   it("refetches saved overview data before rendering completed Search results in the centered command workspace", () => {
     expect(searchSource).toContain("await overview.refetch()");
     expect(searchSource).toContain('label="Pages"');
-    expect(searchSource).toContain("Qualified requests");
+    expect(searchSource).toContain("Top 10 qualified requests");
     expect(searchSource).toContain("still needs final review");
     expect(searchSource).toContain('max-w-[1040px]');
     expect(searchSource).toContain("Suggestions");

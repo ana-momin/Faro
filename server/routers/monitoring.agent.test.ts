@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   syncMonitorRecord: vi.fn(),
   classifySyncFailure: vi.fn(),
   updateMonitorStatus: vi.fn(),
+  getProviderConnectionForUser: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -15,6 +16,7 @@ vi.mock("../db", () => ({
   getMonitorForUser: mocks.getMonitorForUser,
   countActiveMonitorsForUser: mocks.countActiveMonitorsForUser,
   updateMonitorStatus: mocks.updateMonitorStatus,
+  getProviderConnectionForUser: mocks.getProviderConnectionForUser,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
 vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
@@ -35,6 +37,7 @@ const criteria = {
 describe("monitoring.agentStart", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io" });
   });
 
   it("maps, saves, and checks a single user-requested service brief", async () => {

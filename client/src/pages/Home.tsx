@@ -32,6 +32,7 @@ export default function Home() {
     onError: (error, _input, context) => { setSelectedItem(context?.previous ?? null); toast.error(error.message, { position: "bottom-right" }); },
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
+  const providerReady = Boolean(overview.data?.collection.configured);
   const refresh = trpc.monitoring.sync.useMutation({
     onSuccess: async sync => {
       await utils.monitoring.overview.invalidate();
@@ -39,9 +40,9 @@ export default function Home() {
       if (sync.skipped === "daily_budget") {
         toast.message("Today’s source-call budget is reached. Saved posts remain available.");
       } else if (retrieval?.persisted) {
-        toast.success(`${retrieval.persisted} new qualified post${retrieval.persisted === 1 ? "" : "s"} saved from ${retrieval.pagesChecked} checked page${retrieval.pagesChecked === 1 ? "" : "s"}.`);
+        toast.success(`${retrieval.persisted} new qualified post${retrieval.persisted === 1 ? "" : "s"} added from one new source batch.`);
       } else {
-        toast.message(`Refresh completed: ${retrieval?.pagesChecked ?? 0} source page${retrieval?.pagesChecked === 1 ? "" : "s"} checked; no new qualified posts yet.`);
+        toast.message("One new source batch checked; no qualified posts this time.");
       }
     },
     onError: error => toast.error(error.message),
@@ -68,7 +69,7 @@ export default function Home() {
   }
 
   return <div className="mx-auto w-full max-w-4xl pb-10">
-    <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 border-b border-[#eadfd2] pb-5"><h1 className="text-xl font-extrabold tracking-[-0.06em] text-[#422d20]">Posts</h1><div className="flex items-center gap-2"><Button variant="outline" onClick={() => active && refresh.mutate({ monitorId: active.monitor.id })} disabled={!active || refresh.isPending} className="h-9 rounded-xl border-[#e2cbb6] bg-white px-3 text-xs font-extrabold text-[#8c503a] hover:bg-[#fff5eb]" aria-label="Refresh current X posts" title="Uses the active monitor’s bounded source-call budget"><>{refresh.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}Refresh</></Button><Button onClick={() => setLocation("/search")} className="h-9 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search">Search</Button></div></header>
+    <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 border-b border-[#eadfd2] pb-5"><h1 className="text-xl font-extrabold tracking-[-0.06em] text-[#422d20]">Posts</h1><div className="flex items-center gap-2"><Button variant="outline" onClick={() => { if (!providerReady) { setLocation("/profile"); toast.message("Connect a provider in Profile before collecting posts."); return; } if (active) refresh.mutate({ monitorId: active.monitor.id }); }} disabled={!active || refresh.isPending} className="h-9 rounded-xl border-[#e2cbb6] bg-white px-3 text-xs font-extrabold text-[#8c503a] hover:bg-[#fff5eb]" aria-label="Collect the next X batch" title={providerReady ? "Collects one new source batch" : "Connect a provider in Profile"}><>{refresh.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}Refresh</></Button><Button onClick={() => setLocation("/search")} className="h-9 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.2)] hover:bg-[#9f4d36]" aria-label="Start a new search">Search</Button></div></header>
     {content}
     <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} />
   </div>;
@@ -81,7 +82,7 @@ function FeedTimeFilters({ value, onChange }: { value: FeedTimeFilter; onChange:
 }
 
 function BuyerRequestFeed({ items, hasMore, onMore, onOpen }: { items: any[]; hasMore: boolean; onMore: () => void; onOpen: (item: any) => void }) {
-  return <div className="mt-4 space-y-4">{items.map(item => <RequestCard key={item.post.xPostId || item.post.id} item={item} onOpen={() => onOpen(item)} />)}{hasMore ? <button onClick={onMore} className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#e7d4c0] bg-[#fffaf5] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#fff4e8] active:scale-[0.99]"><span>View 10 more <span className="ml-1 font-medium text-[#a98a76]">· saved posts only</span></span><ArrowRight className="h-3.5 w-3.5" /></button> : null}</div>;
+  return <div className="mt-4 space-y-4">{items.map(item => <RequestCard key={item.post.xPostId || item.post.id} item={item} onOpen={() => onOpen(item)} />)}{hasMore ? <button onClick={onMore} className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#e7d4c0] bg-[#fffaf5] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#fff4e8] active:scale-[0.99]"><span>Show 10 more <span className="ml-1 font-medium text-[#a98a76]">· saved results</span></span><ArrowRight className="h-3.5 w-3.5" /></button> : null}</div>;
 }
 
 function RequestCard({ item, onOpen }: { item: any; onOpen: () => void }) {

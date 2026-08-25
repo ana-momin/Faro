@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   getSyncState: vi.fn(),
   listMonitorQueryStates: vi.fn(),
   countMonitorSyncRunsSince: vi.fn(),
+  countMonitorSyncRunsForUserSince: vi.fn(),
+  getProviderConnectionForUser: vi.fn(),
   saveMonitorQueryState: vi.fn(),
   recordMonitorSyncRun: vi.fn(),
   recordSync: vi.fn(),
@@ -18,6 +20,8 @@ vi.mock("../db", () => ({
   getSyncState: mocks.getSyncState,
   listMonitorQueryStates: mocks.listMonitorQueryStates,
   countMonitorSyncRunsSince: mocks.countMonitorSyncRunsSince,
+  countMonitorSyncRunsForUserSince: mocks.countMonitorSyncRunsForUserSince,
+  getProviderConnectionForUser: mocks.getProviderConnectionForUser,
   saveMonitorQueryState: mocks.saveMonitorQueryState,
   recordMonitorSyncRun: mocks.recordMonitorSyncRun,
   recordSync: mocks.recordSync,
@@ -32,6 +36,7 @@ vi.mock("./xClient", async importOriginal => {
 });
 
 vi.mock("./ingest", () => ({ persistNormalizedPost: mocks.persistNormalizedPost }));
+vi.mock("./providerCredentials", () => ({ decryptClientCredential: vi.fn(() => "client-test-key") }));
 
 import { fetchCreditAwarePosts, syncMonitorRecord } from "./sync";
 
@@ -68,6 +73,8 @@ describe("bounded multi-family sync", () => {
     mocks.getSyncState.mockResolvedValue(undefined);
     mocks.listMonitorQueryStates.mockResolvedValue([]);
     mocks.countMonitorSyncRunsSince.mockResolvedValue(0);
+    mocks.countMonitorSyncRunsForUserSince.mockResolvedValue(0);
+    mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io", encryptedCredential: "encrypted", dailyRequestLimit: 20, automaticCollection: false });
     mocks.saveMonitorQueryState.mockResolvedValue(undefined);
     mocks.recordMonitorSyncRun.mockResolvedValue(undefined);
     mocks.recordSync.mockResolvedValue(undefined);
@@ -101,7 +108,7 @@ describe("bounded multi-family sync", () => {
     const coverage = await fetchCreditAwarePosts(monitor, { nextToken: "legacy-direct-cursor", queryStates: [], policy: { maxProviderCallsPerSync: 1 } });
 
     expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
-    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "legacy-direct-cursor" });
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "legacy-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
     expect(coverage.pages[0]?.nextToken).toBe("following-page");
   });
 
@@ -130,6 +137,15 @@ describe("bounded multi-family sync", () => {
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ monitorId: 17, pageNumber: 1, rawReceived: 2, deduplicatedPosts: 2, buyerCandidates: 2, persistedPosts: 2, queueWaitMs: 48 }));
   });
 
+  it("locks a client-initiated collection to one provider request even when a legacy override asks for more", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "strict-one", text: "Need someone to automate a client onboarding workflow." }], "next"));
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 4, maxPagesPerFamily: 2 })).resolves.toMatchObject({
+      retrieval: { sourceCalls: 1, pagesChecked: 1, pageBudget: 1 },
+    });
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
+  });
+
   it("persists a rate-limit source state without consuming later families", async () => {
     mocks.fetchPublicPosts.mockRejectedValueOnce(new XApiError(429, "TwitterAPI.io: rate limited"));
 
@@ -140,9 +156,10 @@ describe("bounded multi-family sync", () => {
   });
 
   it("skips a sync before provider access when the daily call ledger is at its cap", async () => {
-    mocks.countMonitorSyncRunsSince.mockResolvedValueOnce(2);
+    mocks.countMonitorSyncRunsForUserSince.mockResolvedValueOnce(2);
+    mocks.getProviderConnectionForUser.mockResolvedValueOnce({ provider: "twitterapi_io", encryptedCredential: "encrypted", dailyRequestLimit: 2, automaticCollection: false });
 
-    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerDay: 2 })).resolves.toMatchObject({
+    await expect(syncMonitorRecord(monitor)).resolves.toMatchObject({
       inserted: 0,
       source: "twitterapi_io",
       skipped: "daily_budget",

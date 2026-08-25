@@ -14,8 +14,8 @@ describe("Faro buyer-demand workflow", () => {
     const search = readFileSync(new URL("../client/src/pages/Search.tsx", import.meta.url), "utf8");
     const app = readFileSync(new URL("../client/src/App.tsx", import.meta.url), "utf8");
     const sidebar = readFileSync(new URL("../client/src/components/DashboardLayout.tsx", import.meta.url), "utf8");
-    expect(home).toContain("View 10 more");
-    expect(home).toContain("saved posts only");
+    expect(home).toContain("Show 10 more");
+    expect(home).toContain("saved results");
     expect(search).toContain("Keyword search");
     expect(app).toContain('path={"/search"}');
     expect(sidebar).toContain('label: "Search"');

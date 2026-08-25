@@ -4,9 +4,10 @@ import type { MonitorQueryState } from "../../drizzle/schema";
 import { persistNormalizedPost } from "./ingest";
 import { notifyPreferredHighConfidenceSignals } from "./alerts";
 import { collectionPolicy, type CollectionPolicy } from "./policy";
+import { decryptClientCredential } from "./providerCredentials";
 import { buildCoverageQueryFamilies, type CoverageQueryFamily } from "./query";
 import { isPotentialBuyerOpportunity } from "./ranking";
-import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule, type PublicSearchResult, type XApiPost, type XApiUser } from "./xClient";
+import { XApiError, consumeFilteredStream, dedupePosts, fetchPublicPosts, filteredStreamRequested, filteredStreamWorkerEnabled, upsertFilteredStreamRule, type ClientProviderCredential, type PublicSearchResult, type XApiPost, type XApiUser } from "./xClient";
 
 type Monitor = NonNullable<Awaited<ReturnType<typeof db.getMonitorForUser>>>;
 
@@ -26,6 +27,7 @@ type CoveragePage = {
 };
 
 type FetchCoverageContext = {
+  provider?: ClientProviderCredential;
   queryStates?: MonitorQueryState[];
   newestId?: string | null;
   nextToken?: string | null;
@@ -76,6 +78,8 @@ function utcDayStart() {
  */
 export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCoverageContext = {}) {
   const policy = effectivePolicy(context.policy);
+  const provider = context.provider ?? (process.env.VITEST ? { provider: "twitterapi_io" as const, credential: "test-provider-key" } : undefined);
+  if (!provider) throw new XApiError(401, "Connect a provider key before collecting posts.");
   const stateByFamily = new Map((context.queryStates ?? []).map(state => [`${state.familyId}:${state.queryHash}`, state]));
   const families = buildCoverageQueryFamilies(monitor.includeTerms, monitor.excludeTerms)
     .slice(0, policy.maxQueryFamiliesPerSync);
@@ -93,8 +97,9 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
       nextToken: state?.nextToken ?? null,
       newestPostId: state?.newestPostId ?? null,
       pagesFetched: state?.pagesFetched ?? 0,
+      lastSyncedAt: stateByFamily.get(`${family.id}:${hash}`)?.lastSyncedAt?.getTime() ?? 0,
     };
-  });
+  }).sort((left, right) => left.lastSyncedAt - right.lastSyncedAt);
 
   const pages: CoveragePage[] = [];
   const seenIds = new Set<string>();
@@ -117,7 +122,7 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
         : undefined;
     let result: PublicSearchResult;
     try {
-      result = await fetchPublicPosts(plan.family.query, cursor);
+      result = await fetchPublicPosts(plan.family.query, cursor, provider);
     } catch (error) {
       if (error && typeof error === "object") {
         (error as { faroPage?: PageFailureMetadata }).faroPage = {
@@ -197,16 +202,28 @@ export function classifySyncFailure(error: unknown) {
 export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Partial<CollectionPolicy>) {
   if (monitor.status !== "active") return { inserted: 0, skipped: "paused" as const };
   const start = Date.now();
-  const configuredPolicy = effectivePolicy(policyOverrides);
+  const connection = await db.getProviderConnectionForUser(monitor.userId);
+  if (!connection) throw new XApiError(401, "Connect a TwitterAPI.io or Official X API key in Profile before collecting posts.");
+  const provider: ClientProviderCredential = {
+    provider: connection.provider,
+    credential: decryptClientCredential(connection.encryptedCredential),
+  };
+  const source = provider.provider === "twitterapi_io" ? "twitterapi_io" : "recent_search";
+  const configuredPolicy = {
+    ...effectivePolicy(policyOverrides),
+    maxProviderCallsPerSync: 1,
+    maxPagesPerFamily: 1,
+    maxProviderCallsPerDay: connection.dailyRequestLimit,
+  };
   const [previous, queryStates, callsToday] = await Promise.all([
     db.getSyncState(monitor.id),
     db.listMonitorQueryStates(monitor.id),
-    db.countMonitorSyncRunsSince(utcDayStart()),
+    db.countMonitorSyncRunsForUserSince(monitor.userId, utcDayStart()),
   ]);
   const remainingCallsToday = Math.max(0, configuredPolicy.maxProviderCallsPerDay - callsToday);
   if (!remainingCallsToday) {
     await db.recordSync(monitor.id, {
-      source: "twitterapi_io",
+      source,
       status: "rate_limited",
       latencyLabel: "Daily source-call budget reached",
       newestPostId: previous?.newestPostId ?? null,
@@ -246,6 +263,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
       queryStates,
       newestId: previous?.newestPostId,
       nextToken: previous?.nextToken,
+      provider,
       policy: cyclePolicy,
     });
     const users = new Map(coverage.result.users.map(user => [user.id, user]));
@@ -366,14 +384,19 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
 
 export async function syncAllActiveMonitors() {
   const monitors = await db.listActiveMonitors();
-  const results = await Promise.all(monitors.map(async monitor => {
+  const optedIn: Monitor[] = [];
+  for (const monitor of monitors) {
+    const connection = await db.getProviderConnectionForUser(monitor.userId);
+    if (connection?.automaticCollection) optedIn.push(monitor);
+  }
+  const results = await Promise.all(optedIn.map(async monitor => {
     try {
       return { monitorId: monitor.id, ok: true, result: await syncMonitorRecord(monitor) };
     } catch (error) {
       return { monitorId: monitor.id, ok: false, error: error instanceof Error ? error.message.slice(0, 300) : "Unknown sync error" };
     }
   }));
-  return { monitors: monitors.length, results };
+  return { monitors: optedIn.length, results };
 }
 
 /**
@@ -383,7 +406,13 @@ export async function syncAllActiveMonitors() {
  */
 export async function syncScheduledMonitorBatch() {
   const policy = collectionPolicy();
-  const monitors = await db.listActiveMonitorsForPolling(policy.scheduledMonitorBatchSize);
+  const candidates = await db.listActiveMonitorsForPolling(policy.scheduledMonitorBatchSize * 4);
+  const monitors: Monitor[] = [];
+  for (const candidate of candidates) {
+    const connection = await db.getProviderConnectionForUser(candidate.userId);
+    if (connection?.automaticCollection) monitors.push(candidate);
+    if (monitors.length >= policy.scheduledMonitorBatchSize) break;
+  }
   const results: Array<{ monitorId: number; ok: boolean; result?: Awaited<ReturnType<typeof syncMonitorRecord>>; error?: string }> = [];
   for (const monitor of monitors) {
     try {

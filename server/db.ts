@@ -7,6 +7,7 @@ import {
   monitorQueryStates,
   monitorSyncRuns,
   monitorSyncs,
+  providerConnections,
   postAlertDeliveries,
   postReviews,
   savedPosts,
@@ -359,6 +360,45 @@ export async function countMonitorSyncRunsSince(startedAt: Date) {
     .from(monitorSyncRuns)
     .where(gte(monitorSyncRuns.createdAt, startedAt));
   return rows.length;
+}
+
+export async function countMonitorSyncRunsForUserSince(userId: number, startedAt: Date) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .select({ id: monitorSyncRuns.id })
+    .from(monitorSyncRuns)
+    .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, monitorSyncRuns.monitorId))
+    .where(and(eq(monitoringCriteria.userId, userId), gte(monitorSyncRuns.createdAt, startedAt)));
+  return rows.length;
+}
+
+export async function getProviderConnectionForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(providerConnections).where(eq(providerConnections.userId, userId)).limit(1);
+  return rows[0];
+}
+
+export async function upsertProviderConnectionForUser(input: typeof providerConnections.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(providerConnections).values(input).onDuplicateKeyUpdate({
+    set: {
+      provider: input.provider,
+      encryptedCredential: input.encryptedCredential,
+      credentialHint: input.credentialHint,
+      dailyRequestLimit: input.dailyRequestLimit,
+      automaticCollection: input.automaticCollection,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function deleteProviderConnectionForUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(providerConnections).where(eq(providerConnections.userId, userId));
 }
 
 export async function countActiveMonitorsForUser(userId: number) {

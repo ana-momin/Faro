@@ -4,6 +4,7 @@ import * as db from "../db";
 import { suggestCriteria } from "../monitoring/ai";
 import { seedDemo } from "../monitoring/demo";
 import { collectionPolicy } from "../monitoring/policy";
+import { credentialHint, encryptClientCredential, type ClientProvider } from "../monitoring/providerCredentials";
 import { deterministicSuggestion, requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
 import { derivePreferredTopics, preferenceBoost } from "../monitoring/preferences";
@@ -24,16 +25,28 @@ async function requireActiveMonitorCapacity(userId: number) {
   return { active, limit: policy.activeMonitorLimitPerUser };
 }
 
+async function requireProviderConnection(userId: number) {
+  const connection = await db.getProviderConnectionForUser(userId);
+  if (!connection) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Connect a TwitterAPI.io or Official X API key in Profile before collecting posts.",
+    });
+  }
+  return connection;
+}
+
 export const monitoringRouter = router({
   overview: protectedProcedure
     .input(z.object({ monitorId: z.number().int().positive().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);
-      const [monitors, posts, callsToday] = await Promise.all([
+      const [monitors, posts, connection, callsToday] = await Promise.all([
         db.listMonitorsWithSync(ctx.user.id),
         db.listPostsForUser(ctx.user.id, input?.monitorId),
-        db.countMonitorSyncRunsSince(dayStart),
+        db.getProviderConnectionForUser(ctx.user.id),
+        db.countMonitorSyncRunsForUserSince(ctx.user.id, dayStart),
       ]);
       const preferredTopics = derivePreferredTopics(posts);
       const rescoredPosts = posts
@@ -76,10 +89,55 @@ export const monitoringRouter = router({
           perSyncPageBudget: policy.maxProviderCallsPerSync,
           perSyncFamilyBudget: policy.maxQueryFamiliesPerSync,
           callsToday,
-          dailyCallBudget: policy.maxProviderCallsPerDay,
+          dailyCallBudget: connection?.dailyRequestLimit ?? 0,
+          remainingCalls: Math.max(0, (connection?.dailyRequestLimit ?? 0) - callsToday),
+          configured: Boolean(connection),
+          provider: connection?.provider ?? null,
+          credentialHint: connection?.credentialHint ?? null,
+          strictBatch: true,
         },
       };
     }),
+
+  providerSetup: protectedProcedure.query(async ({ ctx }) => {
+    const dayStart = new Date();
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const [connection, callsToday] = await Promise.all([
+      db.getProviderConnectionForUser(ctx.user.id),
+      db.countMonitorSyncRunsForUserSince(ctx.user.id, dayStart),
+    ]);
+    if (!connection) return { configured: false as const, callsToday: 0, dailyRequestLimit: 20, remainingCalls: 20, strictBatch: true as const };
+    return {
+      configured: true as const,
+      provider: connection.provider,
+      credentialHint: connection.credentialHint,
+      dailyRequestLimit: connection.dailyRequestLimit,
+      callsToday,
+      remainingCalls: Math.max(0, connection.dailyRequestLimit - callsToday),
+      automaticCollection: false as const,
+      strictBatch: true as const,
+    };
+  }),
+
+  saveProviderSetup: protectedProcedure
+    .input(z.object({ provider: z.enum(["twitterapi_io", "official_x"]), credential: z.string().trim().min(12).max(4096), dailyRequestLimit: z.number().int().min(1).max(100) }))
+    .mutation(async ({ ctx, input }) => {
+      const provider = input.provider as ClientProvider;
+      await db.upsertProviderConnectionForUser({
+        userId: ctx.user.id,
+        provider,
+        encryptedCredential: encryptClientCredential(input.credential),
+        credentialHint: credentialHint(input.credential),
+        dailyRequestLimit: input.dailyRequestLimit,
+        automaticCollection: false,
+      });
+      return { ok: true, provider, credentialHint: credentialHint(input.credential), dailyRequestLimit: input.dailyRequestLimit };
+    }),
+
+  removeProviderSetup: protectedProcedure.mutation(async ({ ctx }) => {
+    await db.deleteProviderConnectionForUser(ctx.user.id);
+    return { ok: true };
+  }),
 
   suggest: protectedProcedure
     .input(z.object({ goal: z.string().trim().min(12).max(800) }))
@@ -88,6 +146,7 @@ export const monitoringRouter = router({
   agentStart: protectedProcedure
     .input(z.object({ brief: z.string().trim().min(12).max(800) }))
     .mutation(async ({ ctx, input }) => {
+      await requireProviderConnection(ctx.user.id);
       const criteria = await suggestCriteria(input.brief);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);
       const monitorCapacity = await requireActiveMonitorCapacity(ctx.user.id);
@@ -115,6 +174,7 @@ export const monitoringRouter = router({
   keywordStart: protectedProcedure
     .input(z.object({ keywords: z.string().trim().min(2).max(240) }))
     .mutation(async ({ ctx, input }) => {
+      await requireProviderConnection(ctx.user.id);
       const criteria = deterministicSuggestion(`Find people looking for help with ${input.keywords}`);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);
       const monitorCapacity = await requireActiveMonitorCapacity(ctx.user.id);
