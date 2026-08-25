@@ -263,3 +263,6 @@
 - [x] Add owned monitor controls for rename, pause/resume, and delete.
 - [x] Send one deduplicated owner alert for newly collected high-confidence posts matching retained preferences.
 - [x] Add regression coverage, validate responsive quality-and-control UI, and checkpoint the complete upgrade.
+- [x] Update the post-detail save state optimistically so saved posts do not retain an actionable Save control.
+- [x] Confirm Monitor manager and high-confidence preferred-topic alert behavior remains visible and documented.
+- [x] Add regression coverage, verify responsive post-detail behavior, and checkpoint the correction.

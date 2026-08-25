@@ -35,3 +35,7 @@ Desktop and mobile checks confirmed that Profile now exposes a compact Saved tab
 Desktop verification confirms that Feed now presents a concise **Why it matched** line beneath each qualified post and Profile exposes compact Profile, Saved, and Monitors navigation. Saved and Monitor panels are interaction-driven, with source-level regression coverage for private notes, priority, pause/resume, rename, and deletion controls. No provider request, feedback action, save mutation, monitor action, or owner notification was triggered during visual verification.
 
 Mobile verification confirms that the concise match reason remains legible beneath Feed cards and the three Profile controls fit cleanly without horizontal overflow. No source, feedback, save, monitor, or notification action was triggered during this check.
+
+## Immediate saved state correction — 25 August 2026
+
+The Feed remains stable after the post-detail save correction. Regression coverage verifies that a save intent updates the open detail state immediately, replaces the action with a non-clickable Saved indicator, and restores the previous state if persistence fails. No source request or post interaction was triggered during verification.

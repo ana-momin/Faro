@@ -26,7 +26,8 @@ describe("Faro saved feedback experience", () => {
     expect(homeSource).toContain('result.saved ? "Saved to Profile." : "Removed from saved posts.", { position: "bottom-right"');
     expect(homeSource).toContain('aria-label="Keep this kind of post"');
     expect(homeSource).toContain('aria-label="Dismiss this kind of post"');
-    expect(homeSource).toContain('aria-label={item.savedAt ? "Remove from saved posts" : "Save post"}');
+    expect(homeSource).toContain('aria-label="Saved to Profile"');
+    expect(homeSource).toContain('onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })}');
     expect(profileSource).toContain("trpc.monitoring.saved.useQuery");
     expect(profileSource).toContain(">Saved posts<");
   });
