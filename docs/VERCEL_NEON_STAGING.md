@@ -76,9 +76,9 @@ This deployment is a functional staging environment, not a production promise. V
 
 ## Clean Vercel Address
 
-The long `faro-git-vercel-neon-staging-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to `faro` makes the project identity concise without breaking Git integration, because the integration uses an immutable project ID. [5]
+The long `faro-git-vercel-neon-staging-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to `faro` makes the project identity concise without breaking Git integration, because the integration uses an immutable project ID. [5] The current clean project address is `https://faro-alpha-ea14.vercel.app`.
 
-The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `vercel-neon-staging`. Pointing the clean default address to the migration branch requires the Vercel project’s Production Branch to be set to `vercel-neon-staging`; that does not change Manus or GitHub `main`, but it is a separate Vercel staging-routing decision.
+The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `vercel-neon-staging`. Pointing the clean default address to the migration branch requires the Vercel project’s Production Branch to be set to `vercel-neon-staging`; that does not change Manus or GitHub `main`, but it is a separate Vercel staging-routing decision. The globally short `faro.vercel.app` address is not available to this project, so it must not be advertised as Faro’s URL.
 
 ## Data, Credential, and Cutover Policy
 
