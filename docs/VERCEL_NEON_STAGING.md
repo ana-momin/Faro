@@ -112,7 +112,7 @@ The passkey onboarding shell is constrained to the dynamic viewport with no oute
 
 ## Passkey Route Diagnosis
 
-The active Vercel production deployment on `vercel-neon-staging` includes four Node.js functions, including `/api/trpc/[...path]`. The deployed `POST /api/trpc/auth.passkeyAuthenticationOptions` nevertheless returned an empty `405` response from the static `index.html` fallback. This confirms a route-precedence defect rather than an absent function or an X-provider dependency. The routing configuration now uses Vercel’s rewrite-first default filesystem lookup and excludes the full `/api` namespace from the SPA fallback.
+The active Vercel production deployment on `vercel-neon-staging` includes four Node.js functions, including `/api/trpc/[...path]`. The deployed `POST /api/trpc/auth.passkeyAuthenticationOptions` initially returned an empty `405` response from the static `index.html` fallback. After the route-precedence correction, the request reached the tRPC function and exposed the remaining runtime issue: Vercel could not resolve the extensionless shared-App import (`ERR_MODULE_NOT_FOUND: /var/task/server/app`). The API entries now use explicit `.ts` imports so Vercel bundles the shared Express application into each serverless function. No provider dependency is involved.
 
 ## References
 

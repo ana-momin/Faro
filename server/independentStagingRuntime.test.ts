@@ -37,7 +37,9 @@ describe("independent Vercel and Neon staging contract", () => {
     expect(app).toContain('app.get("/healthz"');
     expect(app).toContain('app.use("/api/trpc"');
     expect(app).not.toContain("app.listen");
+    expect(entrypoint).toContain('import { createFaroApp } from "../server/app.ts"');
     expect(entrypoint).toContain("export default app");
+    expect(trpcEntrypoint).toContain('import { createFaroApp } from "../../server/app.ts"');
     expect(trpcEntrypoint).toContain("export default app");
     expect(healthEntrypoint).toContain('res.status(200).json({ ok: true, service: "faro-ai" })');
     expect(config).toContain('"source": "/healthz", "destination": "/api/healthz"');

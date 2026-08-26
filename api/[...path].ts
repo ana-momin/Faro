@@ -1,4 +1,4 @@
-import { createFaroApp } from "../server/app";
+import { createFaroApp } from "../server/app.ts";
 
 const app = createFaroApp();
 
