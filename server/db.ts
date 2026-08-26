@@ -111,16 +111,25 @@ export async function getUserById(userId: number) {
   return rows[0];
 }
 
-export async function createPasskeyUser(input: { openId: string; name: string; email?: string | null }) {
+export async function createPasskeyUser(input: { openId: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const [user] = await db.insert(users).values({
     openId: input.openId,
-    name: input.name,
-    email: input.email || null,
     loginMethod: "passkey",
     lastSignedIn: new Date(),
   }).returning();
+  return user;
+}
+
+export async function completePasskeyProfile(userId: number, input: { name: string; email?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const [user] = await db.update(users).set({
+    name: input.name,
+    email: input.email || null,
+    updatedAt: new Date(),
+  }).where(eq(users.id, userId)).returning();
   return user;
 }
 

@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { loading, user } = useAuth();
   useWarmProfileImage(user?.avatarUrl);
   if (loading) return <DashboardLayoutSkeleton />;
-  if (!user) return <Onboarding />;
+  if (!user || !user.name?.trim()) return <Onboarding profileRequired={Boolean(user)} />;
   return <SidebarProvider style={{ "--sidebar-width": `${DEFAULT_WIDTH}px`, "--sidebar-width-icon": "4.5rem" } as CSSProperties}><DashboardLayoutContent>{children}</DashboardLayoutContent></SidebarProvider>;
 }
 

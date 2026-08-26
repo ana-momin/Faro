@@ -4,14 +4,17 @@ import { describe, expect, it } from "vitest";
 const projectFile = (relativePath: string) => readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
 describe("independent Vercel and Neon staging contract", () => {
-  it("keeps passkey onboarding device-local with a required name and optional email", () => {
+  it("keeps passkey onboarding device-local with passkey-first identity and a required-name profile completion", () => {
     const router = projectFile("server/routers/localAuth.ts");
     const onboarding = projectFile("client/src/pages/Onboarding.tsx");
 
+    expect(router).toContain("passkeyRegistrationOptions: publicProcedure.mutation");
+    expect(router).toContain("completeProfile: protectedProcedure");
     expect(router).toContain("name: z.string().trim().min(1).max(120)");
     expect(router).toContain('email: z.string().trim().email().max(320).optional().or(z.literal(""))');
     expect(onboarding).toContain("disabled={working || !name.trim()}");
-    expect(onboarding).toContain("Email is optional");
+    expect(onboarding).toContain("Passkey confirmed");
+    expect(onboarding).toContain("Profile photo · optional");
   });
 
   it("uses independent session and credential-encryption secrets", () => {

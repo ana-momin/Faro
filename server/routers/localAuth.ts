@@ -3,7 +3,7 @@ import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthe
 import { z } from "zod";
 import * as db from "../db";
 import { clearLocalSession, issueLocalSession } from "../auth/localSession";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 const rpName = "Faro AI";
 
@@ -28,34 +28,32 @@ export const localAuthRouter = router({
     clearLocalSession(ctx.res, ctx.req);
     return { success: true } as const;
   }),
-  passkeyRegistrationOptions: publicProcedure
-    .input(z.object({ name: z.string().trim().min(1).max(120), email: z.string().trim().email().max(320).optional().or(z.literal("")) }))
-    .mutation(async ({ ctx, input }) => {
-      const { rpID } = requestPasskeyConfig(ctx.req);
-      const userHandle = crypto.randomUUID();
-      const options = await generateRegistrationOptions({
-        rpName,
-        rpID,
-        userName: input.email || `faro-${userHandle.slice(0, 8)}`,
-        userDisplayName: input.name,
-        userID: new TextEncoder().encode(userHandle),
-        attestationType: "none",
-        authenticatorSelection: { residentKey: "required", userVerification: "required" },
-      });
-      await db.createPasskeyChallenge({ challenge: options.challenge, purpose: "register", profileName: input.name, email: input.email || null });
-      return options;
-    }),
+  passkeyRegistrationOptions: publicProcedure.mutation(async ({ ctx }) => {
+    const { rpID } = requestPasskeyConfig(ctx.req);
+    const userHandle = crypto.randomUUID();
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userName: `faro-${userHandle.slice(0, 8)}`,
+      userDisplayName: "Faro member",
+      userID: new TextEncoder().encode(userHandle),
+      attestationType: "none",
+      authenticatorSelection: { residentKey: "required", userVerification: "required" },
+    });
+    await db.createPasskeyChallenge({ challenge: options.challenge, purpose: "register" });
+    return options;
+  }),
   passkeyRegistrationVerify: publicProcedure
     .input(z.object({ response: z.any() }))
     .mutation(async ({ ctx, input }) => {
       const challenge = input.response?.response?.clientDataJSON ? JSON.parse(Buffer.from(input.response.response.clientDataJSON, "base64url").toString("utf8")).challenge : null;
       if (!challenge) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid passkey registration response." });
       const saved = await db.consumePasskeyChallenge(challenge, "register");
-      if (!saved?.profileName) throw new TRPCError({ code: "BAD_REQUEST", message: "This passkey setup request expired. Please try again." });
+      if (!saved) throw new TRPCError({ code: "BAD_REQUEST", message: "This passkey setup request expired. Please try again." });
       const { origin, rpID } = requestPasskeyConfig(ctx.req);
       const verification = await verifyRegistrationResponse({ response: input.response, expectedChallenge: saved.challenge, expectedOrigin: origin, expectedRPID: rpID, requireUserVerification: true });
       if (!verification.verified || !verification.registrationInfo) throw new TRPCError({ code: "UNAUTHORIZED", message: "Your device could not verify this passkey." });
-      const user = await db.createPasskeyUser({ openId: crypto.randomUUID(), name: saved.profileName, email: saved.email });
+      const user = await db.createPasskeyUser({ openId: crypto.randomUUID() });
       await db.savePasskeyCredential({
         userId: user.id,
         credentialId: verification.registrationInfo.credential.id,
@@ -64,6 +62,13 @@ export const localAuthRouter = router({
         transports: verification.registrationInfo.credential.transports ?? [],
       });
       await issueLocalSession(ctx.res, ctx.req, user.id);
+      return { user };
+    }),
+  completeProfile: protectedProcedure
+    .input(z.object({ name: z.string().trim().min(1).max(120), email: z.string().trim().email().max(320).optional().or(z.literal("")) }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await db.completePasskeyProfile(ctx.user.id, { name: input.name, email: input.email || null });
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Your Faro profile could not be updated." });
       return { user };
     }),
   passkeyAuthenticationOptions: publicProcedure.mutation(async ({ ctx }) => {
