@@ -14,16 +14,17 @@ describe("passkey profile experience", () => {
     expect(getPasskeyErrorMessage(new Error("https://www.w3.org/TR/webauthn-2/"), "create")).toBe("We could not confirm that passkey. Please try again.");
   });
 
-  it("uses the supplied shared profile image and does not ask a member to choose or upload one", () => {
+  it("uses the supplied shared profile image only after onboarding and does not ask a member to choose or upload one", () => {
     const onboarding = projectFile("client/src/pages/Onboarding.tsx");
     const router = projectFile("server/routers/localAuth.ts");
     const db = projectFile("server/db.ts");
     const layout = projectFile("client/src/components/DashboardLayout.tsx");
     const profile = projectFile("client/src/pages/Profile.tsx");
 
-    expect(FARO_SHARED_PROFILE_IMAGE).toBe("/manus-storage/faro-profile-cat_199fa72a.png");
+    expect(FARO_SHARED_PROFILE_IMAGE).toBe("/faro-profile-cat.png");
     expect(onboarding).toContain("Complete your profile.");
-    expect(onboarding).toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("FARO_SHARED_PROFILE_IMAGE");
     expect(onboarding).not.toContain("Choose an avatar");
     expect(onboarding).not.toContain("FARO_AVATARS.map");
     expect(onboarding).not.toContain("private photo storage is coming next");

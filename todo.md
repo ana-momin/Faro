@@ -377,3 +377,5 @@
 - [x] Replace optional curated-avatar selection with the user-supplied shared cat image for every Faro profile surface.
 - [x] Remove avatar selection from profile completion and preserve a minimal required-name, optional-email onboarding flow.
 - [x] Configure and verify an independent Vercel `CREDENTIAL_ENCRYPTION_SECRET` for secure provider credential storage without exposing it in source, logs, or the browser.
+- [x] Remove the shared cat image from the passkey profile-completion screen.
+- [x] Repair reliable rendering of the shared cat image in signed-in Faro profile and account-avatar surfaces.

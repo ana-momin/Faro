@@ -11,8 +11,8 @@ describe("passkey onboarding responsive layout", () => {
     expect(onboarding).toContain('grid h-full max-w-5xl overflow-hidden');
     expect(onboarding).toContain('hidden min-h-0 flex-col');
     expect(onboarding).toContain('flex min-h-0 flex-col justify-center overflow-y-auto');
-    expect(onboarding).toContain('src={FARO_SHARED_PROFILE_IMAGE}');
-    expect(onboarding).toContain('h-14 w-14 rounded-full');
+    expect(onboarding).not.toContain('FARO_SHARED_PROFILE_IMAGE');
+    expect(onboarding).not.toContain('h-14 w-14 rounded-full');
     expect(onboarding).not.toContain('role="radiogroup" aria-label="Choose an optional Faro avatar"');
     expect(onboarding).not.toContain("min-h-screen");
   });

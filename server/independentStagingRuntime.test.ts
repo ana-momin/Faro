@@ -15,7 +15,8 @@ describe("independent Vercel and Neon staging contract", () => {
     expect(onboarding).toContain("disabled={working || !name.trim()}");
     expect(onboarding).toContain("Passkey confirmed");
     expect(onboarding).toContain("Complete your profile.");
-    expect(onboarding).toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("FARO_SHARED_PROFILE_IMAGE");
     expect(onboarding).not.toContain("Choose an avatar");
   });
 

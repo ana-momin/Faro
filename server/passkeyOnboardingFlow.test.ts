@@ -18,7 +18,8 @@ describe("passkey-first onboarding flow", () => {
     expect(onboarding).toContain("I already have a passkey");
     expect(onboarding).toContain("Passkey confirmed");
     expect(onboarding).toContain("Complete your profile.");
-    expect(onboarding).toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("Faro uses the same shared profile image for every member.");
+    expect(onboarding).not.toContain("FARO_SHARED_PROFILE_IMAGE");
     expect(onboarding).not.toContain("Choose an avatar");
     expect(layout).toContain("!user || !user.name?.trim()");
   });
