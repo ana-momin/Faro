@@ -368,3 +368,5 @@
 - [x] Verify and correct responsive layout behavior across Faro AI’s core desktop and mobile surfaces.
 - [ ] Diagnose and fix the Vercel passkey flow that returns an empty response and causes `Unexpected end of JSON input` for new and existing passkeys.
 - [ ] Redesign onboarding into passkey creation/sign-in first, then a minimal profile completion screen with required name and optional email/photo.
+- [ ] Restore the Faro Vercel project’s canonical `faro-ai-staging.vercel.app` deployment mapping to the active `vercel-neon-staging` branch so new passkey fixes are deployed.
+- [ ] Force a fresh Vercel deployment from `vercel-neon-staging` and confirm the deployed passkey tRPC options endpoint returns JSON rather than an empty response.
