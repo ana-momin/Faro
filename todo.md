@@ -366,8 +366,8 @@
 - [x] Retire conflicting short-domain guidance and confirm `faro-ai-staging.vercel.app` as Faro AI’s canonical working Vercel staging URL.
 - [x] Reduce the passkey onboarding container height so the page fits the viewport without unnecessary scrolling.
 - [x] Verify and correct responsive layout behavior across Faro AI’s core desktop and mobile surfaces.
-- [ ] Diagnose and fix the Vercel passkey flow that returns an empty response and causes `Unexpected end of JSON input` for new and existing passkeys.
-- [ ] Redesign onboarding into passkey creation/sign-in first, then a minimal profile completion screen with required name and optional email/photo.
-- [ ] Restore the Faro Vercel project’s canonical `faro-ai-staging.vercel.app` deployment mapping to the active `vercel-neon-staging` branch so new passkey fixes are deployed.
-- [ ] Force a fresh Vercel deployment from `vercel-neon-staging` and confirm the deployed passkey tRPC options endpoint returns JSON rather than an empty response.
-- [ ] Bundle the shared Express application into the Vercel function artifact so the deployed tRPC entrypoint no longer fails to import `/var/task/server/app.ts`.
+- [x] Diagnose and fix the Vercel passkey flow that returns an empty response and causes `Unexpected end of JSON input` for new and existing passkeys.
+- [x] Redesign onboarding into passkey creation/sign-in first, then a minimal profile completion screen with required name and optional email/photo.
+- [x] Restore the Faro Vercel project’s canonical `faro-ai-staging.vercel.app` deployment mapping to the active `vercel-neon-staging` branch so new passkey fixes are deployed.
+- [x] Force a fresh Vercel deployment from `vercel-neon-staging` and confirm the deployed passkey tRPC options endpoint returns JSON rather than an empty response.
+- [x] Bundle the shared Express application into the Vercel function artifact so the deployed tRPC entrypoint no longer fails to import `/var/task/server/app.ts`.
