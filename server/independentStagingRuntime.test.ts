@@ -27,6 +27,7 @@ describe("independent Vercel and Neon staging contract", () => {
   it("routes Vercel requests through the shared stateless Express application", () => {
     const app = projectFile("server/app.ts");
     const entrypoint = projectFile("api/[...path].ts");
+    const trpcEntrypoint = projectFile("api/trpc/[...path].ts");
     const healthEntrypoint = projectFile("api/healthz.ts");
     const config = projectFile("vercel.json");
 
@@ -34,6 +35,7 @@ describe("independent Vercel and Neon staging contract", () => {
     expect(app).toContain('app.use("/api/trpc"');
     expect(app).not.toContain("app.listen");
     expect(entrypoint).toContain("export default app");
+    expect(trpcEntrypoint).toContain("export default app");
     expect(healthEntrypoint).toContain('res.status(200).json({ ok: true, service: "faro-ai" })');
     expect(config).toContain('"handle": "filesystem"');
     expect(config).toContain('"src": "/healthz", "dest": "/api/healthz"');
