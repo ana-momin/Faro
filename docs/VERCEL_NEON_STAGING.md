@@ -110,6 +110,10 @@ The remaining manual check is one device-local passkey enrollment and re-login o
 
 The passkey onboarding shell is constrained to the dynamic viewport with no outer-page scroll. Visual checks at `1280×720` and `375×812` confirm that the desktop composition remains fully visible and the mobile composition collapses to a single, comfortably spaced panel without clipping its title or actions. On unusually short screens, only the right-pane form content can scroll, preserving access to every input without allowing the page itself to overflow.
 
+## Passkey Route Diagnosis
+
+The active Vercel production deployment on `vercel-neon-staging` includes four Node.js functions, including `/api/trpc/[...path]`. The deployed `POST /api/trpc/auth.passkeyAuthenticationOptions` nevertheless returned an empty `405` response from the static `index.html` fallback. This confirms a route-precedence defect rather than an absent function or an X-provider dependency. The routing configuration now uses Vercel’s rewrite-first default filesystem lookup and excludes the full `/api` namespace from the SPA fallback.
+
 ## References
 
 [1]: https://vercel.com/docs/environment-variables "Vercel: Environment variables"
