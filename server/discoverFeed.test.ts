@@ -93,6 +93,12 @@ describe("Faro Discover feed selection", () => {
     expect(getAllQualifiedPosts([first, repeat, distinct]).map(row => row.post.id)).toEqual([27, 29]);
   });
 
+  it("keeps the newest version when near-duplicate stored results would otherwise hide a fresh request", () => {
+    const older = { ...item(32, 10, 90, "twitterapi.io", "Our company needs someone to automate sales intake with n8n workflows."), post: { ...item(32, 10, 90).post, postedAt: "2026-08-20T09:00:00.000Z" } };
+    const newer = { ...item(33, 10, 70, "twitterapi.io", "Our company needs someone to automate sales intake with n8n workflow."), post: { ...item(33, 10, 70).post, postedAt: "2026-08-26T09:00:00.000Z" } };
+    expect(getAllQualifiedPosts([older, newer]).map(row => row.post.id)).toEqual([33]);
+  });
+
   it("removes promotional provider noise and explains concrete buyer matches concisely", () => {
     const promotion = item(30, 10, 95, "twitterapi.io", "My agency offers automation. Book a call and DM me for a free guide.");
     const request = item(31, 10, 85, "twitterapi.io", "We need someone to automate our support workflow.");

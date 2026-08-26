@@ -16,7 +16,7 @@ Faro AI is being separated from Manus-managed OAuth, database access, runtime he
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
 | Profile avatar | One shared user-supplied Faro cat image | Rendered consistently for every Faro member; there is no avatar picker or user-image upload |
 | Signal analysis | Existing deterministic buyer-intent rules | Independent; no active Manus model dependency |
-| Collection | Manual one-request batches only | Automatic worker disabled in staging |
+| Collection | Client-initiated fresh-first batches, capped at three provider pages | Automatic worker disabled in staging; every provider call remains explicit and bounded |
 
 ## Runtime Design
 
@@ -129,6 +129,10 @@ The Production `CREDENTIAL_ENCRYPTION_SECRET` was replaced in Vercel with a fres
 The focused shared-profile and passkey regression suite now confirms that the onboarding screen has no avatar picker, every member surface uses the same managed image, and the protected profile mutation accepts only name and optional email. Desktop `1280×720` and mobile `375×812` visual checks remain part of the release validation.
 
 For this shared-image release, the unsigned passkey welcome screen was rechecked at `1280×720` and `375×812`. Both layouts preserve the original Faro logo, clear dual passkey actions, and a non-scrolling outer page. The required post-passkey profile screen is covered by source-level visual contracts because passkey enrollment is intentionally left to the client’s device during staging validation.
+
+## Fresh Collection and Feed Behavior
+
+Client-run Search and Feed refreshes now start from the provider’s newest available posts rather than resuming a stale continuation cursor. A manual refresh checks up to **three** fresh pages—one per buyer-intent query family—subject to the client’s existing daily request limit. The Feed shows the **current active search** newest-first, while older searches remain available only through Search history. Exact X post IDs and conservative near-duplicate wording are suppressed; a provider row already present in storage is refreshed for accuracy but is not reported as a new post. This avoids presenting stored historical rows as a new real-time batch without adding an automatic worker or making any unapproved provider call during deployment verification.
 
 ## References
 

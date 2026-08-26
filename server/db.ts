@@ -286,7 +286,7 @@ export async function listPostsForUser(userId: number, monitorId?: number) {
     .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
     .leftJoin(savedPosts, and(eq(savedPosts.postId, listenedPosts.id), eq(savedPosts.userId, userId)))
     .where(and(...conditions))
-    .orderBy(desc(listenedPosts.ruleScore), desc(listenedPosts.postedAt))
+    .orderBy(desc(listenedPosts.postedAt), desc(listenedPosts.ruleScore))
     .limit(200);
 }
 
@@ -379,28 +379,32 @@ export async function listPostsForMonitor(monitorId: number) {
 export async function upsertListenedPost(input: typeof listenedPosts.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(listenedPosts).values(input).onConflictDoUpdate({
-    target: [listenedPosts.monitorId, listenedPosts.xPostId],
-    set: {
-      authorId: input.authorId,
-      authorHandle: input.authorHandle,
-      authorName: input.authorName,
-      authorAvatarUrl: input.authorAvatarUrl,
-      body: input.body,
-      postUrl: input.postUrl,
-      postedAt: input.postedAt,
-      capturedAt: new Date(),
-      language: input.language,
-      engagement: input.engagement,
-      matchedRule: input.matchedRule,
-      ruleScore: input.ruleScore,
-      scoreExplanation: input.scoreExplanation,
-      aiIntent: input.aiIntent,
-    },
-  });
+  const existing = await db.select({ id: listenedPosts.id }).from(listenedPosts)
+    .where(and(eq(listenedPosts.monitorId, input.monitorId), eq(listenedPosts.xPostId, input.xPostId))).limit(1);
+  const values = {
+    authorId: input.authorId,
+    authorHandle: input.authorHandle,
+    authorName: input.authorName,
+    authorAvatarUrl: input.authorAvatarUrl,
+    body: input.body,
+    postUrl: input.postUrl,
+    postedAt: input.postedAt,
+    capturedAt: new Date(),
+    language: input.language,
+    engagement: input.engagement,
+    matchedRule: input.matchedRule,
+    ruleScore: input.ruleScore,
+    scoreExplanation: input.scoreExplanation,
+    aiIntent: input.aiIntent,
+  };
+  if (existing[0]) {
+    await db.update(listenedPosts).set(values).where(eq(listenedPosts.id, existing[0].id));
+    return { id: existing[0].id, isNew: false };
+  }
+  await db.insert(listenedPosts).values(input);
   const rows = await db.select({ id: listenedPosts.id }).from(listenedPosts)
     .where(and(eq(listenedPosts.monitorId, input.monitorId), eq(listenedPosts.xPostId, input.xPostId))).limit(1);
-  return rows[0]?.id;
+  return { id: rows[0]?.id, isNew: true };
 }
 
 export async function recordSync(monitorId: number, state: Omit<typeof monitorSyncs.$inferInsert, "monitorId">) {

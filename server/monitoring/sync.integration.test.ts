@@ -79,7 +79,7 @@ describe("bounded multi-family sync", () => {
     mocks.recordMonitorSyncRun.mockResolvedValue(undefined);
     mocks.recordSync.mockResolvedValue(undefined);
     mocks.getUserById.mockResolvedValue(undefined);
-    mocks.persistNormalizedPost.mockResolvedValue(undefined);
+    mocks.persistNormalizedPost.mockResolvedValue({ isNew: true });
   });
 
   it("checks every named query family before spending a continuation page and deduplicates across families", async () => {
@@ -102,13 +102,13 @@ describe("bounded multi-family sync", () => {
     expect(mocks.fetchPublicPosts.mock.calls.some(([, cursor]) => cursor?.nextToken === "direct-next")).toBe(true);
   });
 
-  it("resumes the legacy primary cursor during the migration to independent family state", async () => {
+  it("starts a new client collection from the newest posts instead of resurfacing an old legacy cursor", async () => {
     mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "continued", text: "Need someone to automate an operations workflow for our team." }], "following-page"));
 
     const coverage = await fetchCreditAwarePosts(monitor, { nextToken: "legacy-direct-cursor", queryStates: [], policy: { maxProviderCallsPerSync: 1 } });
 
     expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
-    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "legacy-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), undefined, expect.objectContaining({ provider: "twitterapi_io" }));
     expect(coverage.pages[0]?.nextToken).toBe("following-page");
   });
 
@@ -137,13 +137,27 @@ describe("bounded multi-family sync", () => {
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ monitorId: 17, pageNumber: 1, rawReceived: 2, deduplicatedPosts: 2, buyerCandidates: 2, persistedPosts: 2, queueWaitMs: 48 }));
   });
 
-  it("locks a client-initiated collection to one provider request even when a legacy override asks for more", async () => {
-    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "strict-one", text: "Need someone to automate a client onboarding workflow." }], "next"));
+  it("uses a fresh bounded three-query batch even when a legacy override asks for more", async () => {
+    mocks.fetchPublicPosts
+      .mockResolvedValueOnce(sourceResult([{ id: "direct-fresh", text: "Need someone to automate a client onboarding workflow." }]))
+      .mockResolvedValueOnce(sourceResult([{ id: "task-fresh", text: "Need help automating our sales operations." }]))
+      .mockResolvedValueOnce(sourceResult([{ id: "recommendation-fresh", text: "Does anyone know an automation expert who can help our team?" }]));
 
     await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 4, maxPagesPerFamily: 2 })).resolves.toMatchObject({
-      retrieval: { sourceCalls: 1, pagesChecked: 1, pageBudget: 1 },
+      retrieval: { sourceCalls: 3, pagesChecked: 3, queryFamilies: 3, pageBudget: 3 },
     });
-    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not report an already stored provider post as newly surfaced", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "already-stored", text: "Need someone to automate our client intake workflow." }]));
+    mocks.persistNormalizedPost.mockResolvedValueOnce({ isNew: false });
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 0,
+      retrieval: { sourceCalls: 1, pagesChecked: 1, persisted: 0 },
+    });
+    expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
   });
 
   it("persists a rate-limit source state without consuming later families", async () => {

@@ -9,7 +9,7 @@ describe("Faro refresh and Search result surfaces", () => {
   it("makes source collection an explicit bounded Feed action rather than a passive page refresh", () => {
     expect(homeSource).toContain("trpc.monitoring.sync.useMutation");
     expect(homeSource).toContain("refresh.mutate({ monitorId: active.monitor.id })");
-    expect(homeSource).toContain("Collects one new source batch");
+    expect(homeSource).toContain("Checks up to three fresh source pages for the current search");
     expect(homeSource).toContain("saved results");
     expect(homeSource).toContain("Connect your X data provider.");
     expect(homeSource).toContain("Configure provider");
@@ -38,8 +38,8 @@ describe("Faro refresh and Search result surfaces", () => {
   });
 
   it("keeps rich post actions available in Search and lets saved history reopen result sets without another provider request", () => {
-    expect(homeSource).toContain("All your search results");
-    expect(homeSource).toContain("Top qualified requests");
+    expect(homeSource).toContain("Current search · newest first");
+    expect(homeSource).toContain("Latest qualified requests");
     expect(searchSource).toContain("<RequestCard");
     expect(searchSource).toContain("<PostDetailDialog");
     expect(searchSource).toContain("historyMonitorId");

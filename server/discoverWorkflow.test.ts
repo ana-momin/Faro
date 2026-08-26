@@ -24,14 +24,14 @@ describe("Faro Feed workflow wiring", () => {
   it("explains when a live search returned posts that did not meet service-request qualification", () => {
     expect(homeSource).toContain("Faro screened ${screened} stored public posts for this search");
     expect(homeSource).toContain("filtered as noise, not lost");
-    expect(homeSource).toContain("getAllQualifiedPosts(overview.data?.posts ?? [])");
+    expect(homeSource).toContain("getQualifiedPosts(overview.data?.posts ?? [], active?.monitor.id, false)");
   });
 
   it("renders Feed as full post cards instead of a dense table", () => {
     expect(homeSource).toContain(">Posts<");
-    expect(homeSource).toContain(">All your search results<");
-    expect(homeSource).toContain(">Top qualified requests<");
-    expect(homeSource).toContain("getAllQualifiedPosts");
+    expect(homeSource).toContain(">Current search · newest first<");
+    expect(homeSource).toContain(">Latest qualified requests<");
+    expect(homeSource).toContain("getQualifiedPosts");
     expect(homeSource).toContain("function RequestCard");
     expect(homeSource).toContain("whitespace-pre-wrap");
     expect(homeSource).toContain("Open X");

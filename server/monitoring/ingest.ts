@@ -23,7 +23,7 @@ export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost:
     aiConfidence: intent.confidence,
     aiLabel: intent.label,
   });
-  const postId = await db.upsertListenedPost({
+  const persisted = await db.upsertListenedPost({
     monitorId: monitor.id,
     xPostId: xPost.id,
     authorId: xPost.author_id ?? null,
@@ -41,5 +41,5 @@ export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost:
     scoreExplanation: ranking.components,
     aiIntent: intent,
   });
-  return { postId, confidence: intent.confidence, label: intent.label, score: ranking.score, body: xPost.text, authorName: author?.name ?? author?.username ?? "Public X account" };
+  return { postId: persisted.id, isNew: persisted.isNew, confidence: intent.confidence, label: intent.label, score: ranking.score, body: xPost.text, authorName: author?.name ?? author?.username ?? "Public X account" };
 }

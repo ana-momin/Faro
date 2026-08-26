@@ -379,3 +379,6 @@
 - [x] Configure and verify an independent Vercel `CREDENTIAL_ENCRYPTION_SECRET` for secure provider credential storage without exposing it in source, logs, or the browser.
 - [x] Remove the shared cat image from the passkey profile-completion screen.
 - [x] Repair reliable rendering of the shared cat image in signed-in Faro profile and account-avatar surfaces.
+- [ ] Repair the signed-in Profile-page shared cat image so it renders as reliably as the sidebar account avatar.
+- [ ] Audit and remove any stale or repeated stored-post fallback behavior that makes Feed and Search appear non-real-time.
+- [ ] Prioritize fresh, recent, non-duplicate provider results while preserving explicit client-run and credit-safe collection limits.

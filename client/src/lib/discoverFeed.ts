@@ -26,7 +26,13 @@ export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorI
 export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {
   const seen = new Set<string>();
   const accepted: T[] = [];
-  return items.filter(item => {
+  const timestamp = (item: T) => {
+    const raw = item.post.postedAt;
+    if (!raw) return 0;
+    const date = raw instanceof Date ? raw : new Date(raw);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  };
+  return [...items].sort((left, right) => timestamp(right) - timestamp(left)).filter(item => {
     const { post } = item;
     if (post.source === "demo" || post.ruleScore < 50 || !isConcreteBuyerRequest(post) || isLowSignalNoise(post)) return false;
     const key = post.xPostId ? `x:${post.xPostId}` : `saved:${post.id}`;

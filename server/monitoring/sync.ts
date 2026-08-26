@@ -115,7 +115,7 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
     if (!plan) break;
 
     const startedAt = Date.now();
-    const cursor = plan.nextToken
+    const cursor = plan.pageCalls > 0 && plan.nextToken
       ? { nextToken: plan.nextToken }
       : plan.newestPostId
         ? { newestId: plan.newestPostId }
@@ -211,7 +211,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
   const source = provider.provider === "twitterapi_io" ? "twitterapi_io" : "recent_search";
   const configuredPolicy = {
     ...effectivePolicy(policyOverrides),
-    maxProviderCallsPerSync: 1,
+    maxProviderCallsPerSync: Math.min(3, Math.max(1, policyOverrides?.maxProviderCallsPerSync ?? collectionPolicy().maxProviderCallsPerSync)),
     maxPagesPerFamily: 1,
     maxProviderCallsPerDay: connection.dailyRequestLimit,
   };
@@ -273,12 +273,12 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
     const persistedByPage = new Map<CoveragePage, number>();
     settled.forEach((outcome, index) => {
       const entry = candidates[index];
-      if (entry && outcome.status === "fulfilled") {
+      if (entry && outcome.status === "fulfilled" && outcome.value.isNew) {
         persistedByPage.set(entry.page, (persistedByPage.get(entry.page) ?? 0) + 1);
       }
     });
-    const inserted = settled.length - rejected.length;
-    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" ? [outcome.value] : []);
+    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" && outcome.value.isNew ? [outcome.value] : []);
+    const inserted = persistedSignals.length;
     try {
       await notifyPreferredHighConfidenceSignals(monitor, persistedSignals);
     } catch (error) {
