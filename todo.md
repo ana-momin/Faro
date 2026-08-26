@@ -360,3 +360,5 @@
 - [x] Configure a concise Faro AI Vercel staging alias and repair repository-served favicon and logo assets for deployed builds.
 - [x] Rename the legacy `render-migration` staging branch and remaining migration references to `vercel-neon-staging`, then use that branch for the Faro Vercel staging deployment.
 - [x] Locate the current Vercel dashboard control for Faro’s branch routing after the Git settings page did not expose a Production Branch selector.
+- [x] Restore the user-approved original Faro logo and favicon from a repository-served asset rather than a replacement mark.
+- [ ] Check and select a concise Faro-style Vercel project name such as `faro-ai`, `faro-signals`, or `faroai-signals` for the staging address.
