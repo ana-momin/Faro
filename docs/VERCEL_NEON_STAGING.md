@@ -10,7 +10,7 @@ Faro AI is being separated from Manus-managed OAuth, database access, runtime he
 
 | Area | Independent staging implementation | Current position |
 |---|---|---|
-| Hosting | Vercel Function with a Vite static build | Ready in `vercel-neon-staging`; not yet validated on the deployed URL |
+| Hosting | Vercel Function with a Vite static build | Deployed from `vercel-neon-staging`; application shell and `/healthz` are reachable |
 | Database | Neon Free PostgreSQL through `DATABASE_URL_UNPOOLED` | Neon integration connected; initial schema migration is committed |
 | Authentication | Local device passkey via SimpleWebAuthn and signed httpOnly session cookie | Implemented; name required and email optional |
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
@@ -74,11 +74,11 @@ This deployment is a functional staging environment, not a production promise. V
 | Neon Free recovery | The six-hour history window and one manual snapshot are insufficient as a sole production backup policy. [3] |
 | Object storage | Deferred; profile-photo upload remains hidden until client-owned storage is selected and tested. |
 
-## Clean Vercel Address
+## Canonical Vercel Staging Address
 
-The long `faro-git-vercel-neon-staging-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to `faro` makes the project identity concise without breaking Git integration, because the integration uses an immutable project ID. [5] The current clean project address is `https://faro-alpha-ea14.vercel.app`.
+The canonical Faro AI staging address is **https://faro-ai-staging.vercel.app**. It is short, memorable, and already serves the independent passkey onboarding experience with the approved Faro mascot branding. The long branch-preview address is not the address to share.
 
-The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `vercel-neon-staging`. Pointing the clean default address to the migration branch requires the Vercel project’s Production Branch to be set to `vercel-neon-staging`; that does not change Manus or GitHub `main`, but it is a separate Vercel staging-routing decision. The globally short `faro.vercel.app` address is not available to this project, so it must not be advertised as Faro’s URL.
+Direct staging verification confirms that the canonical root returns the Faro AI passkey onboarding page and `GET /healthz` returns `{"ok":true,"service":"faro-ai"}`. This proves the Vite application shell and Vercel health function are routed correctly. Passkey enrollment and re-login remain a separate user-interaction check; no provider credential or collection request is part of this validation.
 
 ## Data, Credential, and Cutover Policy
 
@@ -94,7 +94,7 @@ No production traffic moves until all of the following are true: the deployed st
 |---|---|
 | TypeScript | Passed on the independent migration branch |
 | Client production build | Passed on the independent migration branch |
-| Offline Vitest suite | Passed: 33 files and 128 tests |
+| Offline Vitest suite | Passed: 33 files and 128 tests; independent branding regression also passed after the original mascot restoration |
 | Managed Manus OAuth in active router | Removed; local passkey router is active |
 | Active Manus model dependency | Removed; deterministic buyer-intent logic is active |
 | Provider request during migration validation | None made |
@@ -102,9 +102,9 @@ No production traffic moves until all of the following are true: the deployed st
 
 ## Current Deployment State
 
-The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the latest repository-branding repair is commit `edb1310`. Vercel resolves the branch-preview hostname and applies Vercel Authentication before the application route runs. Therefore, an unauthenticated external request correctly receives a Vercel sign-in redirect rather than an application response.
+The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the latest original-branding repair is commit `4a53b84`. The canonical address is reachable without a Vercel sign-in wall and correctly serves the application onboarding shell and health function.
 
-This confirms the preview is protected, but it does **not** prove the Neon migration or passkey interaction end-to-end. Those checks remain explicitly open until a team member with Vercel Preview access opens the preview, verifies `/healthz`, and completes one device-local passkey enrollment and re-login without adding a provider key or running collection.
+The remaining manual check is one device-local passkey enrollment and re-login on the canonical address. No provider credential, provider collection, DNS change, GitHub `main` change, or Manus cutover is included in that check.
 
 ## References
 

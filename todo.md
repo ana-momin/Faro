@@ -361,4 +361,6 @@
 - [x] Rename the legacy `render-migration` staging branch and remaining migration references to `vercel-neon-staging`, then use that branch for the Faro Vercel staging deployment.
 - [x] Locate the current Vercel dashboard control for Faro’s branch routing after the Git settings page did not expose a Production Branch selector.
 - [x] Restore the user-approved original Faro logo and favicon from a repository-served asset rather than a replacement mark.
-- [ ] Check and select a concise Faro-style Vercel project name such as `faro-ai`, `faro-signals`, or `faroai-signals` for the staging address.
+- [x] Check and select a concise Faro-style Vercel project name such as `faro-ai`, `faro-signals`, or `faroai-signals` for the staging address; the existing canonical `faro-ai-staging.vercel.app` address is preferred.
+- [x] Apply the selected `faro-ai` project name in Vercel and document that Vercel’s free Alpha-team generated address retains the `-alpha-ea14.vercel.app` suffix; superseded by the working canonical alias.
+- [x] Retire conflicting short-domain guidance and confirm `faro-ai-staging.vercel.app` as Faro AI’s canonical working Vercel staging URL.

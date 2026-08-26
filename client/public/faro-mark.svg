@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Faro AI">
-  <rect width="64" height="64" rx="18" fill="#b85e43"/>
-  <path d="M19 44V19h27v8H29v5h14v7H29v5h17v8H19Z" fill="#fffdfa"/>
-  <path d="M48 18h4v28h-4z" fill="#f2bd85" opacity=".92"/>
-</svg>
