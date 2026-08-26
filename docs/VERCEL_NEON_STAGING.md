@@ -74,6 +74,12 @@ This deployment is a functional staging environment, not a production promise. V
 | Neon Free recovery | The six-hour history window and one manual snapshot are insufficient as a sole production backup policy. [3] |
 | Object storage | Deferred; profile-photo upload remains hidden until client-owned storage is selected and tested. |
 
+## Clean Vercel Address
+
+The long `faro-ai-staging-git-render-migration-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to a concise available name such as `faro`, `faroai`, or `usefaro` changes the project’s newly generated default `*.vercel.app` address without breaking its Git integration, because the integration uses an immutable project ID. [5]
+
+The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `render-migration`. Pointing the clean default address to the migration branch would require a deliberate change of the Vercel project’s Production Branch to `render-migration`; that does not change Manus or GitHub `main`, but it is a separate staging-routing decision and must be made in Vercel project settings.
+
 ## Data, Credential, and Cutover Policy
 
 No Manus database dump or credential migration occurs by default. New passkey accounts create independent identities in Neon. Existing monitors, post history, saved posts, hidden posts, and notes can be migrated only after explicit approval, a recoverable source backup, a written row-count reconciliation plan, and a user-mapping review.
@@ -109,3 +115,5 @@ This confirms the preview is protected, but it does **not** prove the Neon migra
 [3]: https://neon.com/docs/introduction/plans "Neon: Plans"
 
 [4]: https://vercel.com/docs/functions/limitations "Vercel: Function limits"
+
+[5]: https://vercel.com/kb/guide/how-do-i-change-the-name-of-my-vercel-project "Vercel: Change a project name"
