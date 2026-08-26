@@ -339,3 +339,6 @@
 - [x] Remove the separate Keyword search mode so Search has one agent-led request flow.
 - [x] Make the History destination clearly visible and directly accessible from Settings.
 - [x] Add regression coverage, verify without provider calls, publish the refinement, and push the matching GitHub update.
+- [x] Inventory all Manus-specific runtime, auth, data, storage, secret, and scheduling dependencies for a Render migration.
+- [x] Define Render-compatible replacements and a secure migration sequence that preserves client-owned provider credentials.
+- [x] Document validation, rollback, cutover, access requirements, and migration decisions before any Render implementation.
