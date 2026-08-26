@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   classifySyncFailure: vi.fn(),
   updateMonitorStatus: vi.fn(),
   getProviderConnectionForUser: vi.fn(),
+  countMonitorSyncRunsForUserSince: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -17,6 +18,7 @@ vi.mock("../db", () => ({
   countActiveMonitorsForUser: mocks.countActiveMonitorsForUser,
   updateMonitorStatus: mocks.updateMonitorStatus,
   getProviderConnectionForUser: mocks.getProviderConnectionForUser,
+  countMonitorSyncRunsForUserSince: mocks.countMonitorSyncRunsForUserSince,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
 vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
@@ -37,7 +39,8 @@ const criteria = {
 describe("monitoring.agentStart", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io" });
+    mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io", dailyRequestLimit: 20 });
+    mocks.countMonitorSyncRunsForUserSince.mockResolvedValue(0);
   });
 
   it("maps, saves, and checks a single user-requested service brief", async () => {
@@ -85,6 +88,19 @@ describe("monitoring.agentStart", () => {
       code: "PRECONDITION_FAILED",
       message: expect.stringContaining("Pause an existing saved search"),
     });
+    expect(mocks.createMonitor).not.toHaveBeenCalled();
+  });
+
+  it("blocks a new search before criteria generation when the daily source-call limit is exhausted", async () => {
+    mocks.getProviderConnectionForUser.mockResolvedValueOnce({ provider: "twitterapi_io", dailyRequestLimit: 1 });
+    mocks.countMonitorSyncRunsForUserSince.mockResolvedValueOnce(1);
+    const caller = monitoringRouter.createCaller({ user } as any);
+
+    await expect(caller.agentStart({ brief: "Founders who need someone to automate their customer intake" })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: expect.stringContaining("Today’s provider limit of 1 source call has been reached"),
+    });
+    expect(mocks.suggestCriteria).not.toHaveBeenCalled();
     expect(mocks.createMonitor).not.toHaveBeenCalled();
   });
 });

@@ -134,6 +134,12 @@ For this shared-image release, the unsigned passkey welcome screen was rechecked
 
 Client-run Search and Feed refreshes now start from the provider’s newest available posts rather than resuming a stale continuation cursor. A manual refresh checks up to **three** fresh pages—one per buyer-intent query family—subject to the client’s existing daily request limit. The Feed shows the **current active search** newest-first, while older searches remain available only through Search history. Exact X post IDs and conservative near-duplicate wording are suppressed; a provider row already present in storage is refreshed for accuracy but is not reported as a new post. This avoids presenting stored historical rows as a new real-time batch without adding an automatic worker or making any unapproved provider call during deployment verification.
 
+## Search History and Daily Budget Guard
+
+Saved searches now live directly inside the **Search** workspace. The in-page history column reopens each original stored result set without consuming a provider call, while Settings retains only the management controls for renaming, pausing, or deleting saved searches. The sidebar History action opens this unified Search view.
+
+The client and server both check the configured provider-call ledger before creating a search or refreshing a monitor. When the daily limit is exhausted, Faro does not create a new monitor or contact an X provider; it shows a clear message that identifies the configured limit and points the client to **Settings → Provider** to increase it or wait for the next daily window. This check preserves the existing multi-page cap and does not make a provider request during release validation.
+
 ## References
 
 [1]: https://vercel.com/docs/environment-variables "Vercel: Environment variables"

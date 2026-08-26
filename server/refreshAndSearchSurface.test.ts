@@ -35,6 +35,8 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("Run your first bounded batch.");
     expect(searchSource).not.toContain("Keyword search");
     expect(searchSource).not.toContain("keywordStart.useMutation");
+    expect(searchSource).toContain("providerSetup.data?.configured && providerSetup.data.remainingCalls <= 0");
+    expect(searchSource).toContain("Today’s provider limit of ${providerSetup.data.dailyRequestLimit}");
   });
 
   it("keeps rich post actions available in Search and lets saved history reopen result sets without another provider request", () => {
@@ -45,6 +47,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("historyMonitorId");
     expect(searchSource).toContain("historyFromLocation");
     expect(searchSource).toContain("Reopening stored results never uses a provider request.");
-    expect(searchSource).not.toContain("function SearchHistory");
+    expect(searchSource).toContain("function SearchHistory");
+    expect(searchSource).toContain("Reopen a saved result set without another provider call.");
   });
 });

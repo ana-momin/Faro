@@ -36,6 +36,24 @@ async function requireProviderConnection(userId: number) {
   return connection;
 }
 
+function utcDayStart() {
+  const dayStart = new Date();
+  dayStart.setUTCHours(0, 0, 0, 0);
+  return dayStart;
+}
+
+async function requireAvailableSourceBudget(userId: number) {
+  const connection = await requireProviderConnection(userId);
+  const callsToday = await db.countMonitorSyncRunsForUserSince(userId, utcDayStart());
+  if (callsToday >= connection.dailyRequestLimit) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: `Today’s provider limit of ${connection.dailyRequestLimit} source call${connection.dailyRequestLimit === 1 ? "" : "s"} has been reached. Increase the limit in Settings → Provider or try again tomorrow.`,
+    });
+  }
+  return { connection, callsToday, remainingCalls: connection.dailyRequestLimit - callsToday };
+}
+
 export const monitoringRouter = router({
   overview: protectedProcedure
     .input(z.object({ monitorId: z.number().int().positive().optional() }).optional())
@@ -158,7 +176,7 @@ export const monitoringRouter = router({
   agentStart: protectedProcedure
     .input(z.object({ brief: z.string().trim().min(12).max(800) }))
     .mutation(async ({ ctx, input }) => {
-      await requireProviderConnection(ctx.user.id);
+      await requireAvailableSourceBudget(ctx.user.id);
       const criteria = await suggestCriteria(input.brief);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);
       const monitorCapacity = await requireActiveMonitorCapacity(ctx.user.id);
@@ -186,7 +204,7 @@ export const monitoringRouter = router({
   keywordStart: protectedProcedure
     .input(z.object({ keywords: z.string().trim().min(2).max(240) }))
     .mutation(async ({ ctx, input }) => {
-      await requireProviderConnection(ctx.user.id);
+      await requireAvailableSourceBudget(ctx.user.id);
       const criteria = deterministicSuggestion(`Find people looking for help with ${input.keywords}`);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);
       const monitorCapacity = await requireActiveMonitorCapacity(ctx.user.id);
@@ -260,6 +278,7 @@ export const monitoringRouter = router({
   sync: protectedProcedure
     .input(z.object({ monitorId: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
+      await requireAvailableSourceBudget(ctx.user.id);
       const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
       if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
       try {
