@@ -382,5 +382,5 @@
 - [x] Repair the signed-in Profile-page shared cat image so it renders as reliably as the sidebar account avatar.
 - [x] Audit and remove any stale or repeated stored-post fallback behavior that makes Feed and Search appear non-real-time.
 - [x] Prioritize fresh, recent, non-duplicate provider results while preserving explicit client-run and credit-safe collection limits.
-- [ ] Move saved search history and its original stored result sets into the primary Search workspace.
-- [ ] Add a clear preflight daily provider-call budget gate that prevents a new Search before collection starts when the configured limit is exhausted.
+- [x] Move saved search history and its original stored result sets into the primary Search workspace.
+- [x] Add a clear preflight daily provider-call budget gate that prevents a new Search before collection starts when the configured limit is exhausted.
