@@ -106,6 +106,10 @@ The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the 
 
 The remaining manual check is one device-local passkey enrollment and re-login on the canonical address. No provider credential, provider collection, DNS change, GitHub `main` change, or Manus cutover is included in that check.
 
+## Responsive Onboarding Verification
+
+The passkey onboarding shell is constrained to the dynamic viewport with no outer-page scroll. Visual checks at `1280×720` and `375×812` confirm that the desktop composition remains fully visible and the mobile composition collapses to a single, comfortably spaced panel without clipping its title or actions. On unusually short screens, only the right-pane form content can scroll, preserving access to every input without allowing the page itself to overflow.
+
 ## References
 
 [1]: https://vercel.com/docs/environment-variables "Vercel: Environment variables"

@@ -364,3 +364,5 @@
 - [x] Check and select a concise Faro-style Vercel project name such as `faro-ai`, `faro-signals`, or `faroai-signals` for the staging address; the existing canonical `faro-ai-staging.vercel.app` address is preferred.
 - [x] Apply the selected `faro-ai` project name in Vercel and document that Vercel’s free Alpha-team generated address retains the `-alpha-ea14.vercel.app` suffix; superseded by the working canonical alias.
 - [x] Retire conflicting short-domain guidance and confirm `faro-ai-staging.vercel.app` as Faro AI’s canonical working Vercel staging URL.
+- [x] Reduce the passkey onboarding container height so the page fits the viewport without unnecessary scrolling.
+- [x] Verify and correct responsive layout behavior across Faro AI’s core desktop and mobile surfaces.

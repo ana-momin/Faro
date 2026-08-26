@@ -62,5 +62,49 @@ export default function Onboarding() {
     }
   };
 
-  return <div className="min-h-screen bg-[#f8f4ed] p-4 sm:p-8"><div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-5xl overflow-hidden rounded-[32px] border border-[#eadfd2] bg-[#fffdfa] shadow-[0_32px_80px_rgba(91,55,32,0.12)] lg:grid-cols-[1.06fr_0.94fr]"><section className="flex flex-col justify-between bg-[#2b1a13] p-7 text-white sm:p-10"><FaroLogo className="[&>span:last-child]:text-white" /><div className="py-10"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-[#f6c28e]"><Sparkles className="h-5 w-5" /></span><h1 className="mt-6 max-w-md text-4xl font-extrabold tracking-[-0.07em]">Your private X signal desk.</h1><p className="mt-4 max-w-sm text-sm leading-6 text-white/60">Faro keeps your saved searches, posts, and provider setup inside your own workspace. Every external X action stays manual.</p></div><div className="flex items-center gap-2 text-[10px] text-white/50"><LockKeyhole className="h-3.5 w-3.5 text-[#f6c28e]" />Protected by this device’s passkey.</div></section><section className="flex flex-col justify-center p-7 sm:p-10"><FaroLogo /><div className="mt-10">{mode === "welcome" && <><h2 className="text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Open your Faro desk.</h2><p className="mt-2 text-sm leading-6 text-[#806c5e]">Create one secure workspace on this device, or return with the passkey you already created.</p><Button onClick={() => setMode("create")} size="lg" className="mt-8 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]"><Fingerprint className="mr-2 h-4 w-4" />Create this device workspace</Button><Button onClick={() => setMode("signin")} variant="outline" size="lg" className="mt-3 h-11 w-full rounded-xl border-[#e7d7c7] text-[#75432e] hover:bg-[#fff4e8]"><LockKeyhole className="mr-2 h-4 w-4" />Use an existing passkey</Button></>}{mode === "create" && <><button onClick={() => setMode("welcome")} className="text-xs font-bold text-[#a06952] hover:text-[#75432e]">← Back</button><h2 className="mt-5 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Set up your workspace.</h2><p className="mt-2 text-sm leading-6 text-[#806c5e]">Your name is required. Email is optional; Faro uses initials for your profile in this staging release.</p><label className="mt-7 block text-xs font-bold text-[#65483a]">Name<Input value={name} onChange={event => setName(event.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="name" /></label><label className="mt-4 block text-xs font-bold text-[#65483a]">Email <span className="font-medium text-[#ae9788]">optional</span><Input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="email" /></label><Button onClick={createWorkspace} disabled={working || !name.trim()} size="lg" className="mt-7 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Create passkey workspace</>}</Button></>}{mode === "signin" && <><button onClick={() => setMode("welcome")} className="text-xs font-bold text-[#a06952] hover:text-[#75432e]">← Back</button><h2 className="mt-5 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Welcome back.</h2><p className="mt-2 text-sm leading-6 text-[#806c5e]">Use the passkey created for Faro on this device.</p><Button onClick={signIn} disabled={working} size="lg" className="mt-8 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Continue with passkey</>}</Button></>}</div></section></div></div>;
+  return (
+    <div className="h-[100dvh] overflow-hidden bg-[#f8f4ed] p-3 sm:p-5 md:p-6">
+      <div className="mx-auto grid h-full max-w-5xl overflow-hidden rounded-[28px] border border-[#eadfd2] bg-[#fffdfa] shadow-[0_24px_60px_rgba(91,55,32,0.1)] md:grid-cols-[1.06fr_0.94fr]">
+        <section className="hidden min-h-0 flex-col justify-between bg-[#2b1a13] p-7 text-white md:flex lg:p-9">
+          <FaroLogo className="[&>span:last-child]:text-white" />
+          <div className="py-5 lg:py-7">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 text-[#f6c28e]">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <h1 className="mt-5 max-w-md text-3xl font-extrabold tracking-[-0.07em] lg:text-4xl">Your private X signal desk.</h1>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-white/60">Faro keeps your saved searches, posts, and provider setup inside your own workspace. Every external X action stays manual.</p>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-white/50"><LockKeyhole className="h-3.5 w-3.5 text-[#f6c28e]" />Protected by this device’s passkey.</div>
+        </section>
+
+        <section className="flex min-h-0 flex-col justify-center overflow-y-auto p-6 sm:p-8 md:p-9 lg:p-10">
+          <div className="mx-auto w-full max-w-sm">
+            <FaroLogo />
+            <div className="mt-6">
+              {mode === "welcome" && <>
+                <h2 className="text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Open your Faro desk.</h2>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Create one secure workspace on this device, or return with the passkey you already created.</p>
+                <Button onClick={() => setMode("create")} size="lg" className="mt-6 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]"><Fingerprint className="mr-2 h-4 w-4" />Create this device workspace</Button>
+                <Button onClick={() => setMode("signin")} variant="outline" size="lg" className="mt-3 h-11 w-full rounded-xl border-[#e7d7c7] text-[#75432e] hover:bg-[#fff4e8]"><LockKeyhole className="mr-2 h-4 w-4" />Use an existing passkey</Button>
+              </>}
+              {mode === "create" && <>
+                <button onClick={() => setMode("welcome")} className="text-xs font-bold text-[#a06952] hover:text-[#75432e]">← Back</button>
+                <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Set up your workspace.</h2>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Your name is required. Email is optional; Faro uses initials for your profile in this staging release.</p>
+                <label className="mt-5 block text-xs font-bold text-[#65483a]">Name<Input value={name} onChange={event => setName(event.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="name" /></label>
+                <label className="mt-3 block text-xs font-bold text-[#65483a]">Email <span className="font-medium text-[#ae9788]">optional</span><Input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="email" /></label>
+                <Button onClick={createWorkspace} disabled={working || !name.trim()} size="lg" className="mt-5 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Create passkey workspace</>}</Button>
+              </>}
+              {mode === "signin" && <>
+                <button onClick={() => setMode("welcome")} className="text-xs font-bold text-[#a06952] hover:text-[#75432e]">← Back</button>
+                <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Welcome back.</h2>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Use the passkey created for Faro on this device.</p>
+                <Button onClick={signIn} disabled={working} size="lg" className="mt-6 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Continue with passkey</>}</Button>
+              </>}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }
