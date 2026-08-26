@@ -35,9 +35,9 @@ describe("independent Vercel and Neon staging contract", () => {
     expect(app).not.toContain("app.listen");
     expect(entrypoint).toContain("export default app");
     expect(healthEntrypoint).toContain('res.status(200).json({ ok: true, service: "faro-ai" })');
-    expect(config).toContain('"source": "/healthz"');
-    expect(config).toContain('"source": "/:path((?!api/).*)"');
-    expect(config).not.toContain('"source": "/(.*)"');
+    expect(config).toContain('"handle": "filesystem"');
+    expect(config).toContain('"src": "/healthz", "dest": "/api/healthz"');
+    expect(config).toContain('"src": "/(.*)", "dest": "/index.html"');
   });
 
   it("does not expose a profile-photo upload control until independent object storage is available", () => {

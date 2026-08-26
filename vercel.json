@@ -7,8 +7,9 @@
       "maxDuration": 60
     }
   },
-  "rewrites": [
-    { "source": "/healthz", "destination": "/api/healthz" },
-    { "source": "/:path((?!api/).*)", "destination": "/index.html" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/healthz", "dest": "/api/healthz" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
