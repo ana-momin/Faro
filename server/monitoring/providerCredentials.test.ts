@@ -18,4 +18,12 @@ describe("client provider credentials", () => {
     expect(decryptClientCredential(encrypted)).toBe(raw);
     expect(credentialHint(raw)).toBe("••••9988");
   });
+
+  it("requires a server-only encryption secret of at least 32 characters", () => {
+    delete process.env.CREDENTIAL_ENCRYPTION_SECRET;
+    expect(() => encryptClientCredential("client-key")).toThrow("CREDENTIAL_ENCRYPTION_SECRET with at least 32 characters");
+
+    process.env.CREDENTIAL_ENCRYPTION_SECRET = "too-short";
+    expect(() => encryptClientCredential("client-key")).toThrow("CREDENTIAL_ENCRYPTION_SECRET with at least 32 characters");
+  });
 });

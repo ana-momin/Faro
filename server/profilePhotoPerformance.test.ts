@@ -22,11 +22,12 @@ describe("Faro profile photo performance", () => {
     }
   });
 
-  it("prioritizes the large Profile avatar while keeping a smooth fallback contract", () => {
+  it("prioritizes the shared cat profile image while keeping a smooth fallback contract", () => {
     const profile = readFileSync(new URL("../client/src/pages/Profile.tsx", import.meta.url), "utf8");
     const layout = readFileSync(new URL("../client/src/components/DashboardLayout.tsx", import.meta.url), "utf8");
 
-    expect(layout).toContain("useWarmProfileImage(user?.avatarUrl)");
+    expect(layout).toContain("useWarmProfileImage(FARO_SHARED_PROFILE_IMAGE)");
+    expect(layout).toContain("AvatarImage src={FARO_SHARED_PROFILE_IMAGE}");
     expect(profile).toContain('fetchPriority="high"');
     expect(profile).toContain('onLoadingStatusChange={status => setProfileImageLoaded(status === "loaded")}');
     expect(profile).toContain("delayMs={300}");

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Sky Faro avatar">
-  <defs><linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b3e0e5"/><stop offset="1" stop-color="#5598ad"/></linearGradient></defs>
-  <rect width="120" height="120" rx="60" fill="url(#sky)"/>
-  <circle cx="60" cy="58" r="27" fill="#fff0e2" opacity=".95"/><path d="M33 105c5-20 15-30 27-30s22 10 27 30" fill="#2f596a" opacity=".95"/>
-  <path d="M37 54c5-16 13-23 24-23s19 8 23 22c-11-5-20-8-28-8-7 0-13 3-19 9Z" fill="#2e5768"/><circle cx="50" cy="60" r="3" fill="#2e5768"/><circle cx="70" cy="60" r="3" fill="#2e5768"/><path d="M53 70c4 3 10 3 14 0" fill="none" stroke="#4e8da2" stroke-linecap="round" stroke-width="3"/>
-</svg>

@@ -122,13 +122,12 @@ export async function createPasskeyUser(input: { openId: string }) {
   return user;
 }
 
-export async function completePasskeyProfile(userId: number, input: { name: string; email?: string | null; avatarUrl?: string | null }) {
+export async function completePasskeyProfile(userId: number, input: { name: string; email?: string | null }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const [user] = await db.update(users).set({
     name: input.name,
     email: input.email || null,
-    avatarUrl: input.avatarUrl ?? null,
     updatedAt: new Date(),
   }).where(eq(users.id, userId)).returning();
   return user;

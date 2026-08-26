@@ -374,3 +374,6 @@
 - [x] Replace raw WebAuthn browser errors with concise, professional, user-safe passkey guidance.
 - [x] Build a dedicated profile-completion screen with required name, optional email, and curated built-in avatar choices instead of a deferred-upload message.
 - [x] Persist only validated repository-served avatar paths without introducing user file uploads or external storage.
+- [ ] Replace optional curated-avatar selection with the user-supplied shared cat image for every Faro profile surface.
+- [ ] Remove avatar selection from profile completion and preserve a minimal required-name, optional-email onboarding flow.
+- [ ] Configure and verify an independent Vercel `CREDENTIAL_ENCRYPTION_SECRET` for secure provider credential storage without exposing it in source, logs, or the browser.

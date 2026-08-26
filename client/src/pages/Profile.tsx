@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getMembershipLabel, getProfileFirstName, getProfileInitials } from "@/lib/profile";
+import { FARO_SHARED_PROFILE_IMAGE } from "@/lib/sharedProfileImage";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, BadgeCheck, Bookmark, Bot, CircleHelp, Compass, ExternalLink, Flag, KeyRound, LockKeyhole, LogOut, Pause, Pencil, Play, Save, ShieldCheck, Sparkles, Trash2, UserRound } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,7 +14,7 @@ export default function Profile() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const [profileImageLoaded, setProfileImageLoaded] = useState(false);
-  const avatarUrl = user?.avatarUrl || undefined;
+  const avatarUrl = FARO_SHARED_PROFILE_IMAGE;
   const firstName = getProfileFirstName(user?.name);
   const initials = getProfileInitials(user?.name);
   const membership = getMembershipLabel(user?.createdAt);

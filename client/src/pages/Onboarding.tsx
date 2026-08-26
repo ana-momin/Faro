@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { getPasskeyErrorMessage } from "@/lib/passkeyErrors";
-import { FARO_AVATARS, type FaroAvatarUrl } from "@shared/faroAvatars";
+import { FARO_SHARED_PROFILE_IMAGE } from "@/lib/sharedProfileImage";
 import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { ArrowLeft, CheckCircle2, Fingerprint, Loader2, LockKeyhole, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -16,7 +16,6 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
   const [mode, setMode] = useState<OnboardingMode>(profileRequired ? "profile" : "welcome");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<FaroAvatarUrl | undefined>();
   const [working, setWorking] = useState(false);
   const supported = useMemo(() => browserSupportsWebAuthn(), []);
   const registrationOptions = trpc.auth.passkeyRegistrationOptions.useMutation();
@@ -72,7 +71,7 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
     if (!name.trim()) return;
     try {
       setWorking(true);
-      await profileComplete.mutateAsync({ name: name.trim(), email: email.trim(), avatarUrl });
+      await profileComplete.mutateAsync({ name: name.trim(), email: email.trim() });
       await refreshSession();
       toast.success("Your Faro desk is ready.");
     } catch (error) {
@@ -123,16 +122,8 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
               {isProfile && <>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f5eb] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#3b7a4e]"><CheckCircle2 className="h-3 w-3" />Passkey confirmed</span>
                 <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Complete your profile.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Choose a Faro avatar if you like, then add your name to enter your desk.</p>
-                <div className="mt-5" role="radiogroup" aria-label="Choose an optional Faro avatar">
-                  <div className="flex items-center justify-between"><span className="text-xs font-bold text-[#65483a]">Choose an avatar <span className="font-medium text-[#ae9788]">optional</span></span><span className="text-[10px] font-medium text-[#a07f6d]">Or keep initials</span></div>
-                  <div className="mt-3 flex items-center gap-3">
-                    {FARO_AVATARS.map(avatar => {
-                      const selected = avatarUrl === avatar.url;
-                      return <button key={avatar.url} type="button" role="radio" aria-checked={selected} aria-label={`Use ${avatar.label} avatar`} onClick={() => setAvatarUrl(selected ? undefined : avatar.url)} className={`relative h-12 w-12 overflow-hidden rounded-full border-2 bg-white transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#bd674c] ${selected ? "border-[#b85e43] shadow-[0_0_0_3px_rgba(184,94,67,0.14)]" : "border-transparent shadow-[0_5px_15px_rgba(82,48,27,0.12)]"}`}><img src={avatar.url} alt="" className="h-full w-full object-cover" />{selected && <span className="absolute inset-0 grid place-items-center bg-[#3d2117]/30"><CheckCircle2 className="h-4 w-4 text-white" /></span>}</button>;
-                    })}
-                  </div>
-                </div>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Add your name to enter your desk. Faro uses the same shared profile image for every member.</p>
+                <img src={FARO_SHARED_PROFILE_IMAGE} alt="Faro profile cat" className="mt-5 h-14 w-14 rounded-full border-2 border-white object-cover shadow-[0_6px_18px_rgba(82,48,27,0.16)]" />
                 <label className="mt-5 block text-xs font-bold text-[#65483a]">Name<Input value={name} onChange={event => setName(event.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="name" autoFocus /></label>
                 <label className="mt-3 block text-xs font-bold text-[#65483a]">Email <span className="font-medium text-[#ae9788]">optional</span><Input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="email" /></label>
                 <Button onClick={completeProfile} disabled={working || !name.trim()} size="lg" className="mt-5 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enter Faro"}</Button>

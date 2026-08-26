@@ -14,7 +14,7 @@ Faro AI is being separated from Manus-managed OAuth, database access, runtime he
 | Database | Neon Free PostgreSQL through `DATABASE_URL_UNPOOLED` | Neon integration connected; initial schema migration is committed |
 | Authentication | Local device passkey via SimpleWebAuthn and signed httpOnly session cookie | Implemented; name required and email optional |
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
-| Profile avatar | Four curated repository-served Faro avatars or initials fallback | Stored only as a validated local asset path; personal-photo uploads remain deferred |
+| Profile avatar | One shared user-supplied Faro cat image | Rendered consistently for every Faro member; there is no avatar picker or user-image upload |
 | Signal analysis | Existing deterministic buyer-intent rules | Independent; no active Manus model dependency |
 | Collection | Manual one-request batches only | Automatic worker disabled in staging |
 
@@ -31,7 +31,7 @@ Passkey registration requires a non-empty name and accepts an optional email. A 
 | Database values | Supplied by the Neon integration; never committed or copied into source files |
 | Provider keys | Reconnected by each client after independent launch; masked in the UI and never returned to the browser as plaintext |
 | Browser/server transport | Browser uses tRPC only; the server remains the only code that can decrypt a provider credential or call an X provider |
-| Profile avatar | A selected avatar is limited to the four repository-served Faro choices; personal-photo upload remains absent while object storage is unconfigured, preventing a dead or misleading action |
+| Profile avatar | One shared user-supplied cat image is served from managed static storage; profile completion accepts no avatar input and personal-photo upload remains absent |
 
 ## Vercel Environment Configuration
 
@@ -72,7 +72,7 @@ This deployment is a functional staging environment, not a production promise. V
 | Vercel Function | Stateless and request-scoped; it cannot be treated as a permanent stream worker. The code therefore leaves automatic collection disabled. Vercel documents a five-minute Hobby Function duration limit. [4] |
 | Neon Free | Database cold starts after inactivity are expected because scale-to-zero cannot be disabled on Free. [3] |
 | Neon Free recovery | The six-hour history window and one manual snapshot are insufficient as a sole production backup policy. [3] |
-| Object storage | Deferred; personal-photo upload remains hidden until client-owned storage is selected and tested. The curated local avatar choices require no object storage. |
+| Object storage | Deferred; personal-photo upload remains hidden until client-owned storage is selected and tested. The single shared static cat image requires no per-user storage. |
 
 ## Canonical Vercel Staging Address
 
@@ -122,9 +122,13 @@ The canonical staging page now visibly presents two clear entry points: **Create
 
 Raw browser and WebAuthn specification messages are no longer shown to a Faro user. The onboarding client maps cancellation, timeout, unsupported-device, security, already-existing-passkey, and generic confirmation failures to concise, professional guidance. Known product-safe server messages remain readable; unrecognized technical messages never reach the screen.
 
-After a new passkey is confirmed, Faro now shows a dedicated **Complete your profile** screen. It keeps the original warm, minimal onboarding composition, requires a name, accepts an optional email, and offers four circular Faro avatars—Ember, Sage, Dusk, and Sky. The user may instead keep the initials fallback. This is not a file-upload flow: the server accepts only a Zod-validated allowlist of `/faro-avatars/*.svg` repository paths and persists only the chosen approved path in the existing nullable `users.avatarUrl` column. No schema migration, object storage, personal image bytes, or X-provider operation is required.
+After a new passkey is confirmed, Faro now shows a dedicated **Complete your profile** screen. It keeps the original warm, minimal onboarding composition, requires a name, accepts an optional email, and displays the same user-supplied cat image used everywhere a Faro member profile is shown. There is no avatar selection, personal-photo upload, or avatar value in the protected profile-completion contract. The shared image is a managed static asset, so no schema migration, object storage, personal image bytes, or X-provider operation is required.
 
-Offline validation after this refinement passed **38 test files and 134 tests**, intentionally excluding the two legacy credential tests that contact external X providers. TypeScript, the Vercel server-bundle build, and the Vite client build also passed. Desktop `1280×720` and mobile `375×812` checks confirm the passkey entry screen remains responsive; the profile selector has source-level responsive and accessibility regression coverage.
+The Production `CREDENTIAL_ENCRYPTION_SECRET` was replaced in Vercel with a fresh high-entropy Secret after the provider-settings form reported that its prior value was unavailable or too short. The value was generated and stored only inside Vercel, is not present in source or documentation, and requires a redeployment before the function runtime uses it. The focused offline encryption regression covers the 32-character minimum and AES-256-GCM round trip without making any provider request.
+
+The focused shared-profile and passkey regression suite now confirms that the onboarding screen has no avatar picker, every member surface uses the same managed image, and the protected profile mutation accepts only name and optional email. Desktop `1280×720` and mobile `375×812` visual checks remain part of the release validation.
+
+For this shared-image release, the unsigned passkey welcome screen was rechecked at `1280×720` and `375×812`. Both layouts preserve the original Faro logo, clear dual passkey actions, and a non-scrolling outer page. The required post-passkey profile screen is covered by source-level visual contracts because passkey enrollment is intentionally left to the client’s device during staging validation.
 
 ## References
 

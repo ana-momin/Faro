@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Sage Faro avatar">
-  <defs><linearGradient id="sage" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c9d7bc"/><stop offset="1" stop-color="#6d9278"/></linearGradient></defs>
-  <rect width="120" height="120" rx="60" fill="url(#sage)"/>
-  <circle cx="60" cy="58" r="27" fill="#f5f2df" opacity=".94"/><path d="M33 105c6-20 16-30 27-30s21 10 27 30" fill="#324e42" opacity=".94"/>
-  <path d="M36 53c7-15 16-22 26-22 9 0 17 7 22 19-11-3-20-8-27-15-3 9-10 15-21 18Z" fill="#2e493b"/><circle cx="50" cy="60" r="3" fill="#2e493b"/><circle cx="70" cy="60" r="3" fill="#2e493b"/><path d="M53 70c4 3 10 3 14 0" fill="none" stroke="#5e8370" stroke-linecap="round" stroke-width="3"/>
-</svg>

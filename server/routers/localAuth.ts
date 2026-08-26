@@ -4,7 +4,6 @@ import { z } from "zod";
 import * as db from "../db";
 import { clearLocalSession, issueLocalSession } from "../auth/localSession";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { FARO_AVATAR_URLS } from "../../shared/faroAvatars";
 
 const rpName = "Faro AI";
 
@@ -69,10 +68,9 @@ export const localAuthRouter = router({
     .input(z.object({
       name: z.string().trim().min(1).max(120),
       email: z.string().trim().email().max(320).optional().or(z.literal("")),
-      avatarUrl: z.enum(FARO_AVATAR_URLS).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const user = await db.completePasskeyProfile(ctx.user.id, { name: input.name, email: input.email || null, avatarUrl: input.avatarUrl });
+      const user = await db.completePasskeyProfile(ctx.user.id, { name: input.name, email: input.email || null });
       if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Your Faro profile could not be updated." });
       return { user };
     }),
