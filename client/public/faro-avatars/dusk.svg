@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Dusk Faro avatar">
+  <defs><linearGradient id="dusk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8b0d7"/><stop offset="1" stop-color="#51536f"/></linearGradient></defs>
+  <rect width="120" height="120" rx="60" fill="url(#dusk)"/>
+  <circle cx="60" cy="57" r="27" fill="#f7e9dc" opacity=".95"/><path d="M33 105c5-20 15-30 27-30s22 10 27 30" fill="#38394f" opacity=".95"/>
+  <path d="M39 52c3-15 11-23 22-23s18 8 21 23c-9-5-17-7-23-7-7 0-14 2-20 7Z" fill="#292b3d"/><circle cx="50" cy="59" r="3" fill="#292b3d"/><circle cx="70" cy="59" r="3" fill="#292b3d"/><path d="M53 69c4 3 10 3 14 0" fill="none" stroke="#626784" stroke-linecap="round" stroke-width="3"/>
+</svg>

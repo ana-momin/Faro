@@ -14,7 +14,8 @@ describe("independent Vercel and Neon staging contract", () => {
     expect(router).toContain('email: z.string().trim().email().max(320).optional().or(z.literal(""))');
     expect(onboarding).toContain("disabled={working || !name.trim()}");
     expect(onboarding).toContain("Passkey confirmed");
-    expect(onboarding).toContain("Profile photo · optional");
+    expect(onboarding).toContain("Complete your profile.");
+    expect(onboarding).toContain("Choose an avatar");
   });
 
   it("uses independent session and credential-encryption secrets", () => {

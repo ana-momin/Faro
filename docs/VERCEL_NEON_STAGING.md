@@ -14,7 +14,7 @@ Faro AI is being separated from Manus-managed OAuth, database access, runtime he
 | Database | Neon Free PostgreSQL through `DATABASE_URL_UNPOOLED` | Neon integration connected; initial schema migration is committed |
 | Authentication | Local device passkey via SimpleWebAuthn and signed httpOnly session cookie | Implemented; name required and email optional |
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
-| Profile photo | Initials/fallback avatar only | Deferred until independent object storage is chosen |
+| Profile avatar | Four curated repository-served Faro avatars or initials fallback | Stored only as a validated local asset path; personal-photo uploads remain deferred |
 | Signal analysis | Existing deterministic buyer-intent rules | Independent; no active Manus model dependency |
 | Collection | Manual one-request batches only | Automatic worker disabled in staging |
 
@@ -31,7 +31,7 @@ Passkey registration requires a non-empty name and accepts an optional email. A 
 | Database values | Supplied by the Neon integration; never committed or copied into source files |
 | Provider keys | Reconnected by each client after independent launch; masked in the UI and never returned to the browser as plaintext |
 | Browser/server transport | Browser uses tRPC only; the server remains the only code that can decrypt a provider credential or call an X provider |
-| Profile image | Upload control is intentionally absent while object storage is unconfigured, preventing a dead or misleading action |
+| Profile avatar | A selected avatar is limited to the four repository-served Faro choices; personal-photo upload remains absent while object storage is unconfigured, preventing a dead or misleading action |
 
 ## Vercel Environment Configuration
 
@@ -56,7 +56,7 @@ The independent work is isolated on Git branch `vercel-neon-staging`. GitHub `ma
 1. Run the offline validation suite, TypeScript check, and client build locally.
 2. Review the PostgreSQL migration files under `drizzle/render/`, including the journal and snapshot metadata.
 3. Commit and push only `vercel-neon-staging` to the connected `ana-momin/Faro` repository.
-4. Let Vercel create a deployment. Its build command runs `pnpm db:migrate && pnpm build:client`; the first successful build applies the initial Neon schema.
+4. Let Vercel create a deployment. Its build command runs `pnpm db:migrate && pnpm build:serverless && pnpm build:client`; the first successful build applies the initial Neon schema and creates the serverless function bundle.
 5. Inspect build and function logs. Resolve build, migration, route, or environment failures before attempting onboarding.
 6. Verify `GET /healthz`, the static app shell, tRPC `auth.me`, and the passkey onboarding UI over HTTPS.
 7. Create one staging passkey, confirm it lands in Feed, sign out, and sign in on the same device. Do not configure an X provider or run Search/Refresh.
@@ -72,7 +72,7 @@ This deployment is a functional staging environment, not a production promise. V
 | Vercel Function | Stateless and request-scoped; it cannot be treated as a permanent stream worker. The code therefore leaves automatic collection disabled. Vercel documents a five-minute Hobby Function duration limit. [4] |
 | Neon Free | Database cold starts after inactivity are expected because scale-to-zero cannot be disabled on Free. [3] |
 | Neon Free recovery | The six-hour history window and one manual snapshot are insufficient as a sole production backup policy. [3] |
-| Object storage | Deferred; profile-photo upload remains hidden until client-owned storage is selected and tested. |
+| Object storage | Deferred; personal-photo upload remains hidden until client-owned storage is selected and tested. The curated local avatar choices require no object storage. |
 
 ## Canonical Vercel Staging Address
 
@@ -117,6 +117,14 @@ The active Vercel production deployment on `vercel-neon-staging` includes four N
 The repaired deployment was rechecked directly. `POST /api/trpc/auth.passkeyAuthenticationOptions?batch=1` now returns `200 application/json` with a WebAuthn challenge and `rpId` of `faro-ai-staging.vercel.app`, rather than an empty response or function failure. This confirms that the browser no longer encounters the `Unexpected end of JSON input` parsing failure at the first passkey step.
 
 The canonical staging page now visibly presents two clear entry points: **Create a new passkey** and **I already have a passkey**. A mobile `375×812` check confirms the initial screen remains a compact, non-scrolling single panel with both actions fully visible. The full offline validation passed with **39 test files and 134 tests**, alongside the Vercel server-bundle build, TypeScript check, and Vite production client build. No X-provider operation was run.
+
+## Passkey Error and Profile Completion Refinement
+
+Raw browser and WebAuthn specification messages are no longer shown to a Faro user. The onboarding client maps cancellation, timeout, unsupported-device, security, already-existing-passkey, and generic confirmation failures to concise, professional guidance. Known product-safe server messages remain readable; unrecognized technical messages never reach the screen.
+
+After a new passkey is confirmed, Faro now shows a dedicated **Complete your profile** screen. It keeps the original warm, minimal onboarding composition, requires a name, accepts an optional email, and offers four circular Faro avatars—Ember, Sage, Dusk, and Sky. The user may instead keep the initials fallback. This is not a file-upload flow: the server accepts only a Zod-validated allowlist of `/faro-avatars/*.svg` repository paths and persists only the chosen approved path in the existing nullable `users.avatarUrl` column. No schema migration, object storage, personal image bytes, or X-provider operation is required.
+
+Offline validation after this refinement passed **38 test files and 134 tests**, intentionally excluding the two legacy credential tests that contact external X providers. TypeScript, the Vercel server-bundle build, and the Vite client build also passed. Desktop `1280×720` and mobile `375×812` checks confirm the passkey entry screen remains responsive; the profile selector has source-level responsive and accessibility regression coverage.
 
 ## References
 

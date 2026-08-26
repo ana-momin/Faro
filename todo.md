@@ -371,3 +371,6 @@
 - [x] Restore the Faro Vercel project’s canonical `faro-ai-staging.vercel.app` deployment mapping to the active `vercel-neon-staging` branch so new passkey fixes are deployed.
 - [x] Force a fresh Vercel deployment from `vercel-neon-staging` and confirm the deployed passkey tRPC options endpoint returns JSON rather than an empty response.
 - [x] Bundle the shared Express application into the Vercel function artifact so the deployed tRPC entrypoint no longer fails to import `/var/task/server/app.ts`.
+- [x] Replace raw WebAuthn browser errors with concise, professional, user-safe passkey guidance.
+- [x] Build a dedicated profile-completion screen with required name, optional email, and curated built-in avatar choices instead of a deferred-upload message.
+- [x] Persist only validated repository-served avatar paths without introducing user file uploads or external storage.
