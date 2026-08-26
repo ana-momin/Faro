@@ -357,3 +357,4 @@
 - [ ] Configure independent passkey secrets, apply the PostgreSQL schema, deploy Vercel staging, and validate the no-provider-call product flow.
 - [ ] Use the confirmed Alpha team faro-ai-staging project to inspect Neon injection and complete the independent staging deployment.
 - [x] Repair Vercel function routing so `/healthz` and `/api/trpc/*` cannot fall through to the SPA, then revalidate the protected staging preview without provider calls.
+- [ ] Configure a concise Faro AI Vercel staging alias and repair repository-served favicon and logo assets for deployed builds.
