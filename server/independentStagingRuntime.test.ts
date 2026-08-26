@@ -26,14 +26,17 @@ describe("independent Vercel and Neon staging contract", () => {
 
   it("routes Vercel requests through the shared stateless Express application", () => {
     const app = projectFile("server/app.ts");
-    const entrypoint = projectFile("api/index.ts");
+    const entrypoint = projectFile("api/[...path].ts");
+    const healthEntrypoint = projectFile("api/healthz.ts");
     const config = projectFile("vercel.json");
 
     expect(app).toContain('app.get("/healthz"');
     expect(app).toContain('app.use("/api/trpc"');
     expect(app).not.toContain("app.listen");
     expect(entrypoint).toContain("export default app");
-    expect(config).toContain('"source": "/api/(.*)"');
+    expect(healthEntrypoint).toContain('res.status(200).json({ ok: true, service: "faro-ai" })');
+    expect(config).toContain('"source": "/healthz"');
+    expect(config).not.toContain('"source": "/api/(.*)"');
   });
 
   it("does not expose a profile-photo upload control until independent object storage is available", () => {
