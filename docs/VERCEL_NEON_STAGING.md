@@ -1,16 +1,16 @@
 # Faro AI Vercel + Neon Staging Operations
 
-**Status:** Independent **staging** migration in progress. This document supersedes the earlier Render-first plan after Render database provisioning returned `402 Payment Required`. It does not authorize DNS changes, production cutover, client-data import, or an X-provider request. The published Manus application remains the rollback fallback.
+**Status:** Independent **Vercel + Neon staging** migration in progress. This document supersedes the earlier Render attempt after its free database provisioning returned `402 Payment Required`. It does not authorize DNS changes, production cutover, client-data import, or an X-provider request. The published Manus application remains the rollback fallback.
 
 ## Purpose and Boundary
 
-Faro AI is being separated from Manus-managed OAuth, database access, runtime helpers, and storage routing. The staging target is the client-owned Vercel project [`faro-ai-staging`](https://vercel.com/alpha-ea14/faro-ai-staging), connected to the client-owned Neon Free PostgreSQL project. The migration is intentionally conservative: provider collection stays manual and disabled by default, existing provider credentials are **not** migrated, and the existing Manus deployment remains available.
+Faro AI is being separated from Manus-managed OAuth, database access, runtime helpers, and storage routing. The staging target is the client-owned Vercel project [`Faro`](https://vercel.com/alpha-ea14/faro), connected to the client-owned Neon Free PostgreSQL project. The migration is intentionally conservative: provider collection stays manual and disabled by default, existing provider credentials are **not** migrated, and the existing Manus deployment remains available.
 
 > **Staging rule:** No TwitterAPI.io or Official X API request is part of setup, schema migration, deployment, onboarding, or smoke testing. A client must reconnect a provider key after independent launch and explicitly approve any bounded source request.
 
 | Area | Independent staging implementation | Current position |
 |---|---|---|
-| Hosting | Vercel Function with a Vite static build | Ready in `render-migration`; not yet validated on the deployed URL |
+| Hosting | Vercel Function with a Vite static build | Ready in `vercel-neon-staging`; not yet validated on the deployed URL |
 | Database | Neon Free PostgreSQL through `DATABASE_URL_UNPOOLED` | Neon integration connected; initial schema migration is committed |
 | Authentication | Local device passkey via SimpleWebAuthn and signed httpOnly session cookie | Implemented; name required and email optional |
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
@@ -51,11 +51,11 @@ The Neon integration has already injected its PostgreSQL connection variables in
 
 ## Deployment Workflow
 
-The independent work is isolated on Git branch `render-migration`. GitHub `main` remains the current safe Manus-compatible baseline until the staging application has passed deployment verification. No DNS or custom-domain changes are permitted during this workflow.
+The independent work is isolated on Git branch `vercel-neon-staging`. GitHub `main` remains the current safe Manus-compatible baseline until the staging application has passed deployment verification. No DNS or custom-domain changes are permitted during this workflow.
 
 1. Run the offline validation suite, TypeScript check, and client build locally.
 2. Review the PostgreSQL migration files under `drizzle/render/`, including the journal and snapshot metadata.
-3. Commit and push only `render-migration` to the connected `ana-momin/Faro` repository.
+3. Commit and push only `vercel-neon-staging` to the connected `ana-momin/Faro` repository.
 4. Let Vercel create a deployment. Its build command runs `pnpm db:migrate && pnpm build:client`; the first successful build applies the initial Neon schema.
 5. Inspect build and function logs. Resolve build, migration, route, or environment failures before attempting onboarding.
 6. Verify `GET /healthz`, the static app shell, tRPC `auth.me`, and the passkey onboarding UI over HTTPS.
@@ -76,9 +76,9 @@ This deployment is a functional staging environment, not a production promise. V
 
 ## Clean Vercel Address
 
-The long `faro-ai-staging-git-render-migration-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to a concise available name such as `faro`, `faroai`, or `usefaro` changes the project’s newly generated default `*.vercel.app` address without breaking its Git integration, because the integration uses an immutable project ID. [5]
+The long `faro-git-vercel-neon-staging-alpha-ea14.vercel.app` address is a Vercel **branch-preview** URL. It includes both the Git branch and the team slug by design. Renaming the Vercel project to `faro` makes the project identity concise without breaking Git integration, because the integration uses an immutable project ID. [5]
 
-The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `render-migration`. Pointing the clean default address to the migration branch would require a deliberate change of the Vercel project’s Production Branch to `render-migration`; that does not change Manus or GitHub `main`, but it is a separate staging-routing decision and must be made in Vercel project settings.
+The clean default address serves the project’s **Production Branch**. Because `main` remains intentionally untouched during this migration, renaming the project alone must not be presented as a clean public staging link to `vercel-neon-staging`. Pointing the clean default address to the migration branch requires the Vercel project’s Production Branch to be set to `vercel-neon-staging`; that does not change Manus or GitHub `main`, but it is a separate Vercel staging-routing decision.
 
 ## Data, Credential, and Cutover Policy
 
@@ -102,7 +102,7 @@ No production traffic moves until all of the following are true: the deployed st
 
 ## Current Deployment State
 
-The isolated `render-migration` branch is published to `ana-momin/Faro`; the latest routing repair is commit `b7884d4`. Vercel resolves the branch-preview hostname and applies Vercel Authentication before the application route runs. Therefore, an unauthenticated external request correctly receives a Vercel sign-in redirect rather than an application response.
+The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the latest repository-branding repair is commit `edb1310`. Vercel resolves the branch-preview hostname and applies Vercel Authentication before the application route runs. Therefore, an unauthenticated external request correctly receives a Vercel sign-in redirect rather than an application response.
 
 This confirms the preview is protected, but it does **not** prove the Neon migration or passkey interaction end-to-end. Those checks remain explicitly open until a team member with Vercel Preview access opens the preview, verifies `/healthz`, and completes one device-local passkey enrollment and re-login without adding a provider key or running collection.
 

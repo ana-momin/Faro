@@ -1,6 +1,6 @@
-# Faro AI Render Migration Plan — Superseded
+# Faro AI Legacy Render Migration Plan — Superseded
 
-**Status:** Render was abandoned for this migration after free PostgreSQL provisioning returned `402 Payment Required`. The active independent staging runbook is [`VERCEL_NEON_STAGING.md`](./VERCEL_NEON_STAGING.md). The published Manus version remains the production fallback until a separate cutover decision is approved.
+**Status:** Historical record only. Render was abandoned for this migration after free PostgreSQL provisioning returned `402 Payment Required`. The active independent staging runbook is [`VERCEL_NEON_STAGING.md`](./VERCEL_NEON_STAGING.md). The published Manus version remains the production fallback until a separate cutover decision is approved.
 
 ## Executive Decision
 

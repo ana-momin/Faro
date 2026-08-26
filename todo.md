@@ -342,12 +342,12 @@
 - [x] Inventory all Manus-specific runtime, auth, data, storage, secret, and scheduling dependencies for a Render migration.
 - [x] Define Render-compatible replacements and a secure migration sequence that preserves client-owned provider credentials.
 - [x] Document validation, rollback, cutover, access requirements, and migration decisions before any Render implementation.
-- [ ] Inspect the client-owned Render workspace and establish a safe Render staging baseline without changing live traffic.
-- [ ] Replace Manus OAuth and runtime coupling with local-device passkey onboarding that requires a name and accepts optional email and profile photo.
-- [ ] Replace Manus-managed data/storage dependencies with independently owned Render-compatible services while preserving client data isolation.
-- [ ] Deploy Faro AI to Render staging, validate app flows without provider calls, migrate approved data, and request cutover confirmation before changing production traffic.
-- [ ] Document independent operations, publish the migration, and push the complete Render-ready codebase to GitHub.
-- [ ] Use only free Render staging services and clearly document their sleep, expiry, and non-production limits before client cutover.
+- [ ] Legacy Render planning item — superseded by the client-owned Vercel + Neon staging path; do not establish Render traffic.
+- [ ] Legacy Render planning item — superseded by local-device passkey onboarding on Vercel + Neon staging.
+- [ ] Legacy Render planning item — superseded by independently owned Vercel + Neon-compatible dependencies.
+- [ ] Legacy Render planning item — superseded by Vercel + Neon staging; no Render deployment or cutover is authorized.
+- [ ] Legacy Render planning item — superseded by the Vercel + Neon operations runbook and staging branch.
+- [ ] Legacy Render planning item — superseded because Render’s free database provisioning was blocked.
 - [x] Document the Render free-database provisioning block and pivot the independent migration plan to Vercel-first staging.
 - [x] Adapt Faro AI’s independent branch for Vercel serverless deployment while preserving local passkey onboarding and no-provider-call validation.
 - [x] Select a compatible free external database, configure Vercel staging, and validate the migration before any client cutover.
@@ -357,4 +357,6 @@
 - [ ] Configure independent passkey secrets, apply the PostgreSQL schema, deploy Vercel staging, and validate the no-provider-call product flow.
 - [ ] Use the confirmed Alpha team faro-ai-staging project to inspect Neon injection and complete the independent staging deployment.
 - [x] Repair Vercel function routing so `/healthz` and `/api/trpc/*` cannot fall through to the SPA, then revalidate the protected staging preview without provider calls.
-- [ ] Configure a concise Faro AI Vercel staging alias and repair repository-served favicon and logo assets for deployed builds.
+- [x] Configure a concise Faro AI Vercel staging alias and repair repository-served favicon and logo assets for deployed builds.
+- [x] Rename the legacy `render-migration` staging branch and remaining migration references to `vercel-neon-staging`, then use that branch for the Faro Vercel staging deployment.
+- [x] Locate the current Vercel dashboard control for Faro’s branch routing after the Git settings page did not expose a Production Branch selector.
