@@ -1,6 +1,6 @@
-# Faro AI Render Migration Plan
+# Faro AI Render Migration Plan — Superseded
 
-**Status:** Planning only. This document does not authorize a deployment, credential transfer, database change, DNS change, or provider request. The published Manus version remains the production fallback until a separate cutover decision is approved.
+**Status:** Render was abandoned for this migration after free PostgreSQL provisioning returned `402 Payment Required`. The active independent staging runbook is [`VERCEL_NEON_STAGING.md`](./VERCEL_NEON_STAGING.md). The published Manus version remains the production fallback until a separate cutover decision is approved.
 
 ## Executive Decision
 
@@ -26,6 +26,14 @@ The migration is **not** a lift-and-shift. Faro currently relies on managed Manu
 ## Recommended Target Architecture
 
 The first independent deployment should keep the architecture intentionally small: one Render Node web service, one private MySQL 8 service, one auth provider, and one object-storage bucket. The app server remains the only component able to decrypt provider credentials or make an X provider request. Browser traffic continues to use tRPC; no browser-side calls to X providers will be added.
+
+## Free Render Staging Constraint
+
+The client has approved a fully free **staging-only** setup. Render states that a free web service spins down after 15 minutes without inbound traffic, can take about a minute to start again, and may restart at any time. Its free Postgres database has a 1 GB limit, expires after 30 days, has no backups, and is not recommended by Render for production applications. [5] Faro will therefore use free Render only for independent migration validation. The app must not be presented to paying clients or cut over from Manus until the client approves a durable database and always-available web service.
+
+## Vercel and Neon Staging Pivot
+
+Render’s API returned `402 Payment Required` while provisioning the client-approved free database, so the independent staging path has moved to the client-owned Vercel **Alpha** team. The client created and connected the `faro-ai-staging` project at `https://vercel.com/alpha-ea14/faro-ai-staging`, linked the private `ana-momin/Faro` repository, and installed the free Neon integration. Vercel confirms that Neon injected `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, and associated Postgres values for Preview and Production. The migration branch uses `DATABASE_URL_UNPOOLED` for Drizzle migrations and must add independently generated session and credential-encryption secrets before deployment. No Manus application runtime or X-provider collection will be used in this staging environment.
 
 | Layer | Recommended first-launch choice | Reason |
 |---|---|---|
@@ -134,3 +142,4 @@ No Render service will be created, no secret will be copied, no database will be
 [2]: https://render.com/docs/configure-environment-variables "Render: Environment Variables and Secrets"
 [3]: https://render.com/docs/web-services "Render: Web Services"
 [4]: https://render.com/docs/deploy-mysql "Render: Deploy MySQL"
+[5]: https://render.com/docs/free "Render: Deploy for Free"

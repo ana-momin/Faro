@@ -3,8 +3,10 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 export type ClientProvider = "twitterapi_io" | "official_x";
 
 function encryptionKey() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("Secure credential storage is unavailable.");
+  const secret = process.env.CREDENTIAL_ENCRYPTION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("Secure credential storage is unavailable. Configure CREDENTIAL_ENCRYPTION_SECRET with at least 32 characters.");
+  }
   return createHash("sha256").update(secret).digest();
 }
 

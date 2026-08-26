@@ -342,3 +342,17 @@
 - [x] Inventory all Manus-specific runtime, auth, data, storage, secret, and scheduling dependencies for a Render migration.
 - [x] Define Render-compatible replacements and a secure migration sequence that preserves client-owned provider credentials.
 - [x] Document validation, rollback, cutover, access requirements, and migration decisions before any Render implementation.
+- [ ] Inspect the client-owned Render workspace and establish a safe Render staging baseline without changing live traffic.
+- [ ] Replace Manus OAuth and runtime coupling with local-device passkey onboarding that requires a name and accepts optional email and profile photo.
+- [ ] Replace Manus-managed data/storage dependencies with independently owned Render-compatible services while preserving client data isolation.
+- [ ] Deploy Faro AI to Render staging, validate app flows without provider calls, migrate approved data, and request cutover confirmation before changing production traffic.
+- [ ] Document independent operations, publish the migration, and push the complete Render-ready codebase to GitHub.
+- [ ] Use only free Render staging services and clearly document their sleep, expiry, and non-production limits before client cutover.
+- [x] Document the Render free-database provisioning block and pivot the independent migration plan to Vercel-first staging.
+- [x] Adapt Faro AI’s independent branch for Vercel serverless deployment while preserving local passkey onboarding and no-provider-call validation.
+- [x] Select a compatible free external database, configure Vercel staging, and validate the migration before any client cutover.
+- [x] Connect the client-created free Neon database to the Faro AI Vercel staging project and configure independent serverless secrets.
+- [ ] Apply the independent PostgreSQL schema, deploy the Vercel staging branch, and validate passkey onboarding without provider collection.
+- [x] Inspect the connected faro-ai-staging Vercel project and Neon-injected configuration before applying secrets or schema changes.
+- [ ] Configure independent passkey secrets, apply the PostgreSQL schema, deploy Vercel staging, and validate the no-provider-call product flow.
+- [ ] Use the confirmed Alpha team faro-ai-staging project to inspect Neon injection and complete the independent staging deployment.

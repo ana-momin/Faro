@@ -16,8 +16,9 @@ describe("Faro Search progress and Profile actions", () => {
     expect(searchSource).toContain("errorDetail={runError}");
   });
 
-  it("uses labelled icon-led controls for key Profile actions", () => {
-    expect(profileSource).toContain('aria-label="Change profile photo"');
+  it("uses labelled icon-led controls for available Profile actions without a staging photo dead action", () => {
+    expect(profileSource).not.toContain('aria-label="Change profile photo"');
+    expect(profileSource).not.toContain("profile.uploadPhoto");
     expect(profileSource).toContain('aria-label="Open Feed"');
     expect(profileSource).toContain('aria-label="Sign out"');
   });

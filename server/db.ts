@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, inArray } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import {
   InsertUser,
   hiddenPosts,
@@ -11,18 +12,21 @@ import {
   providerConnections,
   postAlertDeliveries,
   postReviews,
+  passkeyChallenges,
+  passkeyCredentials,
   savedPosts,
   users,
-} from "../drizzle/schema";
-import { ENV } from './_core/env';
+} from "../drizzle/renderSchema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: Pool | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      _db = drizzle(_pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -68,9 +72,6 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
     }
 
     if (!values.lastSignedIn) {
@@ -81,8 +82,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
+      set: { ...updateSet, updatedAt: new Date() } as any,
     });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
@@ -107,6 +109,68 @@ export async function getUserById(userId: number) {
   if (!db) return undefined;
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return rows[0];
+}
+
+export async function createPasskeyUser(input: { openId: string; name: string; email?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const [user] = await db.insert(users).values({
+    openId: input.openId,
+    name: input.name,
+    email: input.email || null,
+    loginMethod: "passkey",
+    lastSignedIn: new Date(),
+  }).returning();
+  return user;
+}
+
+export async function updateUserLastSignedIn(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(users).set({ lastSignedIn: new Date(), updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function createPasskeyChallenge(input: { challenge: string; purpose: "register" | "authenticate"; userId?: number | null; profileName?: string | null; email?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const [record] = await db.insert(passkeyChallenges).values({
+    ...input,
+    expiresAt: new Date(Date.now() + 5 * 60_000),
+  }).returning();
+  return record;
+}
+
+export async function consumePasskeyChallenge(challenge: string, purpose: "register" | "authenticate") {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const [record] = await tx.select().from(passkeyChallenges).where(and(eq(passkeyChallenges.challenge, challenge), eq(passkeyChallenges.purpose, purpose))).limit(1);
+    if (!record || record.expiresAt.getTime() < Date.now()) return undefined;
+    await tx.delete(passkeyChallenges).where(eq(passkeyChallenges.id, record.id));
+    return record;
+  });
+}
+
+export async function savePasskeyCredential(input: { userId: number; credentialId: string; publicKey: string; counter: number; transports: string[] }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.insert(passkeyCredentials).values(input).onConflictDoUpdate({
+    target: passkeyCredentials.credentialId,
+    set: { publicKey: input.publicKey, counter: input.counter, transports: input.transports, updatedAt: new Date() },
+  });
+}
+
+export async function getPasskeyCredential(credentialId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(passkeyCredentials).where(eq(passkeyCredentials.credentialId, credentialId)).limit(1);
+  return rows[0];
+}
+
+export async function updatePasskeyCounter(credentialId: string, counter: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(passkeyCredentials).set({ counter, updatedAt: new Date() }).where(eq(passkeyCredentials.credentialId, credentialId));
 }
 
 export async function updateUserAvatar(userId: number, avatarUrl: string | null) {
@@ -160,8 +224,8 @@ export async function listActiveMonitorsForPolling(limit: number) {
 export async function createMonitor(input: typeof monitoringCriteria.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  const result = await db.insert(monitoringCriteria).values(input);
-  return Number(result[0].insertId);
+  const [result] = await db.insert(monitoringCriteria).values(input).returning({ id: monitoringCriteria.id });
+  return result.id;
 }
 
 export async function updateMonitorStatus(monitorId: number, userId: number, status: "active" | "paused") {
@@ -233,7 +297,10 @@ export async function listSavedPostsForUser(userId: number) {
 export async function savePostForUser(postId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(savedPosts).values({ postId, userId }).onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+  await db.insert(savedPosts).values({ postId, userId }).onConflictDoUpdate({
+    target: [savedPosts.userId, savedPosts.postId],
+    set: { createdAt: new Date(), updatedAt: new Date() },
+  });
 }
 
 export async function unsavePostForUser(postId: number, userId: number) {
@@ -253,7 +320,10 @@ export async function hidePostForUser(postId: number, userId: number) {
       .where(and(eq(listenedPosts.id, postId), eq(monitoringCriteria.userId, userId)))
       .limit(1);
     if (!owned[0]) return false;
-    await tx.insert(hiddenPosts).values({ userId, xPostId: owned[0].xPostId }).onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+    await tx.insert(hiddenPosts).values({ userId, xPostId: owned[0].xPostId }).onConflictDoUpdate({
+      target: [hiddenPosts.userId, hiddenPosts.xPostId],
+      set: { createdAt: new Date() },
+    });
     return true;
   });
 }
@@ -300,7 +370,8 @@ export async function listPostsForMonitor(monitorId: number) {
 export async function upsertListenedPost(input: typeof listenedPosts.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(listenedPosts).values(input).onDuplicateKeyUpdate({
+  await db.insert(listenedPosts).values(input).onConflictDoUpdate({
+    target: [listenedPosts.monitorId, listenedPosts.xPostId],
     set: {
       authorId: input.authorId,
       authorHandle: input.authorHandle,
@@ -326,7 +397,8 @@ export async function upsertListenedPost(input: typeof listenedPosts.$inferInser
 export async function recordSync(monitorId: number, state: Omit<typeof monitorSyncs.$inferInsert, "monitorId">) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(monitorSyncs).values({ monitorId, ...state }).onDuplicateKeyUpdate({
+  await db.insert(monitorSyncs).values({ monitorId, ...state }).onConflictDoUpdate({
+    target: monitorSyncs.monitorId,
     set: { ...state, updatedAt: new Date() },
   });
 }
@@ -354,7 +426,8 @@ export async function saveMonitorQueryState(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(monitorQueryStates).values({ monitorId, ...state }).onDuplicateKeyUpdate({
+  await db.insert(monitorQueryStates).values({ monitorId, ...state }).onConflictDoUpdate({
+    target: [monitorQueryStates.monitorId, monitorQueryStates.familyId, monitorQueryStates.queryHash],
     set: { ...state, updatedAt: new Date() },
   });
 }
@@ -407,7 +480,8 @@ export async function getProviderConnectionForUser(userId: number) {
 export async function upsertProviderConnectionForUser(input: typeof providerConnections.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(providerConnections).values(input).onDuplicateKeyUpdate({
+  await db.insert(providerConnections).values(input).onConflictDoUpdate({
+    target: providerConnections.userId,
     set: {
       provider: input.provider,
       encryptedCredential: input.encryptedCredential,

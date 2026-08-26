@@ -17,23 +17,16 @@ describe("monitoring query validation", () => {
   });
 });
 
-describe("AI query suggestion fallback", () => {
-  it("uses deterministic query construction when the built-in model is disabled", async () => {
-    const previous = process.env.SIGNALFORGE_DISABLE_LLM;
-    process.env.SIGNALFORGE_DISABLE_LLM = "true";
-    try {
-      const suggestion = await suggestCriteria("People looking for help building a custom AI workflow");
-      expect(suggestion.fallback).toBe(true);
-      expect(suggestion.model).toBe("deterministic fallback");
-      expect(suggestion.xQuery).toContain("-is:retweet");
-      expect(suggestion.includeTerms).toContain("custom ai workflow");
-      expect(suggestion.includeTerms).toContain("automation");
-      expect(suggestion.xQuery).toContain('(\"custom ai workflow\" OR \"ai workflow\" OR automation');
-      expect(suggestion.xQuery).toContain("-co-founder");
-    } finally {
-      if (previous === undefined) delete process.env.SIGNALFORGE_DISABLE_LLM;
-      else process.env.SIGNALFORGE_DISABLE_LLM = previous;
-    }
+describe("deterministic query suggestion", () => {
+  it("uses deterministic query construction without a managed model dependency", async () => {
+    const suggestion = await suggestCriteria("People looking for help building a custom AI workflow");
+    expect(suggestion.fallback).toBe(true);
+    expect(suggestion.model).toBe("Faro deterministic buyer-intent rules");
+    expect(suggestion.xQuery).toContain("-is:retweet");
+    expect(suggestion.includeTerms).toContain("custom ai workflow");
+    expect(suggestion.includeTerms).toContain("automation");
+    expect(suggestion.xQuery).toContain('(\"custom ai workflow\" OR \"ai workflow\" OR automation');
+    expect(suggestion.xQuery).toContain("-co-founder");
   });
 
   it("broadens workflow searches with service-delivery language while retaining the original concept", () => {
