@@ -94,6 +94,12 @@ No production traffic moves until all of the following are true: the deployed st
 | Provider request during migration validation | None made |
 | Manus production fallback | Unchanged |
 
+## Current Deployment State
+
+The isolated `render-migration` branch is published to `ana-momin/Faro`; the latest routing repair is commit `b7884d4`. Vercel resolves the branch-preview hostname and applies Vercel Authentication before the application route runs. Therefore, an unauthenticated external request correctly receives a Vercel sign-in redirect rather than an application response.
+
+This confirms the preview is protected, but it does **not** prove the Neon migration or passkey interaction end-to-end. Those checks remain explicitly open until a team member with Vercel Preview access opens the preview, verifies `/healthz`, and completes one device-local passkey enrollment and re-login without adding a provider key or running collection.
+
 ## References
 
 [1]: https://vercel.com/docs/environment-variables "Vercel: Environment variables"
