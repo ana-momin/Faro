@@ -6,6 +6,7 @@
 dist/
 build/
 *.dist
+api/_faroApp.mjs
 
 # Environment variables
 .env

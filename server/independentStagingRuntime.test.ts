@@ -33,14 +33,18 @@ describe("independent Vercel and Neon staging contract", () => {
     const trpcEntrypoint = projectFile("api/trpc/[...path].ts");
     const healthEntrypoint = projectFile("api/healthz.ts");
     const config = projectFile("vercel.json");
+    const packageJson = projectFile("package.json");
 
     expect(app).toContain('app.get("/healthz"');
     expect(app).toContain('app.use("/api/trpc"');
     expect(app).not.toContain("app.listen");
-    expect(entrypoint).toContain('import { createFaroApp } from "../server/app.ts"');
+    expect(entrypoint).toContain('import { createFaroApp } from "./_faroApp.mjs"');
     expect(entrypoint).toContain("export default app");
-    expect(trpcEntrypoint).toContain('import { createFaroApp } from "../../server/app.ts"');
+    expect(trpcEntrypoint).toContain('import { createFaroApp } from "../_faroApp.mjs"');
     expect(trpcEntrypoint).toContain("export default app");
+    expect(packageJson).toContain('"build:serverless"');
+    expect(config).toContain('"buildCommand": "pnpm db:migrate && pnpm build:serverless && pnpm build:client"');
+    expect(config).toContain('"includeFiles": "api/_faroApp.mjs"');
     expect(healthEntrypoint).toContain('res.status(200).json({ ok: true, service: "faro-ai" })');
     expect(config).toContain('"source": "/healthz", "destination": "/api/healthz"');
     expect(config).toContain('"source": "/:path((?!api(?:/|$)).*)", "destination": "/index.html"');

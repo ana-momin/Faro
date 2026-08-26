@@ -24,6 +24,7 @@
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:client": "vite build",
+    "build:serverless": "esbuild server/app.ts --platform=node --bundle --format=esm --packages=external --outfile=api/_faroApp.mjs",
     "db:migrate": "drizzle-kit migrate",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
