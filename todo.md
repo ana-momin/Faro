@@ -366,3 +366,5 @@
 - [x] Retire conflicting short-domain guidance and confirm `faro-ai-staging.vercel.app` as Faro AI’s canonical working Vercel staging URL.
 - [x] Reduce the passkey onboarding container height so the page fits the viewport without unnecessary scrolling.
 - [x] Verify and correct responsive layout behavior across Faro AI’s core desktop and mobile surfaces.
+- [ ] Diagnose and fix the Vercel passkey flow that returns an empty response and causes `Unexpected end of JSON input` for new and existing passkeys.
+- [ ] Redesign onboarding into passkey creation/sign-in first, then a minimal profile completion screen with required name and optional email/photo.

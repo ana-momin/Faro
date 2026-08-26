@@ -10,6 +10,8 @@ describe("tRPC transport resilience", () => {
     expect(transportSource).toContain("for (let attempt = 0; attempt < 3; attempt += 1)");
     expect(transportSource).toContain("catch (error)");
     expect(transportSource).toContain("globalThis.setTimeout");
+    expect(transportSource).toContain("isUnexpectedApiResponse");
+    expect(transportSource).toContain("empty or non-JSON API response");
     expect(transportSource).toContain("Faro could not reach its API after reconnecting");
   });
 
