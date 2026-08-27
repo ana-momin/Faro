@@ -65,6 +65,16 @@ function queryHash(query: string) {
   return createHash("sha256").update(query).digest("hex");
 }
 
+function legacyDirectDemandState(monitor: Monitor, states: MonitorQueryState[]) {
+  const legacyHash = queryHash(monitor.xQuery);
+  return states.find(state => state.familyId === "direct_demand" && state.queryHash === legacyHash && Boolean(state.nextToken));
+}
+
+export function hasResumableContinuation(monitor: Monitor, states: MonitorQueryState[]) {
+  const currentFamilyHashes = new Set(buildCoverageQueryFamilies(monitor.includeTerms, monitor.excludeTerms).map(family => `${family.id}:${queryHash(family.query)}`));
+  return states.some(state => Boolean(state.nextToken) && (currentFamilyHashes.has(`${state.familyId}:${state.queryHash}`) || (state.familyId === "direct_demand" && state.queryHash === queryHash(monitor.xQuery))));
+}
+
 function effectivePolicy(overrides?: Partial<CollectionPolicy>) {
   return { ...collectionPolicy(), ...overrides };
 }
@@ -87,20 +97,26 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
   const families = buildCoverageQueryFamilies(monitor.includeTerms, monitor.excludeTerms)
     .slice(0, policy.maxQueryFamiliesPerSync);
   const plans = families.map(family => {
-    const hash = queryHash(family.query);
-    const legacyState = family.id === "direct_demand" && !context.queryStates?.length
+    const currentHash = queryHash(family.query);
+    const currentState = stateByFamily.get(`${family.id}:${currentHash}`);
+    const resumableLegacyState = context.mode === "continue" && family.id === "direct_demand" && !currentState
+      ? legacyDirectDemandState(monitor, context.queryStates ?? [])
+      : undefined;
+    const requestQuery = resumableLegacyState ? monitor.xQuery : family.query;
+    const hash = resumableLegacyState?.queryHash ?? currentHash;
+    const legacyContextState = family.id === "direct_demand" && !context.queryStates?.length
       ? { newestPostId: context.newestId ?? null, nextToken: context.nextToken ?? null, pagesFetched: 0 }
       : undefined;
-    const state = stateByFamily.get(`${family.id}:${hash}`) ?? legacyState;
+    const state = currentState ?? resumableLegacyState ?? legacyContextState;
     return {
-      family,
+      family: requestQuery === family.query ? family : { ...family, query: requestQuery },
       hash,
       pageCalls: 0,
       closedForCycle: false,
       nextToken: state?.nextToken ?? null,
       newestPostId: state?.newestPostId ?? null,
       pagesFetched: state?.pagesFetched ?? 0,
-      lastSyncedAt: stateByFamily.get(`${family.id}:${hash}`)?.lastSyncedAt?.getTime() ?? 0,
+      lastSyncedAt: currentState?.lastSyncedAt?.getTime() ?? resumableLegacyState?.lastSyncedAt?.getTime() ?? 0,
     };
   }).sort((left, right) => left.lastSyncedAt - right.lastSyncedAt);
 
@@ -273,11 +289,22 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     });
     const users = new Map(coverage.result.users.map(user => [user.id, user]));
     const candidates = coverage.pages.flatMap(page => page.candidates.map(post => ({ page, post })));
-    const settled = await Promise.allSettled(candidates.map(({ post }) => persistNormalizedPost(monitor, post, users)));
+    const owners = await db.listStoredPostOwnersForUser(monitor.userId, candidates.map(({ post }) => post.id));
+    const ownerMonitorIdsByPostId = new Map<string, Set<number>>();
+    for (const owner of owners) {
+      const monitorIds = ownerMonitorIdsByPostId.get(owner.xPostId) ?? new Set<number>();
+      monitorIds.add(owner.monitorId);
+      ownerMonitorIdsByPostId.set(owner.xPostId, monitorIds);
+    }
+    const persistableCandidates = candidates.filter(({ post }) => {
+      const existingMonitorIds = ownerMonitorIdsByPostId.get(post.id);
+      return !existingMonitorIds || existingMonitorIds.has(monitor.id);
+    });
+    const settled = await Promise.allSettled(persistableCandidates.map(({ post }) => persistNormalizedPost(monitor, post, users)));
     const rejected = settled.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
     const persistedByPage = new Map<CoveragePage, number>();
     settled.forEach((outcome, index) => {
-      const entry = candidates[index];
+      const entry = persistableCandidates[index];
       if (entry && outcome.status === "fulfilled" && outcome.value.isNew && outcome.value.score >= 50 && outcome.value.label === "Active help-seeking") {
         persistedByPage.set(entry.page, (persistedByPage.get(entry.page) ?? 0) + 1);
       }
@@ -338,6 +365,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
       inserted,
       source: coverage.result.source,
       hasMore: coverage.pages.some(page => Boolean(page.nextToken)),
+      persistenceFailures: rejected.length,
       retrieval: {
         sourceCalls: coverage.calls,
         plannedPageRequests: coverage.plannedPageRequests,
@@ -347,7 +375,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
         pageBudget: coverage.pageBudget,
         rawReceived: coverage.rawReceived,
         deduplicatedPosts: coverage.rawCount,
-        buyerCandidates: coverage.candidateCount,
+        buyerCandidates: persistableCandidates.length,
         persisted: inserted,
         queueWaitMs: coverage.result.queueWaitMs,
       },

@@ -21,6 +21,14 @@ describe("Faro Discover feed selection", () => {
     expect(getQualifiedPosts(rows, 99, false)).toEqual([]);
   });
 
+  it("keeps an active search’s own qualified row visible even when an older search stored the same X post", () => {
+    const priorSearch = { ...item(39, 11, 90), post: { ...item(39, 11, 90).post, xPostId: "shared-x-post" } };
+    const activeSearch = { ...item(40, 10, 82), post: { ...item(40, 10, 82).post, xPostId: "shared-x-post" } };
+
+    expect(getQualifiedPosts([priorSearch, activeSearch], 10, false).map(row => row.post.id)).toEqual([40]);
+    expect(getAllQualifiedPosts([priorSearch, activeSearch]).map(row => row.post.id)).toEqual([39]);
+  });
+
   it("does not let an old high score surface generic AI commentary as a buyer request", () => {
     const generic = item(9, 10, 100, "twitterapi.io", "Most people build home servers for storage, but one developer filled theirs with AI.");
     expect(isConcreteBuyerRequest(generic.post)).toBe(false);

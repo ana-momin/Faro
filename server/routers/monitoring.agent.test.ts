@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   suggestCriteria: vi.fn(),
   syncMonitorRecord: vi.fn(),
   classifySyncFailure: vi.fn(),
+  hasResumableContinuation: vi.fn(),
   updateMonitorStatus: vi.fn(),
   getProviderConnectionForUser: vi.fn(),
   countMonitorSyncRunsForUserSince: vi.fn(),
@@ -25,7 +26,7 @@ vi.mock("../db", () => ({
   listMonitorsWithSync: mocks.listMonitorsWithSync,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
-vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
+vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure, hasResumableContinuation: mocks.hasResumableContinuation }));
 
 import { monitoringRouter } from "./monitoring";
 
@@ -47,6 +48,7 @@ describe("monitoring.agentStart", () => {
     mocks.countMonitorSyncRunsForUserSince.mockResolvedValue(0);
     mocks.listMonitorQueryStates.mockResolvedValue([]);
     mocks.listMonitorsWithSync.mockResolvedValue([]);
+    mocks.hasResumableContinuation.mockReturnValue(true);
   });
 
   it("maps, saves, and checks a single user-requested service brief", async () => {

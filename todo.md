@@ -396,3 +396,6 @@
 - [x] Ensure newly qualified posts reported by collection become visible in the same Search result set without duplicates.
 - [x] Add a credit-bounded Search time range for the last day, week, month, or all eligible recent results.
 - [x] Improve buyer-request query and qualification coverage for larger recent result sets without admitting offers, jobs, promotion, or generic discussion.
+- [x] Eliminate duplicate qualified posts across all saved Faro AI searches, not only within one monitor.
+- [x] Repair the Search continuation control so it can reliably request the next cursor-backed page for the active saved result set.
+- [x] Reconcile Search result notifications, persisted records, and the visible result list so users never see an inflated loaded-post count.

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { XApiError } from "./xClient";
 
 const mocks = vi.hoisted(() => ({
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   recordMonitorSyncRun: vi.fn(),
   recordSync: vi.fn(),
   getUserById: vi.fn(),
+  listStoredPostOwnersForUser: vi.fn(),
   fetchPublicPosts: vi.fn(),
   upsertFilteredStreamRule: vi.fn(),
   persistNormalizedPost: vi.fn(),
@@ -26,6 +28,7 @@ vi.mock("../db", () => ({
   recordMonitorSyncRun: mocks.recordMonitorSyncRun,
   recordSync: mocks.recordSync,
   getUserById: mocks.getUserById,
+  listStoredPostOwnersForUser: mocks.listStoredPostOwnersForUser,
   listActiveMonitors: vi.fn(),
   listActiveMonitorsForPolling: vi.fn(),
 }));
@@ -38,7 +41,7 @@ vi.mock("./xClient", async importOriginal => {
 vi.mock("./ingest", () => ({ persistNormalizedPost: mocks.persistNormalizedPost }));
 vi.mock("./providerCredentials", () => ({ decryptClientCredential: vi.fn(() => "client-test-key") }));
 
-import { fetchCreditAwarePosts, syncMonitorRecord } from "./sync";
+import { fetchCreditAwarePosts, hasResumableContinuation, syncMonitorRecord } from "./sync";
 
 const monitor = {
   id: 17,
@@ -79,6 +82,7 @@ describe("bounded multi-family sync", () => {
     mocks.recordMonitorSyncRun.mockResolvedValue(undefined);
     mocks.recordSync.mockResolvedValue(undefined);
     mocks.getUserById.mockResolvedValue(undefined);
+    mocks.listStoredPostOwnersForUser.mockResolvedValue([]);
     mocks.persistNormalizedPost.mockResolvedValue({ isNew: true, score: 84, label: "Active help-seeking" });
   });
 
@@ -119,6 +123,23 @@ describe("bounded multi-family sync", () => {
 
     expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "saved-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
     expect(coverage.pages[0]?.nextToken).toBe("later-page");
+  });
+
+  it("recovers a saved direct-demand cursor only when it matches the monitor’s original query", async () => {
+    const legacyState = {
+      familyId: "direct_demand",
+      queryHash: createHash("sha256").update(monitor.xQuery).digest("hex"),
+      queryPreview: monitor.xQuery,
+      nextToken: "legacy-direct-cursor",
+      newestPostId: "previous",
+      pagesFetched: 1,
+      lastSyncedAt: new Date(),
+    };
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "legacy-continued", text: "Need someone to automate an operations workflow for our team." }], "later-page"));
+
+    expect(hasResumableContinuation(monitor, [legacyState] as any)).toBe(true);
+    await expect(fetchCreditAwarePosts(monitor, { queryStates: [legacyState] as any, mode: "continue", policy: { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 } })).resolves.toMatchObject({ pages: [{ nextToken: "later-page" }] });
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(monitor.xQuery, { nextToken: "legacy-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
   });
 
   it("allows a user-requested continuation for a paused saved search without re-enabling background collection", async () => {
@@ -179,6 +200,17 @@ describe("bounded multi-family sync", () => {
       retrieval: { sourceCalls: 1, pagesChecked: 1, persisted: 0 },
     });
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
+  });
+
+  it("does not store an exact X post a user already owns through another saved search", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "already-on-another-search", text: "Need someone to automate our client intake workflow." }]));
+    mocks.listStoredPostOwnersForUser.mockResolvedValueOnce([{ xPostId: "already-on-another-search", monitorId: 99 }]);
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 0,
+      retrieval: { buyerCandidates: 0, persisted: 0 },
+    });
+    expect(mocks.persistNormalizedPost).not.toHaveBeenCalled();
   });
 
   it("does not report a stored low-intent candidate as a newly visible qualified request", async () => {

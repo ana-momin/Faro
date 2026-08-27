@@ -18,9 +18,10 @@ export function isConcreteBuyerRequest(post: FeedPost) {
 }
 
 export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorId?: number, fallbackToAll = true) {
-  const qualified = getAllQualifiedPosts(items);
-  const active = activeMonitorId ? qualified.filter(({ monitor }) => monitor.id === activeMonitorId) : qualified;
-  return active.length || !fallbackToAll ? active : qualified;
+  const activeItems = activeMonitorId ? items.filter(({ monitor }) => monitor.id === activeMonitorId) : items;
+  const activeQualified = getAllQualifiedPosts(activeItems);
+  if (activeQualified.length || !fallbackToAll || !activeMonitorId) return activeQualified;
+  return getAllQualifiedPosts(items);
 }
 
 export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {

@@ -8,7 +8,7 @@ import { credentialHint, encryptClientCredential, type ClientProvider } from "..
 import { deterministicSuggestion, requireServiceRequestQuery, validateXQuery } from "../monitoring/query";
 import { rankOpportunity } from "../monitoring/ranking";
 import { derivePreferredTopics, preferenceBoost } from "../monitoring/preferences";
-import { classifySyncFailure, syncMonitorRecord } from "../monitoring/sync";
+import { classifySyncFailure, hasResumableContinuation, syncMonitorRecord } from "../monitoring/sync";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const terms = z.array(z.string().trim().min(1).max(80)).max(20);
@@ -317,7 +317,7 @@ export const monitoringRouter = router({
       const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
       if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
       const states = await db.listMonitorQueryStates(monitor.id);
-      return { available: states.some(state => Boolean(state.nextToken)) };
+      return { available: hasResumableContinuation(monitor, states) };
     }),
 
   continueSearch: protectedProcedure
@@ -327,7 +327,7 @@ export const monitoringRouter = router({
       const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
       if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
       const states = await db.listMonitorQueryStates(monitor.id);
-      if (!states.some(state => Boolean(state.nextToken))) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "There are no additional pages available for this search." });
+      if (!hasResumableContinuation(monitor, states)) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "There are no additional pages available for this search." });
       try {
         return { monitorId: monitor.id, ...(await syncMonitorRecord(monitor, { mode: "continue" })) };
       } catch (error) {

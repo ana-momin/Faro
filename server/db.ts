@@ -376,6 +376,17 @@ export async function listPostsForMonitor(monitorId: number) {
   return db.select().from(listenedPosts).where(eq(listenedPosts.monitorId, monitorId));
 }
 
+export async function listStoredPostOwnersForUser(userId: number, xPostIds: string[]) {
+  const db = await getDb();
+  const ids = Array.from(new Set(xPostIds.filter(Boolean)));
+  if (!db || !ids.length) return [];
+  return db
+    .select({ xPostId: listenedPosts.xPostId, monitorId: listenedPosts.monitorId })
+    .from(listenedPosts)
+    .innerJoin(monitoringCriteria, eq(monitoringCriteria.id, listenedPosts.monitorId))
+    .where(and(eq(monitoringCriteria.userId, userId), inArray(listenedPosts.xPostId, ids)));
+}
+
 export async function upsertListenedPost(input: typeof listenedPosts.$inferInsert) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
