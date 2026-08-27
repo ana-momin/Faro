@@ -102,9 +102,9 @@ No production traffic moves until all of the following are true: the deployed st
 
 ## Current Deployment State
 
-The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the latest original-branding repair is commit `4a53b84`. The canonical address is reachable without a Vercel sign-in wall and correctly serves the application onboarding shell and health function. Visual verification confirms both visible Faro AI logo placements load the original mascot from `/faro-mascot.png`.
+The isolated `vercel-neon-staging` branch is published to `ana-momin/Faro`; the current combined core-release commit is `0bb41bb`. The canonical address is reachable without a Vercel sign-in wall and correctly serves the application onboarding shell and health function. Visual verification confirms both visible Faro AI logo placements load the original mascot from `/faro-mascot.png`.
 
-The remaining manual check is one device-local passkey enrollment and re-login on the canonical address. No provider credential, provider collection, DNS change, GitHub `main` change, or Manus cutover is included in that check.
+The canonical `auth.passkeyRegistrationOptions` endpoint was rechecked after the core release and returned `200` JSON with relying-party ID `faro-ai-staging.vercel.app`, `residentKey: "preferred"`, and `userVerification: "preferred"`. The remaining manual acceptance check is one device-local passkey enrollment and re-login on the canonical address. No provider credential, provider collection, DNS change, GitHub `main` change, or Manus cutover is included in that check.
 
 ## Responsive Onboarding Verification
 

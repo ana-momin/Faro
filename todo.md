@@ -388,5 +388,5 @@
 - [x] Apply green confirmation feedback and red error feedback consistently to user-facing toast or bottom-message surfaces.
 - [x] Audit and improve recent-result retrieval, qualification, ranking, and deduplication so the first search page aims for ten fresh relevant posts.
 - [x] Add an explicit load-more action that continues the same search after the first page without repeating prior posts and within client credit limits.
-- [ ] Diagnose and repair canonical Vercel staging passkey creation and sign-in so a Windows browser offers an eligible passkey save or selection flow.
+- [x] Diagnose and repair canonical Vercel staging passkey creation and sign-in so a Windows browser offers an eligible passkey save or selection flow.
 - [x] Prevent legacy provider-credential smoke tests from making outbound requests during routine offline validation.
