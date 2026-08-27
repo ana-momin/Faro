@@ -21,6 +21,9 @@ describe("client-owned provider setup", () => {
     expect(providerSource).toContain("credentialHint");
     expect(providerSource).toContain('aria-label={showCredential ? "Hide credential" : "Show credential"}');
     expect(providerSource).toContain("Find first posts");
+    expect(providerSource).toContain("$0.10 in free credit (10,000 credits)");
+    expect(providerSource).toContain("setDailyRequestLimit] = useState(10)");
+    expect(routerSource).toContain("dailyRequestLimit: 10, remainingCalls: 10");
   });
 
   it("shows saved provider state only for the provider the client selected", () => {

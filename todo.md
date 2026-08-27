@@ -405,3 +405,6 @@
 - [x] Fix any reproducible core Search, duplicate, visibility, or same-search continuation defect found in the bounded audit.
 - [x] Complete the core Search audit with safe non-login checks only because the testing browser cannot access the device-bound passkey session.
 - [x] Block clearly unrelated non-service prompts before provider collection and guide users to Faro AI’s buyer-service Search purpose.
+- [x] Verify TwitterAPI.io’s current credit offer before presenting it in Faro AI’s provider setup guidance.
+- [x] Set Faro AI’s default daily source-call limit to 10 for new provider configurations.
+- [x] Broaden buyer-request query and qualification coverage so natural language AI-agent searches yield more recent eligible requests without admitting service offers, jobs, or generic chatter.

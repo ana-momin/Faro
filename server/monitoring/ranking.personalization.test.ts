@@ -340,6 +340,20 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("Direct service request");
   });
 
+  it("accepts a provider-led request to implement AI agents without admitting a provider offer", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI agents", "implementation", "automation"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find founders and teams looking for a provider to build or implement AI agents",
+      body: "Our team is looking for a provider to implement AI agents for support automation and client intake this month.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.components.map(component => component.label)).toContain("Direct service request");
+  });
+
   it("rejects a generic developer mention that does not specify any work to deliver", () => {
     const result = rankOpportunity({
       includeTerms: ["developer"],

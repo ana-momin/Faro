@@ -148,7 +148,7 @@ export const monitoringRouter = router({
       db.getProviderConnectionForUser(ctx.user.id),
       db.countMonitorSyncRunsForUserSince(ctx.user.id, dayStart),
     ]);
-    if (!connection) return { configured: false as const, callsToday: 0, dailyRequestLimit: 20, remainingCalls: 20, strictBatch: true as const };
+    if (!connection) return { configured: false as const, callsToday: 0, dailyRequestLimit: 10, remainingCalls: 10, strictBatch: true as const };
     return {
       configured: true as const,
       provider: connection.provider,
