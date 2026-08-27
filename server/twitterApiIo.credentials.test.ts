@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-describe("TwitterAPI.io credential", () => {
+const describeLiveCredentialCheck = process.env.RUN_LIVE_PROVIDER_CREDENTIAL_TESTS === "1" ? describe : describe.skip;
+
+describeLiveCredentialCheck("TwitterAPI.io credential", () => {
   it("authenticates a lightweight public-post search request with the server-side API key", async () => {
     const apiKey = process.env.TWITTERAPI_IO_KEY;
     expect(apiKey, "TWITTERAPI_IO_KEY must be configured for alternative X ingestion").toBeTruthy();

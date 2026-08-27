@@ -384,3 +384,9 @@
 - [x] Prioritize fresh, recent, non-duplicate provider results while preserving explicit client-run and credit-safe collection limits.
 - [x] Move saved search history and its original stored result sets into the primary Search workspace.
 - [x] Add a clear preflight daily provider-call budget gate that prevents a new Search before collection starts when the configured limit is exhausted.
+- [x] Allow daily provider-limit edits without requiring the client to re-enter an already saved API key, and refine the credential-editing interface.
+- [x] Apply green confirmation feedback and red error feedback consistently to user-facing toast or bottom-message surfaces.
+- [x] Audit and improve recent-result retrieval, qualification, ranking, and deduplication so the first search page aims for ten fresh relevant posts.
+- [x] Add an explicit load-more action that continues the same search after the first page without repeating prior posts and within client credit limits.
+- [ ] Diagnose and repair canonical Vercel staging passkey creation and sign-in so a Windows browser offers an eligible passkey save or selection flow.
+- [x] Prevent legacy provider-credential smoke tests from making outbound requests during routine offline validation.

@@ -99,6 +99,12 @@ describe("Faro Discover feed selection", () => {
     expect(getAllQualifiedPosts([older, newer]).map(row => row.post.id)).toEqual([33]);
   });
 
+  it("prioritizes a current-day buyer request over an older higher-scoring request before the top-ten display", () => {
+    const recent = { ...item(34, 10, 74, "twitterapi.io", "We need someone to automate our client intake with AI."), post: { ...item(34, 10, 74, "twitterapi.io", "We need someone to automate our client intake with AI.").post, postedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() } };
+    const older = { ...item(35, 10, 96, "twitterapi.io", "Looking to hire a developer to automate our support workflow."), post: { ...item(35, 10, 96, "twitterapi.io", "Looking to hire a developer to automate our support workflow.").post, postedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() } };
+    expect(getAllQualifiedPosts([older, recent]).map(row => row.post.id)).toEqual([34, 35]);
+  });
+
   it("removes promotional provider noise and explains concrete buyer matches concisely", () => {
     const promotion = item(30, 10, 95, "twitterapi.io", "My agency offers automation. Book a call and DM me for a free guide.");
     const request = item(31, 10, 85, "twitterapi.io", "We need someone to automate our support workflow.");

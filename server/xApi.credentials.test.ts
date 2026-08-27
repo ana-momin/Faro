@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-describe("X API credential", () => {
+const describeLiveCredentialCheck = process.env.RUN_LIVE_PROVIDER_CREDENTIAL_TESTS === "1" ? describe : describe.skip;
+
+describeLiveCredentialCheck("X API credential", () => {
   it("authenticates a lightweight Recent Search request with the server-side bearer token", async () => {
     const token = process.env.X_API_BEARER_TOKEN;
     expect(token, "X_API_BEARER_TOKEN must be configured for ingestion").toBeTruthy();

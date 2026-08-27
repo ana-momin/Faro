@@ -23,8 +23,7 @@ describe("Faro refresh and Search result surfaces", () => {
   it("refetches saved overview data before rendering completed Search results in the centered command workspace", () => {
     expect(searchSource).toContain("await overview.refetch()");
     expect(searchSource).toContain('label="Pages"');
-    expect(searchSource).toContain("Top qualified requests");
-    expect(searchSource).not.toContain("Top 10 qualified requests");
+    expect(searchSource).toContain("Top 10 recent qualified requests");
     expect(searchSource).toContain("still needs final review");
     expect(searchSource).toContain('max-w-[1040px]');
     expect(searchSource).toContain("Suggestions");
@@ -49,5 +48,8 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("Reopening stored results never uses a provider request.");
     expect(searchSource).toContain("function SearchHistory");
     expect(searchSource).toContain("Reopen a saved result set without another provider call.");
+    expect(searchSource).toContain("continueSearch");
+    expect(searchSource).toContain("Load more recent matches");
+    expect(searchSource).toContain("continues this search");
   });
 });

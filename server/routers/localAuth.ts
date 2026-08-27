@@ -38,7 +38,7 @@ export const localAuthRouter = router({
       userDisplayName: "Faro member",
       userID: new TextEncoder().encode(userHandle),
       attestationType: "none",
-      authenticatorSelection: { residentKey: "required", userVerification: "required" },
+      authenticatorSelection: { residentKey: "preferred", userVerification: "preferred" },
     });
     await db.createPasskeyChallenge({ challenge: options.challenge, purpose: "register" });
     return options;
@@ -51,7 +51,7 @@ export const localAuthRouter = router({
       const saved = await db.consumePasskeyChallenge(challenge, "register");
       if (!saved) throw new TRPCError({ code: "BAD_REQUEST", message: "This passkey setup request expired. Please try again." });
       const { origin, rpID } = requestPasskeyConfig(ctx.req);
-      const verification = await verifyRegistrationResponse({ response: input.response, expectedChallenge: saved.challenge, expectedOrigin: origin, expectedRPID: rpID, requireUserVerification: true });
+      const verification = await verifyRegistrationResponse({ response: input.response, expectedChallenge: saved.challenge, expectedOrigin: origin, expectedRPID: rpID, requireUserVerification: false });
       if (!verification.verified || !verification.registrationInfo) throw new TRPCError({ code: "UNAUTHORIZED", message: "Your device could not verify this passkey." });
       const user = await db.createPasskeyUser({ openId: crypto.randomUUID() });
       await db.savePasskeyCredential({
@@ -76,7 +76,7 @@ export const localAuthRouter = router({
     }),
   passkeyAuthenticationOptions: publicProcedure.mutation(async ({ ctx }) => {
     const { rpID } = requestPasskeyConfig(ctx.req);
-    const options = await generateAuthenticationOptions({ rpID, userVerification: "required" });
+    const options = await generateAuthenticationOptions({ rpID, userVerification: "preferred" });
     await db.createPasskeyChallenge({ challenge: options.challenge, purpose: "authenticate" });
     return options;
   }),
@@ -96,7 +96,7 @@ export const localAuthRouter = router({
         expectedOrigin: origin,
         expectedRPID: rpID,
         credential: { id: storedCredential.credentialId, publicKey: fromBase64Url(storedCredential.publicKey), counter: storedCredential.counter, transports: storedCredential.transports as any },
-        requireUserVerification: true,
+        requireUserVerification: false,
       });
       if (!verification.verified) throw new TRPCError({ code: "UNAUTHORIZED", message: "Your device could not verify this passkey." });
       await db.updatePasskeyCounter(storedCredential.credentialId, verification.authenticationInfo.newCounter);

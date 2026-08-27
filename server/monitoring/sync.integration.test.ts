@@ -97,8 +97,8 @@ describe("bounded multi-family sync", () => {
     expect(coverage.queryFamilies).toBe(3);
     expect(coverage.rawReceived).toBe(6);
     expect(coverage.rawCount).toBe(5);
-    expect(coverage.candidateCount).toBe(4);
-    expect(coverage.result.posts.map(post => post.id)).toEqual(["direct-one", "shared", "recommendation-one", "direct-two"]);
+    expect(coverage.candidateCount).toBe(5);
+    expect(coverage.result.posts.map(post => post.id)).toEqual(["direct-one", "shared", "recommendation-one", "task-help-one", "direct-two"]);
     expect(mocks.fetchPublicPosts.mock.calls.some(([, cursor]) => cursor?.nextToken === "direct-next")).toBe(true);
   });
 
@@ -110,6 +110,15 @@ describe("bounded multi-family sync", () => {
     expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
     expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), undefined, expect.objectContaining({ provider: "twitterapi_io" }));
     expect(coverage.pages[0]?.nextToken).toBe("following-page");
+  });
+
+  it("uses a saved cursor only for an explicit continuation of the same search", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "continued", text: "Need someone to automate an operations workflow for our team." }], "later-page"));
+
+    const coverage = await fetchCreditAwarePosts(monitor, { nextToken: "saved-direct-cursor", queryStates: [], mode: "continue", policy: { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 } });
+
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "saved-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
+    expect(coverage.pages[0]?.nextToken).toBe("later-page");
   });
 
   it("caps pages even when a provider advertises endless continuations", async () => {
@@ -158,6 +167,15 @@ describe("bounded multi-family sync", () => {
       retrieval: { sourceCalls: 1, pagesChecked: 1, persisted: 0 },
     });
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
+  });
+
+  it("reports a remaining cursor so the client can offer a bounded load-more action", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "one", text: "Need someone to automate our client intake workflow." }], "next-page"));
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 1,
+      hasMore: true,
+    });
   });
 
   it("persists a rate-limit source state without consuming later families", async () => {

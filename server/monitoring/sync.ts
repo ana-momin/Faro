@@ -31,8 +31,11 @@ type FetchCoverageContext = {
   queryStates?: MonitorQueryState[];
   newestId?: string | null;
   nextToken?: string | null;
+  mode?: "fresh" | "continue";
   policy?: Partial<CollectionPolicy>;
 };
+
+export type MonitorSyncOptions = Partial<CollectionPolicy> & { mode?: "fresh" | "continue" };
 
 type PageFailureMetadata = {
   familyId: string;
@@ -106,7 +109,7 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
   let selectionIndex = 0;
 
   while (pages.length < policy.maxProviderCallsPerSync) {
-    const eligible = plans.filter(plan => !plan.closedForCycle && plan.pageCalls < policy.maxPagesPerFamily);
+    const eligible = plans.filter(plan => !plan.closedForCycle && plan.pageCalls < policy.maxPagesPerFamily && (context.mode !== "continue" || Boolean(plan.nextToken)));
     if (!eligible.length) break;
     const firstPass = eligible.filter(plan => plan.pageCalls === 0);
     const pool = firstPass.length ? firstPass : eligible;
@@ -115,7 +118,7 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
     if (!plan) break;
 
     const startedAt = Date.now();
-    const cursor = plan.pageCalls > 0 && plan.nextToken
+    const cursor = (plan.pageCalls > 0 || context.mode === "continue") && plan.nextToken
       ? { nextToken: plan.nextToken }
       : plan.newestPostId
         ? { newestId: plan.newestPostId }
@@ -199,7 +202,7 @@ export function classifySyncFailure(error: unknown) {
   return { status: "error" as const, label: "Sync needs attention" };
 }
 
-export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Partial<CollectionPolicy>) {
+export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: MonitorSyncOptions) {
   if (monitor.status !== "active") return { inserted: 0, skipped: "paused" as const };
   const start = Date.now();
   const connection = await db.getProviderConnectionForUser(monitor.userId);
@@ -238,6 +241,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
       inserted: 0,
       source: "twitterapi_io" as const,
       skipped: "daily_budget" as const,
+      hasMore: false,
       retrieval: {
         sourceCalls: 0,
         plannedPageRequests: 0,
@@ -265,6 +269,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
       nextToken: previous?.nextToken,
       provider,
       policy: cyclePolicy,
+      mode: policyOverrides?.mode,
     });
     const users = new Map(coverage.result.users.map(user => [user.id, user]));
     const candidates = coverage.pages.flatMap(page => page.candidates.map(post => ({ page, post })));
@@ -332,6 +337,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Part
     return {
       inserted,
       source: coverage.result.source,
+      hasMore: coverage.pages.some(page => Boolean(page.nextToken)),
       retrieval: {
         sourceCalls: coverage.calls,
         plannedPageRequests: coverage.plannedPageRequests,

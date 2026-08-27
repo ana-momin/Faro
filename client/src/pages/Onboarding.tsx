@@ -109,13 +109,13 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
               {mode === "create" && <>
                 <button onClick={() => setMode("welcome")} className="inline-flex items-center gap-1 text-xs font-bold text-[#a06952] hover:text-[#75432e]"><ArrowLeft className="h-3.5 w-3.5" />Back</button>
                 <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Create your passkey.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Your device will confirm with Face ID, fingerprint, or screen lock. Faro never sees that secret.</p>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Choose Windows Hello, Google Password Manager, your phone, or another available passkey method. Faro never sees that secret.</p>
                 <Button onClick={createPasskey} disabled={working} size="lg" className="mt-6 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Continue with passkey</>}</Button>
               </>}
               {mode === "signin" && <>
                 <button onClick={() => setMode("welcome")} className="inline-flex items-center gap-1 text-xs font-bold text-[#a06952] hover:text-[#75432e]"><ArrowLeft className="h-3.5 w-3.5" />Back</button>
                 <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Use your existing passkey.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Use the passkey you created for Faro on this device.</p>
+                <p className="mt-2 text-sm leading-6 text-[#806c5e]">Choose the Faro passkey from this device, Google Password Manager, or your phone.</p>
                 <Button onClick={signIn} disabled={working} size="lg" className="mt-6 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Fingerprint className="mr-2 h-4 w-4" />Continue with passkey</>}</Button>
               </>}
               {isProfile && <>

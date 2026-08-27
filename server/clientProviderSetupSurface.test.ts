@@ -36,8 +36,10 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain('!h-11 !w-11 !justify-center !px-0');
     expect(sidebarSource).toContain('data-[active=true]:-translate-x-1');
     expect(providerSource).toContain("updateProviderDailyLimit");
-    expect(providerSource).toContain("Save daily limit");
-    expect(providerSource).toContain("Editing applies only to this connected provider.");
+    expect(providerSource).toContain("Save limit");
+    expect(providerSource).toContain("Changing the daily limit never needs the key again.");
+    expect(providerSource).toContain("Replace API key");
+    expect(providerSource).toContain("Change it without re-entering your saved API key.");
     expect(providerSource).toContain("Provider credit balance stays in your");
     expect(routerSource).toContain("updateProviderDailyLimit");
     expect(routerSource).toContain("updateProviderDailyRequestLimitForUser");

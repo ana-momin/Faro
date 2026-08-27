@@ -21,7 +21,7 @@ const suggestions: Array<{ label: string; value: string; Icon: LucideIcon }> = [
 const firstBatchBrief = "Find founders, operators, and teams actively asking for help with AI agents, workflow automation, or practical AI implementation.";
 
 type RetrievalMetrics = { sourceCalls: number; plannedPageRequests: number; queryFamilies: number; queryFamilyBudget: number; pagesChecked: number; pageBudget: number; rawReceived: number; deduplicatedPosts: number; buyerCandidates: number; persisted: number; queueWaitMs: number };
-type SearchResult = { monitorId: number; inserted: number; sourceStatus: string; syncError?: string | null; retrieval?: RetrievalMetrics };
+type SearchResult = { monitorId: number; inserted: number; sourceStatus: string; syncError?: string | null; retrieval?: RetrievalMetrics; hasMore?: boolean };
 type ResultSet = { monitorId: number; monitorName: string; goal: string; items: any[]; persisted: number; fromHistory: boolean };
 
 export default function Search() {
@@ -36,6 +36,8 @@ export default function Search() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const overview = trpc.monitoring.overview.useQuery(undefined, { staleTime: 5_000 });
   const providerSetup = trpc.monitoring.providerSetup.useQuery(undefined, { staleTime: 5_000 });
+  const activeResultMonitorId = result?.monitorId ?? historyMonitorId;
+  const continuation = trpc.monitoring.continuation.useQuery({ monitorId: activeResultMonitorId ?? 0 }, { enabled: Boolean(activeResultMonitorId), staleTime: 5_000 });
   const firstBatch = new URLSearchParams(location.split("?")[1] ?? "").get("firstBatch") === "1";
   const historyFromLocation = Number(new URLSearchParams(location.split("?")[1] ?? "").get("history"));
   const review = trpc.monitoring.review.useMutation({
@@ -74,17 +76,32 @@ export default function Search() {
     setPhase("idle");
   }, [historyFromLocation]);
 
-  const finish = async (data: { monitorId: number; sync?: { inserted: number; retrieval?: RetrievalMetrics } | null; sourceStatus: string; syncError?: string | null }) => {
+  const finish = async (data: { monitorId: number; sync?: { inserted: number; retrieval?: RetrievalMetrics; hasMore?: boolean } | null; sourceStatus: string; syncError?: string | null }) => {
     const retrieval = data.sync?.retrieval;
     const sourceIssue = Boolean(data.syncError) || Boolean(retrieval?.buyerCandidates && !retrieval.persisted);
     await utils.monitoring.overview.invalidate();
+    await utils.monitoring.providerSetup.invalidate();
     await overview.refetch();
+    await providerSetup.refetch();
     setHistoryMonitorId(null);
-    setResult({ monitorId: data.monitorId, inserted: data.sync?.inserted ?? 0, sourceStatus: data.sourceStatus, syncError: data.syncError ?? (sourceIssue ? "Faro found buyer candidates but could not save them. Please run the search again." : null), retrieval });
+    setResult({ monitorId: data.monitorId, inserted: data.sync?.inserted ?? 0, sourceStatus: data.sourceStatus, syncError: data.syncError ?? (sourceIssue ? "Faro found buyer candidates but could not save them. Please run the search again." : null), retrieval, hasMore: data.sync?.hasMore });
     setPhase(sourceIssue ? "attention" : retrieval?.persisted ? "complete" : "empty");
   };
 
   const agent = trpc.monitoring.agentStart.useMutation({ onSuccess: finish, onError: error => { setRunError(error.message); setPhase("attention"); toast.error(error.message); } });
+  const continueSearch = trpc.monitoring.continueSearch.useMutation({
+    onSuccess: async data => {
+      await utils.monitoring.overview.invalidate();
+      await utils.monitoring.providerSetup.invalidate();
+      await utils.monitoring.continuation.invalidate({ monitorId: data.monitorId });
+      await overview.refetch();
+      await providerSetup.refetch();
+      setHistoryMonitorId(data.monitorId);
+      setResult(current => ({ monitorId: data.monitorId, inserted: (current?.inserted ?? 0) + data.inserted, sourceStatus: "healthy", retrieval: data.retrieval, hasMore: data.hasMore }));
+      toast.success(data.inserted ? `${data.inserted} new qualified post${data.inserted === 1 ? "" : "s"} added from the next source page.` : "The next source page was checked; no additional qualified posts matched.");
+    },
+    onError: error => toast.error(error.message),
+  });
   const pending = agent.isPending;
 
   useEffect(() => {
@@ -119,12 +136,12 @@ export default function Search() {
   const ready = brief.trim().length >= 12;
   const budgetExhausted = Boolean(providerSetup.data?.configured && providerSetup.data.remainingCalls <= 0);
   const resultSet = useMemo<ResultSet | null>(() => {
-    const monitorId = result?.monitorId ?? historyMonitorId;
+    const monitorId = activeResultMonitorId;
     if (!monitorId) return null;
     const row = overview.data?.monitors.find(item => item.monitor.id === monitorId);
     const items = getQualifiedPosts(overview.data?.posts ?? [], monitorId, false);
     return { monitorId, monitorName: row?.monitor.name ?? "Saved search", goal: row?.monitor.goal ?? "", items, persisted: result?.retrieval?.persisted ?? items.length, fromHistory: !result && Boolean(historyMonitorId) };
-  }, [historyMonitorId, overview.data?.monitors, overview.data?.posts, result]);
+  }, [activeResultMonitorId, historyMonitorId, overview.data?.monitors, overview.data?.posts, result]);
   const showResultSet = Boolean(resultSet && ((result && (phase === "complete" || phase === "empty")) || historyMonitorId));
   return <div className="mx-auto w-full max-w-[1040px] pb-12">
     <header className="flex items-center justify-between border-b border-[#eadfd2] pb-5"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#a25d47]">Faro AI</p><h1 className="mt-0.5 text-lg font-extrabold tracking-[-0.05em] text-[#3d2e23]">Search</h1></div><span className="rounded-full border border-[#ead9c4] bg-white px-3 py-1.5 text-[10px] font-bold text-[#94624a]">Buyer-side only</span></header>
@@ -133,7 +150,7 @@ export default function Search() {
     </section>
     {budgetExhausted ? <div className="mx-auto -mt-8 max-w-4xl rounded-2xl border border-[#edcaba] bg-[#fff4ed] px-4 py-3 text-left text-[11px] leading-5 text-[#96553e]">Today’s configured provider-call limit is reached. Faro will not start another source search until you increase it in <button type="button" onClick={() => setLocation("/settings?section=provider")} className="font-extrabold underline underline-offset-2">Settings → Provider</button> or the daily window resets.</div> : null}
     {phase !== "idle" && !pending ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onOpen={() => setLocation("/")} /> : null}
-    <section className="mt-8 grid gap-6 border-t border-[#eadfd2] pt-6 lg:grid-cols-[240px_minmax(0,1fr)]"><SearchHistory rows={overview.data?.monitors ?? []} selectedMonitorId={result?.monitorId ?? historyMonitorId} onOpen={monitorId => { setHistoryMonitorId(monitorId); setResult(null); setRunError(null); setPhase("idle"); }} /><div>{showResultSet && resultSet ? <SearchResults resultSet={resultSet} loading={overview.isFetching} onOpenFeed={() => setLocation("/")} onOpen={setSelectedItem} /> : <div className="grid min-h-48 place-items-center rounded-[24px] border border-dashed border-[#ead9c4] bg-[#fffdfa] px-6 text-center text-[11px] leading-5 text-[#9a7c68]">Run a new search or select a saved search to reopen the exact results Faro showed then.</div>}</div></section>
+    <section className="mt-8 grid gap-6 border-t border-[#eadfd2] pt-6 lg:grid-cols-[240px_minmax(0,1fr)]"><SearchHistory rows={overview.data?.monitors ?? []} selectedMonitorId={activeResultMonitorId} onOpen={monitorId => { setHistoryMonitorId(monitorId); setResult(null); setRunError(null); setPhase("idle"); }} /><div>{showResultSet && resultSet ? <SearchResultsWithPaging key={resultSet.monitorId} resultSet={resultSet} loading={overview.isFetching} canContinue={Boolean(continuation.data?.available) && !budgetExhausted} budgetExhausted={budgetExhausted} loadingMore={continueSearch.isPending} onContinue={() => continueSearch.mutate({ monitorId: resultSet.monitorId })} onOpenFeed={() => setLocation("/")} onOpen={setSelectedItem} /> : <div className="grid min-h-48 place-items-center rounded-[24px] border border-dashed border-[#ead9c4] bg-[#fffdfa] px-6 text-center text-[11px] leading-5 text-[#9a7c68]">Run a new search or select a saved search to reopen the exact results Faro showed then.</div>}</div></section>
     <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending || removeFromFeed.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} onRemove={() => { if (selectedItem && window.confirm("Remove this stored post from your Feed? It will stay hidden from your future stored result views.")) removeFromFeed.mutate({ postId: selectedItem.post.id }); }} />
   </div>;
 }
@@ -147,4 +164,10 @@ function SearchHistory({ rows, selectedMonitorId, onOpen }: { rows: any[]; selec
   return <aside className="self-start rounded-[24px] border border-[#eadfd2] bg-white p-2.5 shadow-[0_10px_24px_rgba(99,59,31,0.04)]"><div className="px-2.5 pb-2 pt-1"><p className="text-[9px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">Search history</p><p className="mt-1 text-[10px] leading-4 text-[#9a7c68]">Reopen a saved result set without another provider call.</p></div>{rows.length ? <div className="max-h-[420px] space-y-1 overflow-y-auto pr-0.5">{rows.map(({ monitor }) => { const selected = monitor.id === selectedMonitorId; return <button key={monitor.id} type="button" onClick={() => onOpen(monitor.id)} className={`w-full rounded-2xl px-3 py-2.5 text-left transition ${selected ? "bg-[#f8e8d9] text-[#874a35]" : "text-[#755e4e] hover:bg-[#fff8f1]"}`} aria-current={selected ? "page" : undefined}><span className="block line-clamp-2 text-[10px] font-extrabold leading-4">{monitor.goal}</span><span className="mt-1 block truncate text-[9px] text-[#a08370]">{monitor.name}</span></button>; })}</div> : <p className="px-2.5 py-6 text-center text-[10px] leading-5 text-[#9a7c68]">Your completed searches will appear here.</p>}</aside>;
 }
 
-function SearchResults({ resultSet, loading, onOpenFeed, onOpen }: { resultSet: ResultSet; loading: boolean; onOpenFeed: () => void; onOpen: (item: any) => void }) { const support = resultSet.fromHistory ? `Reopened saved results from ${resultSet.monitorName}. Reopening stored results never uses a provider request.` : "This result set is saved and can be reopened from Search history without another provider request."; return <section id="search-results" className="mt-8 border-t border-[#eadfd2] pt-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">{resultSet.fromHistory ? "Saved result set" : "Faro found"}</p><h2 className="mt-1 text-xl font-extrabold tracking-[-0.05em] text-[#4b3123]">Top qualified requests</h2><p className="mt-1 max-w-xl text-[10px] font-medium leading-5 text-[#9a7b68]">{support}</p></div><button onClick={onOpenFeed} className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">View all in Feed <ArrowRight className="h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-28 place-items-center rounded-[22px] border border-[#ead9c4] bg-white"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : resultSet.items.length ? <div className="mt-4 space-y-4">{resultSet.items.map(item => <RequestCard key={item.post.id} item={item} onOpen={() => onOpen(item)} />)}</div> : <div className="mt-4 rounded-[22px] border border-dashed border-[#ead9c4] bg-[#fffdfa] p-5 text-[11px] text-[#92735f]">{resultSet.persisted ? `${resultSet.persisted} saved post${resultSet.persisted === 1 ? "" : "s"} still needs final review.` : "No qualified requests were saved for this search."}</div>}</section>; }
+function SearchResultsWithPaging({ resultSet, loading, canContinue, budgetExhausted, loadingMore, onContinue, onOpenFeed, onOpen }: { resultSet: ResultSet; loading: boolean; canContinue: boolean; budgetExhausted: boolean; loadingMore: boolean; onContinue: () => void; onOpenFeed: () => void; onOpen: (item: any) => void }) {
+  const [visibleCount, setVisibleCount] = useState(10);
+  const visible = resultSet.items.slice(0, visibleCount);
+  const hasSavedMore = visibleCount < resultSet.items.length;
+  const support = resultSet.fromHistory ? `Reopened saved results from ${resultSet.monitorName}. Reopening stored results never uses a provider request.` : "This result set is saved and can be reopened from Search history without another provider request.";
+  return <section id="search-results" className="mt-8 border-t border-[#eadfd2] pt-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">{resultSet.fromHistory ? "Saved result set" : "Faro found"}</p><h2 className="mt-1 text-xl font-extrabold tracking-[-0.05em] text-[#4b3123]">Top 10 recent qualified requests</h2><p className="mt-1 max-w-xl text-[10px] font-medium leading-5 text-[#9a7b68]">{support}</p></div><button onClick={onOpenFeed} className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9a523b] hover:text-[#713c2b]">View all in Feed <ArrowRight className="h-3 w-3" /></button></div>{loading ? <div className="mt-4 grid min-h-28 place-items-center rounded-[22px] border border-[#ead9c4] bg-white"><Loader2 className="h-4 w-4 animate-spin text-[#b56a4e]" /></div> : resultSet.items.length ? <div className="mt-4 space-y-4">{visible.map(item => <RequestCard key={item.post.id} item={item} onOpen={() => onOpen(item)} />)}</div> : <div className="mt-4 rounded-[22px] border border-dashed border-[#ead9c4] bg-[#fffdfa] p-5 text-[11px] text-[#92735f]">{resultSet.persisted ? `${resultSet.persisted} saved post${resultSet.persisted === 1 ? "" : "s"} still needs final review.` : "No qualified requests were saved for this search."}</div>}{hasSavedMore ? <button type="button" onClick={() => setVisibleCount(count => count + 10)} className="mt-4 flex w-full items-center justify-between rounded-2xl border border-dashed border-[#e7d4c0] bg-[#fffaf5] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#fff4e8]"><span>Show 10 more <span className="ml-1 font-medium text-[#a98a76]">· this saved batch</span></span><ArrowRight className="h-3.5 w-3.5" /></button> : canContinue ? <button type="button" onClick={onContinue} disabled={loadingMore} className="mt-4 flex w-full items-center justify-between rounded-2xl border border-[#d7b18f] bg-[#fff5e9] px-4 py-3 text-left text-[10px] font-extrabold text-[#8b503a] transition hover:bg-[#ffeddb] disabled:cursor-not-allowed disabled:opacity-60"><span>{loadingMore ? "Checking the next source page…" : "Load more recent matches"}<span className="ml-1 font-medium text-[#a98a76]">· continues this search</span></span>{loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}</button> : budgetExhausted ? <p className="mt-4 rounded-2xl border border-[#f0c5be] bg-[#fff4f2] px-4 py-3 text-[10px] leading-5 text-[#a14a42]">Daily provider-call limit reached. Increase it in Settings → Provider to load the next source page.</p> : null}</section>;
+}

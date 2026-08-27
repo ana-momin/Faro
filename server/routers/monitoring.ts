@@ -288,6 +288,31 @@ export const monitoringRouter = router({
       }
     }),
 
+  continuation: protectedProcedure
+    .input(z.object({ monitorId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
+      if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
+      const states = await db.listMonitorQueryStates(monitor.id);
+      return { available: states.some(state => Boolean(state.nextToken)) };
+    }),
+
+  continueSearch: protectedProcedure
+    .input(z.object({ monitorId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireAvailableSourceBudget(ctx.user.id);
+      const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
+      if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
+      if (monitor.status !== "active") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Resume this saved search before loading more posts." });
+      const states = await db.listMonitorQueryStates(monitor.id);
+      if (!states.some(state => Boolean(state.nextToken))) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "There are no additional pages available for this search." });
+      try {
+        return { monitorId: monitor.id, ...(await syncMonitorRecord(monitor, { mode: "continue" })) };
+      } catch (error) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "X synchronization failed." });
+      }
+    }),
+
   review: protectedProcedure
     .input(z.object({ postId: z.number().int().positive(), decision: z.enum(["approved", "rejected"]), note: z.string().trim().max(1000).optional() }))
     .mutation(async ({ ctx, input }) => {

@@ -94,10 +94,10 @@ No production traffic moves until all of the following are true: the deployed st
 |---|---|
 | TypeScript | Passed on the independent migration branch |
 | Client production build | Passed on the independent migration branch |
-| Offline Vitest suite | Passed: 33 files and 128 tests; independent branding regression also passed after the original mascot restoration |
+| Offline Vitest suite | Passed: 38 files and 142 tests with the two legacy live credential smoke tests explicitly excluded; those tests now require `RUN_LIVE_PROVIDER_CREDENTIAL_TESTS=1` before they can contact a provider |
 | Managed Manus OAuth in active router | Removed; local passkey router is active |
 | Active Manus model dependency | Removed; deterministic buyer-intent logic is active |
-| Provider request during migration validation | None made |
+| Provider collection during current release validation | None made; legacy credential smoke checks require an explicit opt-in flag |
 | Manus production fallback | Unchanged |
 
 ## Current Deployment State
@@ -130,6 +130,10 @@ The focused shared-profile and passkey regression suite now confirms that the on
 
 For this shared-image release, the unsigned passkey welcome screen was rechecked at `1280×720` and `375×812`. Both layouts preserve the original Faro logo, clear dual passkey actions, and a non-scrolling outer page. The required post-passkey profile screen is covered by source-level visual contracts because passkey enrollment is intentionally left to the client’s device during staging validation.
 
+## Passkey Compatibility Update
+
+The pending staging release requests **preferred** resident-key and user-verification behavior during registration and authentication rather than requiring a particular authenticator capability. The two-step onboarding explains that a user may choose Windows Hello, Google Password Manager, a phone, or another method offered by their browser. Server verification remains bound to the canonical HTTPS origin and relying-party ID, but does not reject a compatible credential solely because it did not provide user verification. A real credential is never created during automated validation; one user-run Windows/Google Password Manager check remains required after deployment.
+
 ## Fresh Collection and Feed Behavior
 
 Client-run Search and Feed refreshes now start from the provider’s newest available posts rather than resuming a stale continuation cursor. A manual refresh checks up to **three** fresh pages—one per buyer-intent query family—subject to the client’s existing daily request limit. The Feed shows the **current active search** newest-first, while older searches remain available only through Search history. Exact X post IDs and conservative near-duplicate wording are suppressed; a provider row already present in storage is refreshed for accuracy but is not reported as a new post. This avoids presenting stored historical rows as a new real-time batch without adding an automatic worker or making any unapproved provider call during deployment verification.
@@ -139,6 +143,12 @@ Client-run Search and Feed refreshes now start from the provider’s newest avai
 Saved searches now live directly inside the **Search** workspace. The in-page history column reopens each original stored result set without consuming a provider call, while Settings retains only the management controls for renaming, pausing, or deleting saved searches. The sidebar History action opens this unified Search view.
 
 The client and server both check the configured provider-call ledger before creating a search or refreshing a monitor. When the daily limit is exhausted, Faro does not create a new monitor or contact an X provider; it shows a clear message that identifies the configured limit and points the client to **Settings → Provider** to increase it or wait for the next daily window. This check preserves the existing multi-page cap and does not make a provider request during release validation.
+
+## Provider Editing and Search Continuation
+
+A saved provider connection now separates its two controls. **Save limit** changes the daily source-call allowance without rendering, requesting, or replacing the encrypted credential. **Replace key** is a deliberate separate panel, and the new credential is only accepted there. Global success notices use the Faro green treatment; failures use the Faro red treatment.
+
+Search renders up to ten qualified, recent saved requests initially when the live inventory supplies them. If that result set already contains more stored rows, **Show 10 more** expands it locally and does not call a provider. When stored rows are exhausted, **Load more recent matches** is exposed only when at least one persisted query-family cursor is available and the configured daily budget has remaining capacity. The continuation resumes cursor-bearing family pages only, updates those cursors after collection, and suppresses exact duplicate post IDs across the collection cycle. Faro cannot promise ten qualifying requests for every brief because the live provider inventory and buyer-intent qualification determine the final yield.
 
 ## References
 

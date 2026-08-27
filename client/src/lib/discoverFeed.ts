@@ -32,7 +32,16 @@ export function getAllQualifiedPosts<T extends FeedItem>(items: T[]) {
     const date = raw instanceof Date ? raw : new Date(raw);
     return Number.isNaN(date.getTime()) ? 0 : date.getTime();
   };
-  return [...items].sort((left, right) => timestamp(right) - timestamp(left)).filter(item => {
+  const freshnessTier = (item: T) => {
+    const ageHours = Math.max(0, (Date.now() - timestamp(item)) / 3_600_000);
+    return ageHours <= 24 ? 0 : ageHours <= 24 * 7 ? 1 : ageHours <= 24 * 31 ? 2 : 3;
+  };
+  return [...items].sort((left, right) => {
+    const leftTimestamp = timestamp(left);
+    const rightTimestamp = timestamp(right);
+    if (!leftTimestamp || !rightTimestamp) return 0;
+    return freshnessTier(left) - freshnessTier(right) || right.post.ruleScore - left.post.ruleScore || rightTimestamp - leftTimestamp;
+  }).filter(item => {
     const { post } = item;
     if (post.source === "demo" || post.ruleScore < 50 || !isConcreteBuyerRequest(post) || isLowSignalNoise(post)) return false;
     const key = post.xPostId ? `x:${post.xPostId}` : `saved:${post.id}`;

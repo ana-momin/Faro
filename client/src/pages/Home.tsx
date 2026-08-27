@@ -47,11 +47,11 @@ export default function Home() {
       await utils.monitoring.overview.invalidate();
       const retrieval = sync.retrieval;
       if (sync.skipped === "daily_budget") {
-        toast.message("Today’s source-call budget is reached. Saved posts remain available.");
+        toast.error("Today’s source-call budget is reached. Saved posts remain available.");
       } else if (retrieval?.persisted) {
         toast.success(`${retrieval.persisted} new qualified post${retrieval.persisted === 1 ? "" : "s"} added from ${retrieval.sourceCalls} fresh source page${retrieval.sourceCalls === 1 ? "" : "s"}.`);
       } else {
-        toast.message("Fresh source pages checked; no new qualified posts this time.");
+        toast.error("Fresh source pages checked; no new qualified posts matched this time.");
       }
     },
     onError: error => toast.error(error.message),

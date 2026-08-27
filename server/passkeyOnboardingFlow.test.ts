@@ -13,9 +13,13 @@ describe("passkey-first onboarding flow", () => {
     expect(router).toContain("passkeyRegistrationOptions: publicProcedure.mutation");
     expect(router).toContain("completeProfile: protectedProcedure");
     expect(router).toContain("name: z.string().trim().min(1).max(120)");
+    expect(router).toContain('residentKey: "preferred", userVerification: "preferred"');
+    expect(router).toContain('generateAuthenticationOptions({ rpID, userVerification: "preferred" })');
+    expect(router).toContain("requireUserVerification: false");
     expect(database).toContain("completePasskeyProfile");
     expect(onboarding).toContain("Create a new passkey");
     expect(onboarding).toContain("I already have a passkey");
+    expect(onboarding).toContain("Google Password Manager");
     expect(onboarding).toContain("Passkey confirmed");
     expect(onboarding).toContain("Complete your profile.");
     expect(onboarding).not.toContain("Faro uses the same shared profile image for every member.");

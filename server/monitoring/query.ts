@@ -101,9 +101,9 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return discoveryTerms([...terms, ...expansions]);
 }
 
-const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for a developer" OR "looking for someone to build" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "need a developer to" OR "need someone to build" OR "need someone to automate" OR "need an automation expert")';
-const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend a developer" OR "can anyone recommend an automation" OR "does anyone know a developer" OR "does anyone know an automation expert" OR "recommend an automation consultant" OR "looking to outsource")';
-const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "help me automate" OR "help us automate" OR "need an AI workflow" OR "need an AI agent" OR "need help setting up automation")';
+const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a developer" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "need someone" OR "need a developer" OR "need an automation expert" OR "looking to hire" OR "looking to outsource")';
+const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know" OR "anyone know someone" OR "any recommendations for" OR "recommend someone" OR "who should I hire" OR "who can help")';
+const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "help me automate" OR "help us automate" OR "need help building" OR "need help setting up" OR "need an AI workflow" OR "need an AI agent" OR "can someone automate")';
 const OBSERVED_PROVIDER_NOISE_TERMS = ["job", "hiring", "full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
 
 export type CoverageQueryFamilyId = "direct_demand" | "task_help" | "recommendation";

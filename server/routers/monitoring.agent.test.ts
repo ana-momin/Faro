@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   updateMonitorStatus: vi.fn(),
   getProviderConnectionForUser: vi.fn(),
   countMonitorSyncRunsForUserSince: vi.fn(),
+  listMonitorQueryStates: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -19,6 +20,7 @@ vi.mock("../db", () => ({
   updateMonitorStatus: mocks.updateMonitorStatus,
   getProviderConnectionForUser: mocks.getProviderConnectionForUser,
   countMonitorSyncRunsForUserSince: mocks.countMonitorSyncRunsForUserSince,
+  listMonitorQueryStates: mocks.listMonitorQueryStates,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
 vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
@@ -41,6 +43,7 @@ describe("monitoring.agentStart", () => {
     vi.clearAllMocks();
     mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io", dailyRequestLimit: 20 });
     mocks.countMonitorSyncRunsForUserSince.mockResolvedValue(0);
+    mocks.listMonitorQueryStates.mockResolvedValue([]);
   });
 
   it("maps, saves, and checks a single user-requested service brief", async () => {
@@ -102,5 +105,16 @@ describe("monitoring.agentStart", () => {
     });
     expect(mocks.suggestCriteria).not.toHaveBeenCalled();
     expect(mocks.createMonitor).not.toHaveBeenCalled();
+  });
+
+  it("continues only a saved cursor for the same active search and preserves the daily budget gate", async () => {
+    mocks.getMonitorForUser.mockResolvedValue({ id: 42, status: "active" });
+    mocks.listMonitorQueryStates.mockResolvedValue([{ nextToken: "next-page" }]);
+    mocks.syncMonitorRecord.mockResolvedValueOnce({ inserted: 2, hasMore: true });
+    const caller = monitoringRouter.createCaller({ user } as any);
+
+    await expect(caller.continuation({ monitorId: 42 })).resolves.toEqual({ available: true });
+    await expect(caller.continueSearch({ monitorId: 42 })).resolves.toMatchObject({ monitorId: 42, inserted: 2, hasMore: true });
+    expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42, status: "active" }, { mode: "continue" });
   });
 });
