@@ -408,3 +408,5 @@
 - [x] Verify TwitterAPI.io’s current credit offer before presenting it in Faro AI’s provider setup guidance.
 - [x] Set Faro AI’s default daily source-call limit to 10 for new provider configurations.
 - [x] Broaden buyer-request query and qualification coverage so natural language AI-agent searches yield more recent eligible requests without admitting service offers, jobs, or generic chatter.
+- [x] Create a concise Faro AI handoff/context guide for future edits, testing, and deployment work.
+- [x] Create an easy-to-understand Faro AI product overview for reviewers and future contributors.

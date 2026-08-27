@@ -9,6 +9,7 @@
 <p align="center">
   <a href="#client-workflow">Workflow</a> ·
   <a href="#client-provider-setup">Provider setup</a> ·
+  <a href="#project-documentation">Documentation</a> ·
   <a href="#development">Development</a> ·
   <a href="#production-deployment">Deployment</a>
 </p>
@@ -16,6 +17,12 @@
 Faro AI finds public X posts from people who are actively seeking practical help with AI agents, automation, development, product testing, AI video, content, and related delivery work. It is designed to surface **buyer-side demand**, not service offers, jobs, promotions, networking, or generic discussion.
 
 > **Human-control boundary:** Faro never sends messages, replies, follows, likes, or posts on X. It provides evidence and ranking for a human reviewer to decide what happens next.
+
+## Project documentation
+
+The current independent Vercel + Neon implementation and its protected staging workflow are documented in [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md). Read it before making a code, deployment, credential, database, or provider-collection change.
+
+For a short, non-technical explanation of the product, client journey, cost boundaries, and current readiness, read [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md).
 
 ## Client workflow
 
