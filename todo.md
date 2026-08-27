@@ -391,3 +391,8 @@
 - [x] Diagnose and repair canonical Vercel staging passkey creation and sign-in so a Windows browser offers an eligible passkey save or selection flow.
 - [x] Prevent legacy provider-credential smoke tests from making outbound requests during routine offline validation.
 - [x] Remove the redundant History sidebar icon while preserving Search’s integrated saved-history view.
+- [x] Remove the redundant Searches section from Settings while preserving its remaining settings controls.
+- [x] Repair saved-search resume and Load more behavior so the active result set can continue without a false resume error.
+- [x] Ensure newly qualified posts reported by collection become visible in the same Search result set without duplicates.
+- [x] Add a credit-bounded Search time range for the last day, week, month, or all eligible recent results.
+- [x] Improve buyer-request query and qualification coverage for larger recent result sets without admitting offers, jobs, promotion, or generic discussion.

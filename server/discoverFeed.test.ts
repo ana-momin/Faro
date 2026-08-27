@@ -79,6 +79,16 @@ describe("Faro Discover feed selection", () => {
     expect(filterFeedByTime([recent, lastMonth], "last_month", now).map(row => row.post.id)).toEqual([23]);
   });
 
+  it("supports rolling last-24-hours and last-30-days windows for the Search result time control", () => {
+    const now = new Date("2026-08-24T12:00:00.000Z");
+    const recent = { ...item(36, 10, 82), post: { ...item(36, 10, 82).post, postedAt: "2026-08-23T13:00:00.000Z" } };
+    const withinThirtyDays = { ...item(37, 10, 82), post: { ...item(37, 10, 82).post, postedAt: "2026-07-28T12:00:00.000Z" } };
+    const older = { ...item(38, 10, 82), post: { ...item(38, 10, 82).post, postedAt: "2026-07-20T12:00:00.000Z" } };
+
+    expect(filterFeedByTime([recent, withinThirtyDays, older], "last_24_hours", now).map(row => row.post.id)).toEqual([36]);
+    expect(filterFeedByTime([recent, withinThirtyDays, older], "last_30_days", now).map(row => row.post.id)).toEqual([36, 37]);
+  });
+
   it("prioritizes current-month saved requests before older qualified history", () => {
     const older = { ...item(24, 10, 96), post: { ...item(24, 10, 96).post, postedAt: "2026-07-31T15:00:00.000Z" } };
     const currentEarlier = { ...item(25, 10, 70), post: { ...item(25, 10, 70).post, postedAt: "2026-08-03T15:00:00.000Z" } };

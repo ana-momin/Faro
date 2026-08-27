@@ -51,17 +51,16 @@ describe("client-owned provider setup", () => {
     expect(appSource).toContain('path={"/settings"}');
     expect(appSource).toContain('path={"/provider"}');
     expect(appSource).toContain('path={"/saved"}');
-    expect(appSource).toContain('path={"/monitors"}');
     expect(sidebarSource).toContain('label: "Settings", path: "/settings"');
     expect(sidebarSource).not.toContain('label: "History"');
     expect(sidebarSource).not.toContain('history=all');
     expect(sidebarSource).toContain('collapsible="icon"');
     expect(sidebarSource).toContain("Minimize sidebar");
     expect(settingsSource).toContain("SavedOrganizer");
-    expect(settingsSource).toContain("MonitorManager");
+    expect(settingsSource).not.toContain("MonitorManager");
     expect(settingsSource).toContain("ProviderSetup");
     expect(settingsSource).not.toContain("SearchHistoryPanel");
-    expect(settingsSource).toContain('label: "Searches"');
+    expect(settingsSource).not.toContain('label: "Searches"');
     expect(settingsSource).toContain("selectSection");
     expect(settingsSource).not.toContain("Workspace controls");
     expect(sidebarSource).toContain('aria-label="Open account actions"');
@@ -71,7 +70,7 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain("!h-11 !w-11 !justify-center !px-0");
     expect(sidebarSource).toContain('className="h-8 w-8 rounded-xl');
     expect(profileSource).not.toContain('setTab(');
-    expect(settingsSource).toContain("Manage saved searches");
+    expect(settingsSource).not.toContain("Manage saved searches");
     expect(settingsSource).not.toContain("<details");
   });
 

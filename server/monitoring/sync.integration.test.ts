@@ -79,7 +79,7 @@ describe("bounded multi-family sync", () => {
     mocks.recordMonitorSyncRun.mockResolvedValue(undefined);
     mocks.recordSync.mockResolvedValue(undefined);
     mocks.getUserById.mockResolvedValue(undefined);
-    mocks.persistNormalizedPost.mockResolvedValue({ isNew: true });
+    mocks.persistNormalizedPost.mockResolvedValue({ isNew: true, score: 84, label: "Active help-seeking" });
   });
 
   it("checks every named query family before spending a continuation page and deduplicates across families", async () => {
@@ -119,6 +119,18 @@ describe("bounded multi-family sync", () => {
 
     expect(mocks.fetchPublicPosts).toHaveBeenCalledWith(expect.any(String), { nextToken: "saved-direct-cursor" }, expect.objectContaining({ provider: "twitterapi_io" }));
     expect(coverage.pages[0]?.nextToken).toBe("later-page");
+  });
+
+  it("allows a user-requested continuation for a paused saved search without re-enabling background collection", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "paused-continued", text: "Need someone to automate an operations workflow for our team." }], "later-page"));
+    mocks.getSyncState.mockResolvedValueOnce({ newestPostId: "latest-post", nextToken: "saved-direct-cursor", lastSuccessAt: new Date(), retryCount: 0 });
+    const pausedMonitor = { ...monitor, status: "paused" as const };
+
+    await expect(syncMonitorRecord(pausedMonitor as typeof monitor, { mode: "continue", maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 1,
+      hasMore: true,
+    });
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(1);
   });
 
   it("caps pages even when a provider advertises endless continuations", async () => {
@@ -165,6 +177,17 @@ describe("bounded multi-family sync", () => {
     await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
       inserted: 0,
       retrieval: { sourceCalls: 1, pagesChecked: 1, persisted: 0 },
+    });
+    expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
+  });
+
+  it("does not report a stored low-intent candidate as a newly visible qualified request", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "low-intent", text: "Need someone to automate our client intake workflow." }]));
+    mocks.persistNormalizedPost.mockResolvedValueOnce({ isNew: true, score: 0, label: "Potentially relevant" });
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 0,
+      retrieval: { buyerCandidates: 1, persisted: 0 },
     });
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
   });

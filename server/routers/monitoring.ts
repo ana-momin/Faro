@@ -42,6 +42,16 @@ function utcDayStart() {
   return dayStart;
 }
 
+function normalizeSearchBrief(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+async function findSavedSearchByBrief(userId: number, brief: string) {
+  const normalizedBrief = normalizeSearchBrief(brief);
+  const rows = await db.listMonitorsWithSync(userId);
+  return rows.find(({ monitor }) => normalizeSearchBrief(monitor.goal) === normalizedBrief)?.monitor;
+}
+
 async function requireAvailableSourceBudget(userId: number) {
   const connection = await requireProviderConnection(userId);
   const callsToday = await db.countMonitorSyncRunsForUserSince(userId, utcDayStart());
@@ -176,6 +186,19 @@ export const monitoringRouter = router({
   agentStart: protectedProcedure
     .input(z.object({ brief: z.string().trim().min(12).max(800) }))
     .mutation(async ({ ctx, input }) => {
+      const savedSearch = await findSavedSearchByBrief(ctx.user.id, input.brief);
+      if (savedSearch) {
+        return {
+          monitorId: savedSearch.id,
+          criteria: null,
+          sync: null,
+          reused: true as const,
+          syncError: null,
+          sourceStatus: "healthy" as const,
+          sourceLabel: "Saved result set",
+          humanReviewOnly: true,
+        };
+      }
       await requireAvailableSourceBudget(ctx.user.id);
       const criteria = await suggestCriteria(input.brief);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);
@@ -303,7 +326,6 @@ export const monitoringRouter = router({
       await requireAvailableSourceBudget(ctx.user.id);
       const monitor = await db.getMonitorForUser(input.monitorId, ctx.user.id);
       if (!monitor) throw new TRPCError({ code: "NOT_FOUND", message: "Saved search not found." });
-      if (monitor.status !== "active") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Resume this saved search before loading more posts." });
       const states = await db.listMonitorQueryStates(monitor.id);
       if (!states.some(state => Boolean(state.nextToken))) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "There are no additional pages available for this search." });
       try {

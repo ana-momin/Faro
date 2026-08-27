@@ -326,6 +326,20 @@ describe("Faro personalized relevance scoring", () => {
     expect(jobSeeker.score).toBe(0);
   });
 
+  it("accepts a current AI-agent build request without confusing it for an offer", () => {
+    const result = rankOpportunity({
+      includeTerms: ["AI agent", "automation"],
+      excludeTerms: ["job", "hiring", "salary"],
+      goal: "Find buyers seeking an AI agent developer for practical automation",
+      body: "Our support team needs an AI agent developer to build and integrate an intake assistant this week.",
+      postedAt: new Date(),
+      engagement: {},
+    });
+
+    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.components.map(component => component.label)).toContain("Direct service request");
+  });
+
   it("rejects a generic developer mention that does not specify any work to deliver", () => {
     const result = rankOpportunity({
       includeTerms: ["developer"],

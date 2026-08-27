@@ -1,6 +1,6 @@
 export type FeedPost = { id: number; xPostId?: string | null; source: string; ruleScore: number; reviewStatus: "pending" | "approved" | "rejected"; body?: string; postedAt?: string | Date | null; authorName?: string | null; authorHandle?: string | null; authorAvatarUrl?: string | null };
 export type FeedItem = { post: FeedPost; monitor: { id: number } };
-export type FeedTimeFilter = "all" | "today" | "last_7_days" | "last_month";
+export type FeedTimeFilter = "all" | "today" | "last_24_hours" | "last_7_days" | "last_30_days" | "last_month";
 
 const CONCRETE_BUYER_ACTION = "(looking for (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:(?:ai|automation) )?expert|an? consultant|a specialist|a contractor)|looking to hire|need(?:s)? (?:someone|a freelancer|an? agency|a developer|an? engineer|a tester|a product tester|a designer|a creator|an? editor|an? (?:(?:ai|automation) )?expert|an? consultant|a specialist|a contractor|a team)|need(?:s)? (?:help|a hand) (?:building|automating|implementing|setting up|creating|integrating)|seeking (?:a provider|an? (?:(?:ai|automation) )?expert)|can someone (?:build|set up|implement)|can anyone recommend|who can (?:build|help us)|recommend (?:someone|a freelancer|an? agency)|does anyone know an? (?:developer|agency|freelancer|consultant|(?:ai|automation) expert)|anyone know an? (?:developer|agency|freelancer|(?:ai|automation) expert)|recommendations for an? (?:developer|agency|freelancer)|looking to outsource|hire (?:a |an ))";
 const CONCRETE_BUYER_REQUEST = new RegExp(`\\b(i(?:'m| am)?|we(?:'re| are)?|our (?:team|company|business)|my (?:team|business|company)|our|my)\\b.{0,90}${CONCRETE_BUYER_ACTION}\\b`, "i");
@@ -105,8 +105,10 @@ export function getDiscoverPreview<T>(items: T[], limit = 10) {
 export function filterFeedByTime<T extends FeedItem>(items: T[], filter: FeedTimeFilter, now = new Date()) {
   if (filter === "all") return items;
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const sevenDaysAgo = new Date(dayStart);
   sevenDaysAgo.setDate(dayStart.getDate() - 6);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
@@ -115,7 +117,9 @@ export function filterFeedByTime<T extends FeedItem>(items: T[], filter: FeedTim
     const postedAt = new Date(post.postedAt);
     if (Number.isNaN(postedAt.getTime())) return false;
     if (filter === "today") return postedAt >= dayStart;
+    if (filter === "last_24_hours") return postedAt >= twentyFourHoursAgo;
     if (filter === "last_7_days") return postedAt >= sevenDaysAgo;
+    if (filter === "last_30_days") return postedAt >= thirtyDaysAgo;
     return postedAt >= lastMonthStart && postedAt < monthStart;
   });
 }

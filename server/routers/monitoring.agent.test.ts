@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getProviderConnectionForUser: vi.fn(),
   countMonitorSyncRunsForUserSince: vi.fn(),
   listMonitorQueryStates: vi.fn(),
+  listMonitorsWithSync: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -21,6 +22,7 @@ vi.mock("../db", () => ({
   getProviderConnectionForUser: mocks.getProviderConnectionForUser,
   countMonitorSyncRunsForUserSince: mocks.countMonitorSyncRunsForUserSince,
   listMonitorQueryStates: mocks.listMonitorQueryStates,
+  listMonitorsWithSync: mocks.listMonitorsWithSync,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
 vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure }));
@@ -44,6 +46,7 @@ describe("monitoring.agentStart", () => {
     mocks.getProviderConnectionForUser.mockResolvedValue({ provider: "twitterapi_io", dailyRequestLimit: 20 });
     mocks.countMonitorSyncRunsForUserSince.mockResolvedValue(0);
     mocks.listMonitorQueryStates.mockResolvedValue([]);
+    mocks.listMonitorsWithSync.mockResolvedValue([]);
   });
 
   it("maps, saves, and checks a single user-requested service brief", async () => {
@@ -107,14 +110,29 @@ describe("monitoring.agentStart", () => {
     expect(mocks.createMonitor).not.toHaveBeenCalled();
   });
 
-  it("continues only a saved cursor for the same active search and preserves the daily budget gate", async () => {
-    mocks.getMonitorForUser.mockResolvedValue({ id: 42, status: "active" });
+  it("reopens an exact saved brief without consuming another provider call or creating a duplicate monitor", async () => {
+    mocks.listMonitorsWithSync.mockResolvedValueOnce([{ monitor: { id: 55, goal: "Founders who need someone to automate client intake" } }]);
+    const caller = monitoringRouter.createCaller({ user } as any);
+
+    await expect(caller.agentStart({ brief: "  Founders who need someone to automate client intake  " })).resolves.toMatchObject({
+      monitorId: 55,
+      reused: true,
+      sync: null,
+      sourceLabel: "Saved result set",
+    });
+    expect(mocks.suggestCriteria).not.toHaveBeenCalled();
+    expect(mocks.createMonitor).not.toHaveBeenCalled();
+    expect(mocks.syncMonitorRecord).not.toHaveBeenCalled();
+  });
+
+  it("continues only a saved cursor for the same saved search, including a manually reopened paused search", async () => {
+    mocks.getMonitorForUser.mockResolvedValue({ id: 42, status: "paused" });
     mocks.listMonitorQueryStates.mockResolvedValue([{ nextToken: "next-page" }]);
     mocks.syncMonitorRecord.mockResolvedValueOnce({ inserted: 2, hasMore: true });
     const caller = monitoringRouter.createCaller({ user } as any);
 
     await expect(caller.continuation({ monitorId: 42 })).resolves.toEqual({ available: true });
     await expect(caller.continueSearch({ monitorId: 42 })).resolves.toMatchObject({ monitorId: 42, inserted: 2, hasMore: true });
-    expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42, status: "active" }, { mode: "continue" });
+    expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 42, status: "paused" }, { mode: "continue" });
   });
 });

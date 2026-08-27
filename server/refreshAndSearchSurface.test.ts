@@ -24,7 +24,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("await overview.refetch()");
     expect(searchSource).toContain('label="Pages"');
     expect(searchSource).toContain("Top 10 recent qualified requests");
-    expect(searchSource).toContain("still needs final review");
+    expect(searchSource).toContain("No qualified requests in this selected time range");
     expect(searchSource).toContain('max-w-[1040px]');
     expect(searchSource).toContain("Suggestions");
     expect(searchSource).toContain("CommandProgress");
@@ -51,5 +51,7 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).toContain("continueSearch");
     expect(searchSource).toContain("Load more recent matches");
     expect(searchSource).toContain("continues this search");
+    expect(searchSource).toContain("Filter saved search results by time");
+    expect(searchSource).toContain('label: "Last 7 days"');
   });
 });

@@ -203,7 +203,7 @@ export function classifySyncFailure(error: unknown) {
 }
 
 export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: MonitorSyncOptions) {
-  if (monitor.status !== "active") return { inserted: 0, skipped: "paused" as const };
+  if (monitor.status !== "active" && policyOverrides?.mode !== "continue") return { inserted: 0, skipped: "paused" as const };
   const start = Date.now();
   const connection = await db.getProviderConnectionForUser(monitor.userId);
   if (!connection) throw new XApiError(401, "Connect a TwitterAPI.io or Official X API key in Profile before collecting posts.");
@@ -278,11 +278,11 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     const persistedByPage = new Map<CoveragePage, number>();
     settled.forEach((outcome, index) => {
       const entry = candidates[index];
-      if (entry && outcome.status === "fulfilled" && outcome.value.isNew) {
+      if (entry && outcome.status === "fulfilled" && outcome.value.isNew && outcome.value.score >= 50 && outcome.value.label === "Active help-seeking") {
         persistedByPage.set(entry.page, (persistedByPage.get(entry.page) ?? 0) + 1);
       }
     });
-    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" && outcome.value.isNew ? [outcome.value] : []);
+    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" && outcome.value.isNew && outcome.value.score >= 50 && outcome.value.label === "Active help-seeking" ? [outcome.value] : []);
     const inserted = persistedSignals.length;
     try {
       await notifyPreferredHighConfidenceSignals(monitor, persistedSignals);
