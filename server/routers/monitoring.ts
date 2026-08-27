@@ -12,6 +12,8 @@ import { classifySyncFailure, hasResumableContinuation, syncMonitorRecord } from
 import { protectedProcedure, router } from "../_core/trpc";
 
 const terms = z.array(z.string().trim().min(1).max(80)).max(20);
+const CLEARLY_UNRELATED_TOPIC = /\b(?:gta(?:\s*6)?|grand theft auto|leaks?|celebrity|celebrities|football|soccer|sports?|weather|memes?|meme|movie|movies|tv show|gameplay)\b/i;
+const SERVICE_DISCOVERY_SCOPE = /\b(?:ai|agent(?:s|ic)?|automation|automate|workflow|developer|development|software|app|website|api|integration|content|video|ugc|testing|tester|qa|design|designer|marketing|creator|editor|freelancer|agency|consultant|service|services|outsource|build|implement)\b/i;
 
 async function requireActiveMonitorCapacity(userId: number) {
   const policy = collectionPolicy();
@@ -44,6 +46,15 @@ function utcDayStart() {
 
 function normalizeSearchBrief(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function requireBuyerServiceScope(brief: string) {
+  if (CLEARLY_UNRELATED_TOPIC.test(brief) && !SERVICE_DISCOVERY_SCOPE.test(brief)) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Faro searches for people requesting services, not general-topic posts. Try AI agents, automation, testing, development, content, or another buyer need.",
+    });
+  }
 }
 
 async function findSavedSearchByBrief(userId: number, brief: string) {
@@ -199,6 +210,7 @@ export const monitoringRouter = router({
           humanReviewOnly: true,
         };
       }
+      requireBuyerServiceScope(input.brief);
       await requireAvailableSourceBudget(ctx.user.id);
       const criteria = await suggestCriteria(input.brief);
       const xQuery = requireServiceRequestQuery(criteria.xQuery);

@@ -112,6 +112,18 @@ describe("monitoring.agentStart", () => {
     expect(mocks.createMonitor).not.toHaveBeenCalled();
   });
 
+  it("blocks a clearly unrelated topic before criteria generation or provider collection", async () => {
+    const caller = monitoringRouter.createCaller({ user } as any);
+
+    await expect(caller.agentStart({ brief: "Find people posting GTA 6 leaks" })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: expect.stringContaining("people requesting services"),
+    });
+    expect(mocks.suggestCriteria).not.toHaveBeenCalled();
+    expect(mocks.createMonitor).not.toHaveBeenCalled();
+    expect(mocks.syncMonitorRecord).not.toHaveBeenCalled();
+  });
+
   it("reopens an exact saved brief without consuming another provider call or creating a duplicate monitor", async () => {
     mocks.listMonitorsWithSync.mockResolvedValueOnce([{ monitor: { id: 55, goal: "Founders who need someone to automate client intake" } }]);
     const caller = monitoringRouter.createCaller({ user } as any);

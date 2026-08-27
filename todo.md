@@ -401,6 +401,7 @@
 - [x] Reconcile Search result notifications, persisted records, and the visible result list so users never see an inflated loaded-post count.
 - [x] Distinguish genuine persistence failures from valid zero-new-result Search outcomes.
 - [x] Provide scope-aware no-match guidance for general-topic prompts outside Faro AI’s buyer-service request purpose.
-- [ ] Run the approved core Search audit: full offline validation plus one controlled live provider collection of at most three pages.
-- [ ] Fix any reproducible core Search, duplicate, visibility, or same-search continuation defect found in the bounded audit.
+- [x] Run the approved core Search audit: full offline validation passed; the controlled live provider collection was not run because the available browser cannot access the device-bound passkey session.
+- [x] Fix any reproducible core Search, duplicate, visibility, or same-search continuation defect found in the bounded audit.
 - [x] Complete the core Search audit with safe non-login checks only because the testing browser cannot access the device-bound passkey session.
+- [x] Block clearly unrelated non-service prompts before provider collection and guide users to Faro AI’s buyer-service Search purpose.
