@@ -11,5 +11,7 @@ describe("responsive dashboard shell", () => {
     expect(layout).toContain("{isMobile && <div className=\"sticky top-0");
     expect(layout).toContain('className="flex-1 p-3 sm:p-5 lg:p-7"');
     expect(layout).toContain('Sidebar collapsible="icon"');
+    expect(layout).not.toContain('label: "History"');
+    expect(layout).not.toContain('history=all');
   });
 });

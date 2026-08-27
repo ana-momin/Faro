@@ -390,3 +390,4 @@
 - [x] Add an explicit load-more action that continues the same search after the first page without repeating prior posts and within client credit limits.
 - [x] Diagnose and repair canonical Vercel staging passkey creation and sign-in so a Windows browser offers an eligible passkey save or selection flow.
 - [x] Prevent legacy provider-credential smoke tests from making outbound requests during routine offline validation.
+- [x] Remove the redundant History sidebar icon while preserving Search’s integrated saved-history view.
