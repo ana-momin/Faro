@@ -224,6 +224,17 @@ describe("bounded multi-family sync", () => {
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ persistedPosts: 0 }));
   });
 
+  it("reports an explicit persistence failure without pretending that a zero-new-result cycle failed", async () => {
+    mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "write-failure", text: "Need someone to automate our client intake workflow." }]));
+    mocks.persistNormalizedPost.mockRejectedValueOnce(new Error("database write unavailable"));
+
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 1, maxQueryFamiliesPerSync: 1 })).resolves.toMatchObject({
+      inserted: 0,
+      persistenceFailures: 1,
+      retrieval: { buyerCandidates: 1, persisted: 0 },
+    });
+  });
+
   it("reports a remaining cursor so the client can offer a bounded load-more action", async () => {
     mocks.fetchPublicPosts.mockResolvedValueOnce(sourceResult([{ id: "one", text: "Need someone to automate our client intake workflow." }], "next-page"));
 

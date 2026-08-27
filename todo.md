@@ -399,3 +399,5 @@
 - [x] Eliminate duplicate qualified posts across all saved Faro AI searches, not only within one monitor.
 - [x] Repair the Search continuation control so it can reliably request the next cursor-backed page for the active saved result set.
 - [x] Reconcile Search result notifications, persisted records, and the visible result list so users never see an inflated loaded-post count.
+- [x] Distinguish genuine persistence failures from valid zero-new-result Search outcomes.
+- [x] Provide scope-aware no-match guidance for general-topic prompts outside Faro AI’s buyer-service request purpose.

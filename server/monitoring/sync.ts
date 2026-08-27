@@ -258,6 +258,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
       source: "twitterapi_io" as const,
       skipped: "daily_budget" as const,
       hasMore: false,
+      persistenceFailures: 0,
       retrieval: {
         sourceCalls: 0,
         plannedPageRequests: 0,

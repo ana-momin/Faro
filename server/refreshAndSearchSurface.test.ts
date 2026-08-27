@@ -36,6 +36,10 @@ describe("Faro refresh and Search result surfaces", () => {
     expect(searchSource).not.toContain("keywordStart.useMutation");
     expect(searchSource).toContain("providerSetup.data?.configured && providerSetup.data.remainingCalls <= 0");
     expect(searchSource).toContain("Today’s provider limit of ${providerSetup.data.dailyRequestLimit}");
+    expect(searchSource).toContain("persistenceFailures");
+    expect(searchSource).not.toContain("buyerCandidates && !retrieval.persisted");
+    expect(searchSource).toContain("No buyer-service requests were saved for this brief.");
+    expect(searchSource).toContain("Faro is designed for people seeking help with services such as AI agents");
   });
 
   it("keeps rich post actions available in Search and lets saved history reopen result sets without another provider request", () => {
