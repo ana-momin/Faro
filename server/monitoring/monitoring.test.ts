@@ -33,7 +33,7 @@ describe("deterministic query suggestion", () => {
     const terms = expandServiceDiscoveryTerms("Find providers for a custom AI workflow", ["custom ai workflow"]);
     expect(terms).toEqual(expect.arrayContaining(["custom ai workflow", "automation", "ai agent"]));
     const query = buildServiceDemandQuery(terms, ["job"]);
-    expect(query).toContain('"looking for someone" OR "looking for a developer" OR "looking for an AI agent developer"');
+    expect(query).toContain('"looking for" OR "need someone" OR "need a developer"');
     expect(query.length).toBeLessThanOrEqual(1024);
   });
 });

@@ -101,9 +101,16 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   return discoveryTerms([...terms, ...expansions]);
 }
 
-const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for someone" OR "looking for a developer" OR "looking for an AI agent developer" OR "looking for an automation expert" OR "looking for an AI expert" OR "looking for an agency" OR "looking for a provider" OR "looking for a team" OR "need someone" OR "need a developer" OR "need a provider" OR "need a team" OR "need an AI agent" OR "need an AI workflow" OR "need automation help" OR "need an automation expert" OR "looking to hire" OR "looking to outsource")';
-const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know" OR "anyone know someone" OR "any recommendations for" OR "recommend someone" OR "who should I hire" OR "who can help")';
-const TERTIARY_SERVICE_REQUEST_QUERY = '("need help automating" OR "help me automate" OR "help us automate" OR "need help building" OR "need help implementing" OR "need help setting up" OR "could use help with" OR "need an AI workflow" OR "need an AI agent" OR "can someone automate")';
+// Short phrase fragments deliberately replace long exact multi-word phrases here: X's search
+// treats a quoted phrase as a strict consecutive-word match, so a list of ~20 specific 3-6 word
+// phrases (e.g. "looking for an automation expert") only matches that literal wording and misses
+// the countless ways real people actually phrase a request. A 2-word fragment like "looking for"
+// matches every one of those variants at once, giving the provider query real recall while the
+// LLM-backed classification pipeline (server/monitoring/ai.ts, ranking.ts) supplies the precision
+// that used to be attempted here.
+const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for" OR "need someone" OR "need a developer" OR "need a provider" OR "need a team" OR "looking to hire" OR "looking to outsource")';
+const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know" OR "any recommendations" OR "who should I hire" OR "who can help" OR recommend)';
+const TERTIARY_SERVICE_REQUEST_QUERY = '("need help" OR "help me automate" OR "help us automate" OR "could use help" OR "who can build" OR "can someone")';
 const OBSERVED_PROVIDER_NOISE_TERMS = ["job", "hiring", "full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
 
 export type CoverageQueryFamilyId = "direct_demand" | "task_help" | "recommendation";
@@ -152,6 +159,6 @@ export function buildCoverageQueries(includeTerms: string[], excludeTerms: strin
 export function requireServiceRequestQuery(query: string) {
   const normalized = query.trim();
   if (!normalized) return PRIMARY_SERVICE_REQUEST_QUERY;
-  if (/looking for (someone|a freelancer|an agency|a developer|a tester|a designer|a creator|an editor)|need (someone|a freelancer|an agency|a developer|a tester|a designer)|need a hand with|looking to hire|seeking a provider|does anyone know a (developer|agency|freelancer)|recommendations for an? (developer|agency|freelancer)/.test(normalized)) return normalized;
+  if (/looking for|need(?:s)? (?:someone|a hand|help)|looking to hire|looking to outsource|seeking a provider|does anyone know|any recommendations|recommend|who can/i.test(normalized)) return normalized;
   return `${normalized} ${PRIMARY_SERVICE_REQUEST_QUERY}`.slice(0, 1024).trim();
 }
