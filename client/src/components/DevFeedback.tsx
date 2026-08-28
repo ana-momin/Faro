@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { MessageCircleHeart } from "lucide-react";
 
 const DEV_NAME = "Momin";
-const DEV_AVATAR = "/momin-avatar.png";
+const DEV_AVATAR = "/momin-avatar.jpg";
 const DEV_X_URL = "https://x.com/ana_momin";
 
 function XLogo({ className }: { className?: string }) {
