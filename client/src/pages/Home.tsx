@@ -33,13 +33,19 @@ export default function Home() {
     onError: (error, _input, context) => { setSelectedItem(context?.previous ?? null); toast.error(error.message, { position: "bottom-right" }); },
   });
   const removeFromFeed = trpc.monitoring.removeFromFeed.useMutation({
-    onSuccess: async () => {
+    onMutate: async variables => {
       setSelectedItem(null);
-      await utils.monitoring.overview.invalidate();
-      await utils.monitoring.saved.invalidate();
-      toast.success("Removed from Feed.", { position: "bottom-right", duration: 1500 });
+      await utils.monitoring.overview.cancel();
+      const previous = utils.monitoring.overview.getData();
+      utils.monitoring.overview.setData(undefined, current => current ? { ...current, posts: current.posts.filter(({ post }) => post.id !== variables.postId) } : current);
+      return { previous };
     },
-    onError: error => toast.error(error.message, { position: "bottom-right" }),
+    onSuccess: () => toast.success("Removed from Feed.", { position: "bottom-right", duration: 1500 }),
+    onError: (error, _variables, context) => {
+      if (context?.previous) utils.monitoring.overview.setData(undefined, context.previous);
+      toast.error(error.message, { position: "bottom-right" });
+    },
+    onSettled: () => { void utils.monitoring.overview.invalidate(); void utils.monitoring.saved.invalidate(); },
   });
   const active = overview.data?.monitors.find(({ monitor }) => monitor.status === "active") ?? overview.data?.monitors[0];
   const providerReady = Boolean(overview.data?.collection.configured);

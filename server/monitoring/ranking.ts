@@ -41,9 +41,18 @@ function tokens(value: string) {
     .filter(token => token.length >= 3 && !GENERIC_GOAL_WORDS.has(token));
 }
 
+// Crude English suffix stripping so "testing"/"tester"/"testers" or "agent"/"agents" count as the
+// same concept. Real buyers paraphrase constantly; a pure substring match on the literal search
+// term silently discarded a large share of genuine, LLM-confirmed matches (e.g. a post about
+// paying people to "test my app" never matched a "product testing" goal or includeTerm).
+function stem(word: string) {
+  return word.length <= 4 ? word : word.replace(/(?:ing|ers|ied|ies|er|ed|es|s)$/, "");
+}
+
 function goalCoverage(body: string, goal?: string) {
   const goalTokens = Array.from(new Set(tokens(goal ?? "")));
-  return goalTokens.filter(token => body.includes(token)).length;
+  const bodyStems = new Set(tokens(body).map(stem));
+  return goalTokens.filter(token => body.includes(token) || bodyStems.has(stem(token))).length;
 }
 
 function hasAny(body: string, patterns: string[]) {
@@ -62,7 +71,17 @@ function conceptVariants(term: string) {
 }
 
 function matchedConcepts(body: string, includeTerms: string[]) {
-  return includeTerms.filter(term => conceptVariants(term).some(variant => body.includes(variant)));
+  const bodyStems = new Set(tokens(body).map(stem));
+  // Raw word split (no length/stopword filtering) so a short domain qualifier like "ai" or "qa"
+  // is still required rather than silently dropped: `tokens()` trims anything under 3 chars,
+  // which would otherwise let "ai agent" collapse to just "agent" and match any unrelated post
+  // that happens to mention an "agent" in some other sense (real estate, support, etc).
+  const bodyWords = new Set(body.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  return includeTerms.filter(term => {
+    if (conceptVariants(term).some(variant => body.includes(variant))) return true;
+    const words = term.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    return words.length > 1 && words.every(word => bodyWords.has(word) || bodyStems.has(stem(word)));
+  });
 }
 
 function serviceIntentAssessment(body: string, includeTerms: string[], goal?: string, aiLabel?: string, aiConfidence = 0) {

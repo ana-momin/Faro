@@ -30,7 +30,10 @@ const MAX_CONCURRENT_LLM_CALLS = 4;
 
 // Only words that plausibly describe employment/promo noise, never delivery-work vocabulary.
 const SAFE_NOISE_EXCLUDE_TERM = /^[a-z0-9][a-z0-9 -]{1,30}$/i;
-const BUYER_SIGNAL_WORD = /\b(freelance|freelancer|hire|agency|developer|expert|consultant|specialist|provider|build|automat|workflow|recommend|looking|need|seek|help|creator|editor|design|test|video|content|ai|agent)\w*\b/i;
+// "hir" (not "hire") so this also catches "hiring" - hire/hiring aren't the same root by simple
+// suffix stripping (hire -> hiring drops the "e"), and "hiring" is extremely common inside a
+// genuine buyer ask ("thinking about hiring someone to build...") as well as in job-post noise.
+const BUYER_SIGNAL_WORD = /\b(freelance|freelancer|hir|agency|developer|expert|consultant|specialist|provider|build|automat|workflow|recommend|looking|need|seek|help|creator|editor|design|test|video|content|ai|agent)\w*\b/i;
 
 function llmEnabled() {
   return !process.env.VITEST && Boolean(ENV.forgeApiKey);
@@ -126,8 +129,14 @@ async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
   // LLM-proposed terms that clearly can't appear inside a genuine buyer request (e.g. never
   // "freelance"/"hire", which show up constantly in real "looking for a freelancer" asks).
   const safeLlmExcludeTerms = parsed.excludeTerms.filter(term => SAFE_NOISE_EXCLUDE_TERM.test(term) && !BUYER_SIGNAL_WORD.test(term));
+  // "job" and "hiring" are deliberately left out of this always-on base set: both show up
+  // constantly inside genuine buyer language ("need someone for a quick automation job",
+  // "thinking about hiring a developer"), and a blind substring veto vetoed real, LLM-confirmed
+  // buyer posts over it. Actual job/employment listings are already caught contextually by
+  // NON_SERVICE_CONTEXT_PATTERNS in ranking.ts ("hiring a", "hiring for", "job opening", "apply
+  // now", "salary", "full-time", ...) and by the classification prompt's own explicit exclusion.
   const excludeTerms = Array.from(
-    new Set([...safeLlmExcludeTerms, "job", "hiring", "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
+    new Set([...safeLlmExcludeTerms, "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
   ).slice(0, 14);
   return {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],

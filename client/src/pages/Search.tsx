@@ -58,21 +58,38 @@ export default function Search() {
     onError: (error, _input, context) => { setSelectedItem(context?.previous ?? null); toast.error(error.message, { position: "bottom-right" }); },
   });
   const removeFromFeed = trpc.monitoring.removeFromFeed.useMutation({
-    onSuccess: async () => {
+    onMutate: async variables => {
       setSelectedItem(null);
-      await utils.monitoring.overview.invalidate();
-      await utils.monitoring.saved.invalidate();
-      toast.success("Removed from Feed.", { position: "bottom-right", duration: 1500 });
+      await utils.monitoring.overview.cancel();
+      const previous = utils.monitoring.overview.getData();
+      utils.monitoring.overview.setData(undefined, current => current ? { ...current, posts: current.posts.filter(({ post }) => post.id !== variables.postId) } : current);
+      return { previous };
     },
-    onError: error => toast.error(error.message, { position: "bottom-right" }),
+    onSuccess: () => toast.success("Removed from Feed.", { position: "bottom-right", duration: 1500 }),
+    onError: (error, _variables, context) => {
+      if (context?.previous) utils.monitoring.overview.setData(undefined, context.previous);
+      toast.error(error.message, { position: "bottom-right" });
+    },
+    onSettled: () => { void utils.monitoring.overview.invalidate(); void utils.monitoring.saved.invalidate(); },
   });
   const deleteSearch = trpc.monitoring.delete.useMutation({
-    onSuccess: async (_data, variables) => {
-      await utils.monitoring.overview.invalidate();
+    onMutate: async variables => {
+      await utils.monitoring.overview.cancel();
+      const previous = utils.monitoring.overview.getData();
+      utils.monitoring.overview.setData(undefined, current => current ? {
+        ...current,
+        monitors: current.monitors.filter(({ monitor }) => monitor.id !== variables.monitorId),
+        posts: current.posts.filter(({ monitor }) => monitor.id !== variables.monitorId),
+      } : current);
       if (activeResultMonitorId === variables.monitorId) { setResult(null); setHistoryMonitorId(null); setPhase("idle"); }
-      toast.success("Saved search deleted.", { position: "bottom-right", duration: 1500 });
+      return { previous };
     },
-    onError: error => toast.error(error.message, { position: "bottom-right" }),
+    onSuccess: () => toast.success("Saved search deleted.", { position: "bottom-right", duration: 1500 }),
+    onError: (error, _variables, context) => {
+      if (context?.previous) utils.monitoring.overview.setData(undefined, context.previous);
+      toast.error(error.message, { position: "bottom-right" });
+    },
+    onSettled: () => { void utils.monitoring.overview.invalidate(); },
   });
   const [confirmDeleteHistory, setConfirmDeleteHistory] = useState<{ monitorId: number; label: string } | null>(null);
   const deleteHistoryEntry = (monitorId: number, label: string) => setConfirmDeleteHistory({ monitorId, label });

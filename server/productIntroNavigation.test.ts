@@ -8,7 +8,7 @@ const sidebarSource = readFileSync(resolve(process.cwd(), "client/src/components
 
 describe("Faro product-introduction navigation", () => {
   it("registers the dedicated product route outside the persistent workspace shell", () => {
-    expect(appSource).toContain('if (pathname === "/faro") return <ProductIntro />');
+    expect(appSource).toContain('if (pathname === "/faro") return <Suspense fallback={null}><ProductIntro /></Suspense>');
     expect(appSource).toContain("<DashboardLayout>");
     expect(PRODUCT_INTRO_PATH).toBe("/faro");
   });

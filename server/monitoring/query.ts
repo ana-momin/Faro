@@ -78,9 +78,9 @@ export function deterministicSuggestion(goal: string) {
   const intentClause = `(${actionTerms.map(quoteTerm).join(" OR ")})`;
   return {
     includeTerms: includeTerms.length ? includeTerms : ["automation", "AI"],
-    excludeTerms: ["job", "hiring", "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"],
+    excludeTerms: ["salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"],
     categories: ["service request"],
-    xQuery: buildServiceDemandQuery(includeTerms.length ? includeTerms : ["automation", "AI"], ["job", "hiring", "salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
+    xQuery: buildServiceDemandQuery(includeTerms.length ? includeTerms : ["automation", "AI"], ["salary", "internship", "giveaway", "co-founder", "course", "tutorial", "podcast"]),
     rationale: "Deterministic keyword extraction was used because the AI suggestion service was unavailable.",
     model: "deterministic fallback",
     fallback: true,
@@ -114,7 +114,13 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
 const PRIMARY_SERVICE_REQUEST_QUERY = '("looking for" OR "need someone" OR "need a developer" OR "need a provider" OR "need a team" OR "looking to hire" OR "looking to outsource")';
 const SECONDARY_SERVICE_REQUEST_QUERY = '("can anyone recommend" OR "does anyone know" OR "any recommendations" OR "who should I hire" OR "who can help" OR recommend)';
 const TERTIARY_SERVICE_REQUEST_QUERY = '("need help" OR "help me automate" OR "help us automate" OR "could use help" OR "who can build" OR "can someone")';
-const OBSERVED_PROVIDER_NOISE_TERMS = ["job", "hiring", "full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
+// "job" and "hiring" are deliberately excluded from this list: both appear constantly inside
+// genuine buyer language ("need someone for a quick automation job", "thinking about hiring a
+// developer"), and as an X query exclusion they silently kept those posts from ever being fetched
+// at all. Real job/employment listings still get filtered post-fetch by NON_SERVICE_CONTEXT_PATTERNS
+// in ranking.ts, which distinguishes contextually ("hiring a", "hiring for", "job opening") instead
+// of vetoing the bare word.
+const OBSERVED_PROVIDER_NOISE_TERMS = ["full-time", "salary", "internship", "apply", "course", "training", "webinar", "podcast", "giveaway"];
 
 export type CoverageQueryFamilyId = "direct_demand" | "task_help" | "recommendation";
 
