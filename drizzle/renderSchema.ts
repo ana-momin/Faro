@@ -194,3 +194,10 @@ export const postAlertDeliveries = pgTable("post_alert_deliveries", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type MonitoringCriterion = typeof monitoringCriteria.$inferSelect;
+export type ListenedPost = typeof listenedPosts.$inferSelect;
+export type ProviderConnection = typeof providerConnections.$inferSelect;
+export type MonitorQueryState = typeof monitorQueryStates.$inferSelect;
+export type MonitorSyncRun = typeof monitorSyncRuns.$inferSelect;
+export type SavedPost = typeof savedPosts.$inferSelect;
+export type HiddenPost = typeof hiddenPosts.$inferSelect;

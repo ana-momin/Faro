@@ -1,4 +1,4 @@
-import type { MonitoringCriterion } from "../../drizzle/schema";
+import type { MonitoringCriterion } from "../../drizzle/renderSchema";
 import * as db from "../db";
 import { classifyPostIntent } from "./ai";
 import { rankOpportunity } from "./ranking";

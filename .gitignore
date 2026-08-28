@@ -119,3 +119,5 @@ client/public/__manus__/version.json
 .manus-logs/
 client/public/__manus__/debug-collector.js
 profile-photo-performance-plan.md
+.vercel
+.env*

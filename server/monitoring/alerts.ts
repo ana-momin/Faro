@@ -1,4 +1,4 @@
-import type { MonitoringCriterion } from "../../drizzle/schema";
+import type { MonitoringCriterion } from "../../drizzle/renderSchema";
 import { ENV } from "../_core/env";
 import { notifyOwner } from "../_core/notification";
 import * as db from "../db";

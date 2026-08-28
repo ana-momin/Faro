@@ -1,1 +1,0 @@
-ALTER TABLE `listened_posts` ADD `authorAvatarUrl` varchar(1024);

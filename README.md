@@ -51,7 +51,8 @@ Provider rates, limits, account entitlements, and endpoint costs are controlled 
 
 | Area | Capability |
 | --- | --- |
-| **Buyer-only ranking** | Strong request-intent signals, delivery-scope evidence, personalized preference boosts, duplicate grouping, and promotional/noise suppression. |
+| **Natural-language query understanding** | A search brief such as "founders looking for a provider to build AI agents" is turned into search terms and an X query by an LLM (with an automatic deterministic fallback if no LLM key is configured). See [`server/monitoring/ai.ts`](./server/monitoring/ai.ts). |
+| **Buyer-only ranking** | LLM-assisted per-post intent classification plus a deterministic scoring layer — request-intent signals, delivery-scope evidence, personalized preference boosts, duplicate grouping, and promotional/noise suppression. |
 | **Social Feed** | Full X-style cards with author context, category, confidence, why-it-matched evidence, direct X links, compact feedback controls, and private saved posts. |
 | **Search workspace** | Centered LLM-style command bar, full-line suggestion prompts, keyword mode, in-bar progress, and top-ten qualified results. |
 | **Monitor manager** | Rename, pause/resume, or delete saved searches from Profile. |

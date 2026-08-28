@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const schemaSource = readFileSync(resolve(process.cwd(), "drizzle/schema.ts"), "utf8");
+const schemaSource = readFileSync(resolve(process.cwd(), "drizzle/renderSchema.ts"), "utf8");
 const dbSource = readFileSync(resolve(process.cwd(), "server/db.ts"), "utf8");
 const routerSource = readFileSync(resolve(process.cwd(), "server/routers/monitoring.ts"), "utf8");
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");

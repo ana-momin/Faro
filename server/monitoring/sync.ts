@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import * as db from "../db";
-import type { MonitorQueryState } from "../../drizzle/schema";
+import type { MonitorQueryState } from "../../drizzle/renderSchema";
 import { persistNormalizedPost } from "./ingest";
 import { notifyPreferredHighConfidenceSignals } from "./alerts";
 import { collectionPolicy, type CollectionPolicy } from "./policy";

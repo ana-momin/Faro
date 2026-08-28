@@ -15,7 +15,7 @@ Faro AI is being separated from Manus-managed OAuth, database access, runtime he
 | Authentication | Local device passkey via SimpleWebAuthn and signed httpOnly session cookie | Implemented; name required and email optional |
 | Provider credentials | Server-side AES-256-GCM, keyed by `CREDENTIAL_ENCRYPTION_SECRET` | Implemented; no old ciphertext is copied |
 | Profile avatar | One shared user-supplied Faro cat image | Rendered consistently for every Faro member; there is no avatar picker or user-image upload |
-| Signal analysis | Existing deterministic buyer-intent rules | Independent; no active Manus model dependency |
+| Signal analysis | LLM-assisted buyer-intent extraction and per-post classification (`server/monitoring/ai.ts`), with a deterministic rule-based fallback | Independent; runs against a client-supplied `BUILT_IN_FORGE_API_KEY`/`BUILT_IN_FORGE_API_URL` (any OpenAI-chat-completions-compatible endpoint), not a Manus-managed model |
 | Collection | Client-initiated fresh-first batches, capped at three provider pages | Automatic worker disabled in staging; every provider call remains explicit and bounded |
 
 ## Runtime Design
@@ -45,6 +45,9 @@ Vercel environment variables are encrypted at rest and apply only to **new** dep
 | `CREDENTIAL_ENCRYPTION_SECRET` | Production; add to Preview before branch-preview provider setup testing | Client-managed Vercel Secret | Must differ from `SESSION_SECRET` |
 | `PASSKEY_RP_ID` | Unset initially | N/A | Derived safely from the deployed host |
 | `PASSKEY_ORIGIN` | Unset initially | N/A | Derived safely from the request origin |
+| `BUILT_IN_FORGE_API_URL` | Production and Preview | Client-managed Vercel value | Base URL of an OpenAI-chat-completions-compatible endpoint (e.g. `https://api.groq.com/openai` for Groq). |
+| `BUILT_IN_FORGE_API_KEY` | Production and Preview | Client-managed Vercel Secret | API key for that endpoint. When unset, Faro automatically falls back to its deterministic rule-based classifier — the app never fails without it. |
+| `FARO_LLM_MODEL` | Optional | Client-managed Vercel value | Overrides the default LLM model id (`qwen/qwen3.8-27b`) if the configured endpoint uses a different model catalog. |
 | X-provider credentials | Not configured during migration validation | Client reconnects later | Avoids credit consumption and credential transfer |
 
 The Neon integration has already injected its PostgreSQL connection variables into Production and Preview. Session and credential-encryption secrets must never be placed in Git, browser-visible `VITE_*` variables, logs, tickets, or documentation.
