@@ -33,7 +33,11 @@ const SAFE_NOISE_EXCLUDE_TERM = /^[a-z0-9][a-z0-9 -]{1,30}$/i;
 // "hir" (not "hire") so this also catches "hiring" - hire/hiring aren't the same root by simple
 // suffix stripping (hire -> hiring drops the "e"), and "hiring" is extremely common inside a
 // genuine buyer ask ("thinking about hiring someone to build...") as well as in job-post noise.
-const BUYER_SIGNAL_WORD = /\b(freelance|freelancer|hir|agency|developer|expert|consultant|specialist|provider|build|automat|workflow|recommend|looking|need|seek|help|creator|editor|design|test|video|content|ai|agent)\w*\b/i;
+// "job" is included for the same reason - the LLM proposes it as an excludeTerm on almost every
+// brief, but it appears just as often inside a genuine task-scoped ask ("a quick automation job
+// for us") as inside real job-post noise, which NON_SERVICE_CONTEXT_PATTERNS already catches
+// contextually ("job opening", "hiring a", "apply now") without a blind substring veto.
+const BUYER_SIGNAL_WORD = /\b(freelance|freelancer|hir|agency|developer|expert|consultant|specialist|provider|build|automat|workflow|recommend|looking|need|seek|help|creator|editor|design|test|video|content|ai|agent|job)\w*\b/i;
 
 function llmEnabled() {
   return !process.env.VITEST && Boolean(ENV.forgeApiKey);
@@ -105,10 +109,12 @@ async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
               "includeTerms become an X search query, so EVERY term must be something a real person would plausibly type verbatim in a tweet - not a phrase assembled by chopping up the brief. " +
               "Prefer short, common, single words (\"automation\", \"chatbot\", \"onboarding\") over invented multi-word phrases: a multi-word term must match EXACTLY as written, so unnatural combinations (\"automation for\", \"need automation\") will never match real tweets and are worse than useless. " +
               "Never propose terms that would mostly surface people offering their own services, job/employment listings, co-founder searches, courses, or generic topic chatter. " +
+              "includeTerms must all be about WHAT is being requested (the subject/deliverable), never HOW someone is asking for it - never propose a buyer-intent phrase itself (\"looking for\", \"need\", \"want\", \"help\", \"hire\") as an includeTerm; that vocabulary is handled separately and only dilutes the topic. " +
+              "The single most important, most specific term describing the brief's subject must always be includeTerms[0], even if the brief is short (e.g. brief \"ai agent\" -> includeTerms[0] must be \"AI agent\" or \"AI agents\", never a generic verb like \"build\" or \"automate\"). " +
               'Respond with ONLY a JSON object shaped exactly like {"includeTerms": string[], "excludeTerms": string[], "categories": string[], "rationale": string}. No markdown, no extra keys.\n\n' +
               'Example - brief: "Find operators who need someone to automate repetitive business workflows." ' +
               '→ good includeTerms: ["automation", "automate", "workflow", "business process", "operations"]. ' +
-              '→ bad includeTerms (never do this): ["need automation", "automation for", "automate workflows", "build a bot"].',
+              '→ bad includeTerms (never do this): ["need automation", "automation for", "automate workflows", "build a bot", "looking for", "help"].',
           },
           {
             role: "user",

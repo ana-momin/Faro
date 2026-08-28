@@ -247,10 +247,16 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     credential: decryptClientCredential(connection.encryptedCredential),
   };
   const source = provider.provider === "twitterapi_io" ? "twitterapi_io" : "recent_search";
+  // TwitterAPI.io pages are a fixed ~20 tweets each with a mandatory ~5.2s gap between requests
+  // (server/monitoring/xClient.ts), and this whole call has to fit inside Vercel's 60s function
+  // budget alongside LLM classification of every candidate. 4 pages (up to 2 per family) is the
+  // safe ceiling within that budget - roughly a third more raw posts per search than the previous
+  // 3-page cap, without risking a timeout. Beyond a single search, "Load more recent matches" lets
+  // a user explicitly fetch another bounded batch on demand instead of one large, riskier request.
   const configuredPolicy = {
     ...effectivePolicy(policyOverrides),
-    maxProviderCallsPerSync: Math.min(3, Math.max(1, policyOverrides?.maxProviderCallsPerSync ?? collectionPolicy().maxProviderCallsPerSync)),
-    maxPagesPerFamily: 1,
+    maxProviderCallsPerSync: Math.min(4, Math.max(1, policyOverrides?.maxProviderCallsPerSync ?? collectionPolicy().maxProviderCallsPerSync)),
+    maxPagesPerFamily: 2,
     maxProviderCallsPerDay: connection.dailyRequestLimit,
   };
   const [previous, queryStates, callsToday] = await Promise.all([

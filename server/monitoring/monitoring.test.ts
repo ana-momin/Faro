@@ -25,7 +25,10 @@ describe("deterministic query suggestion", () => {
     expect(suggestion.xQuery).toContain("-is:retweet");
     expect(suggestion.includeTerms).toContain("custom ai workflow");
     expect(suggestion.includeTerms).toContain("automation");
-    expect(suggestion.xQuery).toContain('(automation OR automate OR "custom ai workflow"');
+    // The primary (first) topic term always leads the query clause, even when it is multi-word -
+    // otherwise a short/ambiguous brief can see its actual subject crowded out of the top-5 term
+    // cap by generic single-word padding (see the buildBoundedDemandQuery comment in query.ts).
+    expect(suggestion.xQuery).toContain('("custom ai workflow" OR automation OR automate');
     expect(suggestion.xQuery).toContain("-co-founder");
   });
 

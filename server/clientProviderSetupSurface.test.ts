@@ -86,7 +86,7 @@ describe("client-owned provider setup", () => {
   it("uses a per-client encrypted connection and caps each collection batch to three fresh provider pages", () => {
     expect(routerSource).toContain("encryptClientCredential");
     expect(routerSource).toContain("countMonitorSyncRunsForUserSince");
-    expect(syncSource).toContain("maxProviderCallsPerSync: Math.min(3");
+    expect(syncSource).toContain("maxProviderCallsPerSync: Math.min(4");
     expect(syncSource).toContain("automaticCollection");
     expect(syncSource).toContain("getProviderConnectionForUser");
   });

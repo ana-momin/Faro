@@ -142,7 +142,17 @@ function preferBroadTermsFirst(terms: string[]) {
 }
 
 function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
-  const topics = preferBroadTermsFirst(discoveryTerms(includeTerms)).slice(0, 5);
+  // The first cleaned term is reliably the primary topic (the LLM leads with it, and curated
+  // expandServiceDiscoveryTerms expansions are placed first) - guarantee it survives the top-5
+  // cap even when it is multi-word. Without this, a short goal like "ai agent" could see the LLM
+  // pad includeTerms with generic single-word verbs (build/automate/workflow/integrate...) that
+  // then crowd the actual topic phrase out of preferBroadTermsFirst's slice, leaving the real
+  // search query hunting for generic "build"/"workflow" chatter instead of AI agents at all.
+  const cleaned = discoveryTerms(includeTerms);
+  const [primaryTopic, ...remainingTopics] = cleaned;
+  const topics = primaryTopic
+    ? [primaryTopic, ...preferBroadTermsFirst(remainingTopics).filter(term => term !== primaryTopic)].slice(0, 5)
+    : preferBroadTermsFirst(cleaned).slice(0, 5);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
   const exclusions = uniqueTerms([...OBSERVED_PROVIDER_NOISE_TERMS, ...excludeTerms]).slice(0, 12).map(term => `-${quoteTerm(term)}`).join(" ");
   const query = [topicClause, buyerSignals, exclusions, "-is:retweet"].filter(Boolean).join(" ");

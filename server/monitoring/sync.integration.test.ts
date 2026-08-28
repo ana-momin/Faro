@@ -179,16 +179,17 @@ describe("bounded multi-family sync", () => {
     expect(mocks.recordMonitorSyncRun).toHaveBeenCalledWith(expect.objectContaining({ monitorId: 17, pageNumber: 1, rawReceived: 2, deduplicatedPosts: 2, buyerCandidates: 2, persistedPosts: 2, queueWaitMs: 48 }));
   });
 
-  it("uses a fresh bounded three-query batch even when a legacy override asks for more", async () => {
+  it("uses a fresh bounded four-page batch even when a legacy override asks for more", async () => {
     mocks.fetchPublicPosts
-      .mockResolvedValueOnce(sourceResult([{ id: "direct-fresh", text: "Need someone to automate a client onboarding workflow." }]))
+      .mockResolvedValueOnce(sourceResult([{ id: "direct-fresh", text: "Need someone to automate a client onboarding workflow." }], "direct-next-page"))
       .mockResolvedValueOnce(sourceResult([{ id: "task-fresh", text: "Need help automating our sales operations." }]))
-      .mockResolvedValueOnce(sourceResult([{ id: "recommendation-fresh", text: "Does anyone know an automation expert who can help our team?" }]));
+      .mockResolvedValueOnce(sourceResult([{ id: "recommendation-fresh", text: "Does anyone know an automation expert who can help our team?" }]))
+      .mockResolvedValueOnce(sourceResult([{ id: "direct-fresh-2", text: "Need someone to automate our support ticket triage." }]));
 
-    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 4, maxPagesPerFamily: 2 })).resolves.toMatchObject({
-      retrieval: { sourceCalls: 3, pagesChecked: 3, queryFamilies: 3, pageBudget: 3 },
+    await expect(syncMonitorRecord(monitor, { maxProviderCallsPerSync: 20, maxPagesPerFamily: 10 })).resolves.toMatchObject({
+      retrieval: { sourceCalls: 4, pagesChecked: 4, queryFamilies: 3, pageBudget: 4 },
     });
-    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(3);
+    expect(mocks.fetchPublicPosts).toHaveBeenCalledTimes(4);
   });
 
   it("does not report an already stored provider post as newly surfaced", async () => {
