@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import * as db from "../db";
 import type { MonitorQueryState } from "../../drizzle/renderSchema";
+import { isLlmConfigured } from "./ai";
 import { persistNormalizedPost } from "./ingest";
 import { notifyPreferredHighConfidenceSignals } from "./alerts";
 import { collectionPolicy, type CollectionPolicy } from "./policy";
@@ -50,6 +51,7 @@ function pageFailureMetadata(error: unknown): PageFailureMetadata | undefined {
 }
 
 function candidatePosts(monitor: Monitor, posts: XApiPost[]) {
+  const relaxedForModelReview = isLlmConfigured();
   return posts.filter(post => isPotentialBuyerOpportunity({
     body: post.text,
     postedAt: post.created_at ? new Date(post.created_at) : new Date(),
@@ -58,7 +60,7 @@ function candidatePosts(monitor: Monitor, posts: XApiPost[]) {
     excludeTerms: monitor.excludeTerms,
     goal: monitor.goal,
     categories: monitor.categories,
-  }));
+  }, { relaxedForModelReview }));
 }
 
 function queryHash(query: string) {

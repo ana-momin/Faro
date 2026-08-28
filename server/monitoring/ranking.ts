@@ -83,6 +83,9 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
   const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
   const concreteBuyerRequest = directBuyerRequest && (!/need(?:s)? help with/.test(body) || concreteHelpRequest);
+  // deliveryScope stays required here even for a model-confirmed label: it's the backstop
+  // against a topic-only post (or a wrong/hallucinated model call) being scored as a buyer
+  // request just because it mentions a monitored concept.
   const semanticBuyerConfirmation = modelConfirmedServiceNeed && hasRelevantNeed && deliveryScope;
   const serviceSeeking = !nonServiceContext && !jobSeeking && !serviceOffer && hasRelevantNeed && (concreteBuyerRequest && (requestHasLocalScope || SPECIALIST_REQUEST_SCOPE_PATTERN.test(body)) || semanticBuyerConfirmation);
 
@@ -147,20 +150,28 @@ export function rankOpportunity(input: RankedPostInput) {
 }
 
 /**
- * A deterministic source-level guard used before the per-post model call.
- * It deliberately reuses Faro’s existing buyer-only ranker so clearly
+ * A source-level guard used before the per-post model call, so clearly
  * promotional, job, networking, and generic-topic posts do not consume LLM
  * work during a controlled source sync.
+ *
+ * When an LLM classifier is actually configured (`relaxedForModelReview`),
+ * this only needs to confirm topical relevance and rule out the obviously
+ * bad cases - the LLM itself is trusted to judge buyer-phrasing nuance the
+ * fixed regex list can't anticipate. Without an LLM, it falls back to also
+ * requiring a recognizable buyer-phrasing pattern, since that's the only
+ * intent signal available in pure deterministic mode.
  */
-export function isPotentialBuyerOpportunity(input: Omit<RankedPostInput, "aiConfidence" | "aiLabel">) {
+export function isPotentialBuyerOpportunity(input: Omit<RankedPostInput, "aiConfidence" | "aiLabel">, options: { relaxedForModelReview?: boolean } = {}) {
   const body = input.body.toLowerCase();
   const hasExcludedTerm = input.excludeTerms.some(term => body.includes(term.toLowerCase()));
   if (hasExcludedTerm) return false;
   const assessment = serviceIntentAssessment(body, input.includeTerms, input.goal);
+  const relevantEnough = assessment.concepts.length > 0 || assessment.goalMatches > 0;
+  if (assessment.nonServiceContext || assessment.jobSeeking || assessment.serviceOffer || !relevantEnough) return false;
+  if (options.relaxedForModelReview) return true;
   const flexibleBuyerLanguage = /\b(?:would love|could really use|trying to find|hoping to find|want)\b.{0,90}\b(?:freelancer|agency|consultant|expert|specialist|developer|builder|contractor|service provider|vendor)\b/.test(body);
   const plausibleBuyerLanguage = assessment.directRequest || assessment.concreteHelpRequest || assessment.providerRequest || flexibleBuyerLanguage;
-  const relevantEnough = assessment.concepts.length > 0 || assessment.goalMatches > 0;
-  return !assessment.nonServiceContext && !assessment.jobSeeking && !assessment.serviceOffer && relevantEnough && plausibleBuyerLanguage;
+  return plausibleBuyerLanguage;
 }
 
 export function deterministicIntent(body: string, includeTerms: string[], goal = "") {

@@ -36,6 +36,9 @@ function llmEnabled() {
   return !process.env.VITEST && Boolean(ENV.forgeApiKey);
 }
 
+/** Whether classifyPostIntent will actually call an LLM rather than the deterministic fallback. */
+export const isLlmConfigured = llmEnabled;
+
 let activeLLMCalls = 0;
 const llmWaiters: Array<() => void> = [];
 
