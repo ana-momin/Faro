@@ -1,54 +1,64 @@
 import FaroLogo from "@/components/FaroLogo";
 import { Button } from "@/components/ui/button";
-import { PRODUCT_INTRO_PATH } from "@/lib/productIntro";
+import { PRODUCT_INTRO_PATH, productStages } from "@/lib/productIntro";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, Compass, Eye, ShieldCheck, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Check } from "lucide-react";
 import { useLocation } from "wouter";
 
-const principles = [
-  { icon: Compass, title: "Feed", text: "One clear brief.", detail: "Tell Faro the service need worth finding." },
-  { icon: Eye, title: "Qualify", text: "Need over noise.", detail: "A real request rises above familiar keywords." },
-  { icon: ShieldCheck, title: "Decide", text: "Always human-led.", detail: "You review the context and make the call." },
-];
-
-const signalSamples = [
-  { label: "Automation", handle: "@operator", body: "Looking for someone to automate our client onboarding — we need this live soon.", highlight: "automate our client onboarding", score: "96" },
-  { label: "AI workflow", handle: "@founder", body: "Need help building a custom AI workflow for our support team. Any recommendations?", highlight: "custom AI workflow", score: "93" },
-  { label: "AI video", handle: "@studio", body: "We want a partner who can help us create practical AI video content at scale.", highlight: "partner who can help", score: "91" },
-];
+const STAGE_ACCENT: Record<string, string> = {
+  terracotta: "bg-[#b85f45]",
+  gold: "bg-[#c99245]",
+  sage: "bg-[#5f9a71]",
+};
 
 export default function ProductIntro() {
   const [, setLocation] = useLocation();
   const reduceMotion = useReducedMotion();
   const fadeUp = reduceMotion ? {} : { opacity: 1, y: 0 };
-  const [activeSignal, setActiveSignal] = useState(0);
-  const [activePrinciple, setActivePrinciple] = useState(0);
-  const signal = signalSamples[activeSignal];
-  const activeStep = principles[activePrinciple];
 
-  return <main className="min-h-screen overflow-hidden bg-[#fffaf2] text-[#35241a]">
-    <section className="relative isolate flex min-h-[77vh] flex-col overflow-hidden border-b border-[#eddfd2]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_15%,rgba(245,204,170,0.72),transparent_34%),radial-gradient(circle_at_86%_22%,rgba(219,236,220,0.75),transparent_30%),radial-gradient(circle_at_48%_88%,rgba(246,221,194,0.7),transparent_38%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.32] [background-image:linear-gradient(rgba(147,90,59,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(147,90,59,0.10)_1px,transparent_1px)] [background-size:64px_64px]" />
-      <div className="pointer-events-none absolute -left-28 bottom-[-16rem] h-[38rem] w-[38rem] rounded-full border border-[#d79c77]/30 bg-[#fffaf2]/25" />
-      <div className="pointer-events-none absolute -right-32 top-[25%] h-[28rem] w-[28rem] rounded-full border border-[#b8d8bf]/50 bg-white/20" />
+  return <main className="min-h-screen bg-[#fffaf2] text-[#35241a]">
+    <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6 sm:px-8">
+      <button onClick={() => setLocation("/")} className="rounded-xl outline-none transition active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#bb654a]" aria-label="Open Faro AI workspace">
+        <FaroLogo className="[&>span:first-child]:h-9 [&>span:first-child]:w-9 [&>span:first-child]:rounded-xl [&>span:last-child]:text-[19px]" />
+      </button>
+      <Button onClick={() => setLocation("/")} variant="outline" className="h-9 rounded-xl border-[#e5d3bd] bg-white px-4 text-xs font-bold text-[#7c4d38] hover:bg-[#fff4e8]">Open Feed <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button>
+    </nav>
 
-      <nav className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10"><button onClick={() => setLocation("/")} className="rounded-xl outline-none transition active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#bb654a]" aria-label="Open Faro AI workspace"><FaroLogo className="[&>span:first-child]:h-10 [&>span:first-child]:w-10 [&>span:first-child]:rounded-[13px] [&>span:last-child]:text-[21px]" /></button><Button onClick={() => setLocation("/")} className="h-10 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_20px_rgba(161,80,55,0.18)] hover:bg-[#9e4e37]">Open Feed <ArrowRight className="ml-2 h-3.5 w-3.5" /></Button></nav>
-
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[minmax(0,1.04fr)_minmax(360px,0.76fr)] lg:px-10"><div className="max-w-3xl"><motion.p initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={fadeUp} transition={{ duration: 0.42, ease: [0.23, 1, 0.32, 1] }} className="inline-flex items-center gap-2 rounded-full border border-[#e7cfba] bg-white/65 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9a593f] backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-[#bb6348]" />Faro AI · service demand on X</motion.p><motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={fadeUp} transition={{ duration: 0.52, delay: 0.06, ease: [0.23, 1, 0.32, 1] }} className="mt-7 text-5xl font-extrabold leading-[0.92] tracking-[-0.09em] sm:text-7xl lg:text-[78px]">Find the people<br /><span className="text-[#b85f45]">already asking.</span></motion.h1><motion.p initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={fadeUp} transition={{ duration: 0.52, delay: 0.12, ease: [0.23, 1, 0.32, 1] }} className="mt-6 max-w-md text-[15px] leading-7 text-[#725d4e] sm:text-base">Faro filters public X posts for real service demand—so you can review the signal, not the noise.</motion.p><motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={fadeUp} transition={{ duration: 0.52, delay: 0.18, ease: [0.23, 1, 0.32, 1] }} className="mt-8 flex flex-wrap items-center gap-3"><Button onClick={() => setLocation("/")} className="h-12 rounded-2xl bg-[#b85f45] px-5 text-xs font-extrabold text-white shadow-[0_12px_26px_rgba(161,80,55,0.22)] hover:bg-[#9e4e37]">Enter your signal desk <ArrowRight className="ml-2 h-4 w-4" /></Button><span className="inline-flex items-center gap-2 text-[11px] font-bold text-[#80644f]"><Check className="h-4 w-4 text-[#5a9770]" />No automated outreach</span></motion.div></div><HeroSignalCard signal={signal} activeSignal={activeSignal} onSelect={setActiveSignal} reduceMotion={Boolean(reduceMotion)} /></div>
+    <section className="mx-auto max-w-3xl px-6 py-20 text-center sm:px-8 sm:py-28">
+      <motion.p initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={fadeUp} transition={{ duration: 0.4 }} className="inline-flex items-center gap-2 rounded-full border border-[#e7cfba] bg-white px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9a593f]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#bb6348]" />Faro AI
+      </motion.p>
+      <motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={fadeUp} transition={{ duration: 0.45, delay: 0.05 }} className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-[-0.05em] sm:text-6xl">
+        Find the people <span className="text-[#b85f45]">already asking.</span>
+      </motion.h1>
+      <motion.p initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={fadeUp} transition={{ duration: 0.45, delay: 0.1 }} className="mx-auto mt-5 max-w-xl text-[15px] leading-7 text-[#725d4e]">
+        Faro reads public X posts for real service demand — AI agents, automation, development, content, video — and surfaces only the signal, not the noise.
+      </motion.p>
+      <motion.div initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={fadeUp} transition={{ duration: 0.45, delay: 0.15 }} className="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <Button onClick={() => setLocation("/")} className="h-11 rounded-xl bg-[#b85f45] px-5 text-xs font-extrabold text-white shadow-[0_10px_22px_rgba(161,80,55,0.2)] hover:bg-[#9e4e37]">Enter your signal desk <ArrowRight className="ml-2 h-4 w-4" /></Button>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#80644f]"><Check className="h-4 w-4 text-[#5a9770]" />No automated outreach, ever</span>
+      </motion.div>
     </section>
 
-    <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-10"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#a25d47]">Keep it simple</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.065em] sm:text-4xl">A quiet path to the right request.</h2></div><p className="max-w-xs text-sm leading-6 text-[#887365]">Choose a step to see how Faro keeps the review focused.</p></div><div className="mt-8 grid gap-3 md:grid-cols-3">{principles.map((item, index) => { const Icon = item.icon; const selected = index === activePrinciple; return <motion.button type="button" key={item.title} onClick={() => setActivePrinciple(index)} aria-pressed={selected} initial={reduceMotion ? false : { opacity: 0, y: 14 }} whileInView={fadeUp} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.35, delay: index * 0.07, ease: [0.23, 1, 0.32, 1] }} className={`rounded-[24px] border p-5 text-left shadow-[0_10px_26px_rgba(95,57,32,0.045)] transition ${selected ? "border-[#d9a07e] bg-[#fff4e8]" : "border-[#eadfd4] bg-white/80 hover:-translate-y-0.5 hover:border-[#e2c4ad]"}`}><span className={`grid h-10 w-10 place-items-center rounded-2xl ${selected ? "bg-[#b85f45] text-white" : "bg-[#fbefe1] text-[#a45a42]"}`}><Icon className="h-4 w-4" /></span><p className="mt-7 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#a08b7a]">0{index + 1}</p><h3 className="mt-1 text-xl font-extrabold tracking-[-0.05em]">{item.title}</h3><p className="mt-2 text-sm text-[#806b5c]">{item.text}</p></motion.button>})}</div><motion.p key={activeStep.title} initial={reduceMotion ? false : { opacity: 0, y: 6 }} animate={fadeUp} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="mt-5 text-center text-sm font-bold text-[#80563f]">{activeStep.detail}</motion.p></section>
+    <section className="border-t border-[#eddfd2]">
+      <div className="mx-auto grid max-w-5xl gap-px overflow-hidden rounded-[28px] border border-[#eadfd2] bg-[#eadfd2] px-6 sm:px-8 md:my-16 md:grid-cols-3 md:gap-0 md:p-0">
+        {productStages.map((stage, index) => <motion.div key={stage.eyebrow} initial={reduceMotion ? false : { opacity: 0, y: 14 }} whileInView={fadeUp} viewport={{ once: true, amount: 0.4 }} transition={{ duration: 0.35, delay: index * 0.06 }} className="bg-[#fffaf2] p-7 first:pt-10 last:pb-10 md:bg-white md:p-8">
+          <span className={`inline-block h-1.5 w-8 rounded-full ${STAGE_ACCENT[stage.color]}`} />
+          <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#a08b7a]">{stage.eyebrow}</p>
+          <h3 className="mt-2 text-lg font-extrabold leading-snug tracking-[-0.03em] text-[#3d2e23]">{stage.title}</h3>
+          <p className="mt-3 text-[13px] leading-6 text-[#83705f]">{stage.description}</p>
+          <p className="mt-4 text-[10px] font-bold text-[#a25d47]">{stage.chip}</p>
+        </motion.div>)}
+      </div>
+    </section>
 
-    <section className="mx-5 mb-5 overflow-hidden rounded-[30px] bg-[#38261d] sm:mx-8 lg:mx-auto lg:max-w-[calc(80rem-5rem)]"><div className="flex flex-col items-start justify-between gap-6 px-6 py-9 sm:flex-row sm:items-center sm:px-10 sm:py-10"><div><p className="text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#efb797]">Human judgment stays first</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.065em] text-white sm:text-4xl">Your next signal is waiting.</h2></div><Button onClick={() => setLocation("/")} className="h-11 shrink-0 rounded-2xl bg-[#f5c9a9] px-5 text-xs font-extrabold text-[#4a2c1e] hover:bg-[#ffe0c7]">Open Feed <ArrowRight className="ml-2 h-4 w-4" /></Button></div></section>
+    <section className="mx-6 mb-8 mt-4 overflow-hidden rounded-[28px] bg-[#38261d] sm:mx-8 md:mx-auto md:max-w-5xl">
+      <div className="flex flex-col items-start justify-between gap-6 px-7 py-10 sm:flex-row sm:items-center sm:px-10">
+        <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#efb797]">Human judgment stays first</p><h2 className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-white sm:text-3xl">Your next signal is waiting.</h2></div>
+        <Button onClick={() => setLocation("/")} className="h-11 shrink-0 rounded-xl bg-[#f5c9a9] px-5 text-xs font-extrabold text-[#4a2c1e] hover:bg-[#ffe0c7]">Open Feed <ArrowRight className="ml-2 h-4 w-4" /></Button>
+      </div>
+    </section>
   </main>;
 }
 
 export { PRODUCT_INTRO_PATH };
-
-function HeroSignalCard({ signal, activeSignal, onSelect, reduceMotion }: { signal: typeof signalSamples[number]; activeSignal: number; onSelect: (index: number) => void; reduceMotion: boolean }) {
-  return <motion.aside initial={reduceMotion ? false : { opacity: 0, x: 16 }} animate={reduceMotion ? {} : { opacity: 1, x: 0 }} transition={{ duration: 0.55, delay: 0.15, ease: [0.23, 1, 0.32, 1] }} className="relative mx-auto w-full max-w-[420px] rounded-[28px] border border-[#e3cab7] bg-[#fffdf9]/90 p-4 shadow-[0_24px_48px_rgba(101,60,32,0.13)] backdrop-blur sm:p-5"><div className="flex items-center justify-between"><p className="text-[9px] font-extrabold uppercase tracking-[0.17em] text-[#9d5a43]">Live signal sample</p><span className="inline-flex items-center gap-1 rounded-full bg-[#e7f2e9] px-2 py-1 text-[9px] font-extrabold text-[#44795a]"><span className="h-1.5 w-1.5 rounded-full bg-[#5d9a71]" />Qualified</span></div><div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">{signalSamples.map((sample, index) => <button key={sample.label} onClick={() => onSelect(index)} aria-pressed={activeSignal === index} className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold transition ${activeSignal === index ? "bg-[#40291d] text-white" : "bg-[#f8eadb] text-[#90634d] hover:bg-[#f1ddca]"}`}>{sample.label}</button>)}</div><motion.article key={signal.label} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={reduceMotion ? {} : { opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }} className="mt-4 rounded-[22px] border border-[#eee1d5] bg-white p-5"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#f3d7bf] text-xs font-extrabold text-[#9c573f]">X</span><div><p className="text-xs font-extrabold text-[#39291f]">Request on X</p><p className="mt-0.5 text-[10px] text-[#9a8a7b]">{signal.handle}</p></div></div><span className="rounded-full bg-[#e6f3e9] px-2 py-1 text-[10px] font-extrabold text-[#397657]">{signal.score}</span></div><p className="mt-5 text-sm leading-6 text-[#4a372c]">{renderHighlight(signal.body, signal.highlight)}</p><div className="mt-5 flex items-center gap-2 rounded-xl bg-[#fbf2e7] px-3 py-2"><Sparkles className="h-3.5 w-3.5 text-[#b85f45]" /><span className="text-[10px] font-bold text-[#865740]">Faro sees a real service request</span></div></motion.article></motion.aside>;
-}
-
-function renderHighlight(body: string, highlight: string) { const [before, after] = body.split(highlight); return <>{before}<mark className="rounded bg-[#f5d8bb] px-0.5 font-semibold text-[#67432f]">{highlight}</mark>{after}</>; }

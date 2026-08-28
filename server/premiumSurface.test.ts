@@ -21,9 +21,8 @@ describe("Faro premium interaction surfaces", () => {
 
   it("keeps the product site focused and free of prior 3D-style signal components", () => {
     expect(introSource).toContain("Find the people");
-    expect(introSource).toContain("A quiet path to the right request.");
-    expect(introSource).toContain("Live signal sample");
-    expect(introSource).toContain("aria-pressed={activeSignal === index}");
+    expect(introSource).toContain("productStages");
+    expect(introSource).toContain("No automated outreach");
     expect(introSource).not.toContain("SignalOrbital");
     expect(introSource).not.toContain("SignalProof");
   });
