@@ -246,6 +246,15 @@ export async function updateMonitorStatus(monitorId: number, userId: number, sta
     .where(and(eq(monitoringCriteria.id, monitorId), eq(monitoringCriteria.userId, userId)));
 }
 
+export async function updateMonitorCriteria(monitorId: number, userId: number, criteria: { xQuery: string; includeTerms: string[]; excludeTerms: string[]; categories: string[] }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db
+    .update(monitoringCriteria)
+    .set(criteria)
+    .where(and(eq(monitoringCriteria.id, monitorId), eq(monitoringCriteria.userId, userId)));
+}
+
 export async function renameMonitor(monitorId: number, userId: number, name: string) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");

@@ -75,11 +75,18 @@ function firstMessageText(content: unknown): string {
   return "";
 }
 
+// Only the shape needs to be trustworthy here; an over-length array or string from the model
+// is truncated rather than rejected, since throwing away a whole valid classification/suggestion
+// over one field running a little long just forces a needless deterministic-fallback detour.
+function truncatedStringArray(maxItems: number) {
+  return z.array(z.string().trim().min(1)).default([]).transform(items => items.slice(0, maxItems));
+}
+
 const suggestionSchema = z.object({
-  includeTerms: z.array(z.string().trim().min(1)).max(10).default([]),
-  excludeTerms: z.array(z.string().trim().min(1)).max(12).default([]),
-  categories: z.array(z.string().trim().min(1)).max(4).default([]),
-  rationale: z.string().trim().max(400).default(""),
+  includeTerms: truncatedStringArray(10),
+  excludeTerms: truncatedStringArray(12),
+  categories: truncatedStringArray(4),
+  rationale: z.string().trim().transform(value => value.slice(0, 400)).default(""),
 });
 
 async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
@@ -149,8 +156,8 @@ const INTENT_LABELS = ["Active help-seeking", "Potentially relevant", "Low-inten
 
 const intentSchema = z.object({
   label: z.enum(INTENT_LABELS),
-  confidence: z.number().min(0).max(1),
-  rationale: z.string().trim().max(300).default(""),
+  confidence: z.number().transform(value => Math.max(0, Math.min(1, value))),
+  rationale: z.string().trim().transform(value => value.slice(0, 300)).default(""),
 });
 
 async function llmClassifyPostIntent(body: string, monitor: MonitorIntentContext) {
@@ -162,9 +169,12 @@ async function llmClassifyPostIntent(body: string, monitor: MonitorIntentContext
           {
             role: "system",
             content:
-              "You classify a public X (Twitter) post for a buyer-side social-listening tool. Faro only wants posts where the author, their team, or their company is ACTIVELY asking someone else to deliver real work: build, automate, develop, test, design, edit, or otherwise provide a service. " +
-              "Exclude posts where the author is offering their own services, posting a job/employment listing, seeking a co-founder, promoting something, sharing a course, or just discussing a topic without requesting delivered work. " +
-              'Respond with ONLY a JSON object shaped exactly like {"label": "Active help-seeking" | "Potentially relevant" | "Low-intent mention", "confidence": number between 0 and 1, "rationale": string}. No markdown, no extra keys.',
+              "You classify a public X (Twitter) post for a buyer-side social-listening tool. Faro only wants posts where the author, their team, or their company has a SPECIFIC, PERSONAL need and is asking someone else to deliver real work FOR THEM: build, automate, develop, test, design, edit, or otherwise provide a service. " +
+              "Exclude: the author offering their own services, a job/employment listing, a co-founder search, a course, or generic topic discussion. " +
+              "Also exclude promotional or marketing content, INCLUDING a rhetorical question addressed to a broad audience that the author then answers themselves (e.g. \"who can build with X? Anyone can!\") - that is advertising a product/tool to everyone, not a personal request for someone to do work for the author. " +
+              'Respond with ONLY a JSON object shaped exactly like {"label": "Active help-seeking" | "Potentially relevant" | "Low-intent mention", "confidence": number between 0 and 1, "rationale": string}. No markdown, no extra keys.\n\n' +
+              'Example - NOT active help-seeking (promotional rhetorical question, not a personal request): "WHO CAN BUILD WITH [tool]? The answer is simple: almost anyone willing to experiment. You could be a beginner discovering AI for the first time..." ' +
+              'Example - IS active help-seeking (a specific personal ask): "We need a contract developer to integrate an AI workflow into our product this month, budget approved."',
           },
           {
             role: "user",

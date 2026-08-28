@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   countMonitorSyncRunsForUserSince: vi.fn(),
   listMonitorQueryStates: vi.fn(),
   listMonitorsWithSync: vi.fn(),
+  listPostsForUser: vi.fn(),
+  updateMonitorCriteria: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -24,6 +26,8 @@ vi.mock("../db", () => ({
   countMonitorSyncRunsForUserSince: mocks.countMonitorSyncRunsForUserSince,
   listMonitorQueryStates: mocks.listMonitorQueryStates,
   listMonitorsWithSync: mocks.listMonitorsWithSync,
+  listPostsForUser: mocks.listPostsForUser,
+  updateMonitorCriteria: mocks.updateMonitorCriteria,
 }));
 vi.mock("../monitoring/ai", () => ({ suggestCriteria: mocks.suggestCriteria }));
 vi.mock("../monitoring/sync", () => ({ syncMonitorRecord: mocks.syncMonitorRecord, classifySyncFailure: mocks.classifySyncFailure, hasResumableContinuation: mocks.hasResumableContinuation }));
@@ -126,6 +130,7 @@ describe("monitoring.agentStart", () => {
 
   it("reopens an exact saved brief without consuming another provider call or creating a duplicate monitor", async () => {
     mocks.listMonitorsWithSync.mockResolvedValueOnce([{ monitor: { id: 55, goal: "Founders who need someone to automate client intake" } }]);
+    mocks.listPostsForUser.mockResolvedValueOnce([{ post: { id: 1 } }]);
     const caller = monitoringRouter.createCaller({ user } as any);
 
     await expect(caller.agentStart({ brief: "  Founders who need someone to automate client intake  " })).resolves.toMatchObject({
@@ -137,6 +142,22 @@ describe("monitoring.agentStart", () => {
     expect(mocks.suggestCriteria).not.toHaveBeenCalled();
     expect(mocks.createMonitor).not.toHaveBeenCalled();
     expect(mocks.syncMonitorRecord).not.toHaveBeenCalled();
+  });
+
+  it("re-runs a saved brief with zero stored results as a fresh collection instead of reopening nothing", async () => {
+    mocks.listMonitorsWithSync.mockResolvedValueOnce([{ monitor: { id: 56, goal: "Founders who need someone to automate client intake", categories: ["service request"] } }]);
+    mocks.listPostsForUser.mockResolvedValueOnce([]);
+    mocks.suggestCriteria.mockResolvedValueOnce(criteria);
+    mocks.getMonitorForUser.mockResolvedValueOnce({ id: 56 });
+    mocks.syncMonitorRecord.mockResolvedValueOnce({ inserted: 1 });
+
+    const caller = monitoringRouter.createCaller({ user } as any);
+    const result = await caller.agentStart({ brief: "Founders who need someone to automate client intake" });
+
+    expect(mocks.updateMonitorCriteria).toHaveBeenCalledWith(56, 7, expect.objectContaining({ xQuery: expect.any(String), categories: ["service request"] }));
+    expect(mocks.createMonitor).not.toHaveBeenCalled();
+    expect(mocks.syncMonitorRecord).toHaveBeenCalledWith({ id: 56 });
+    expect(result).toMatchObject({ monitorId: 56, syncError: null, sourceStatus: "healthy" });
   });
 
   it("continues only a saved cursor for the same saved search, including a manually reopened paused search", async () => {

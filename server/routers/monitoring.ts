@@ -199,16 +199,40 @@ export const monitoringRouter = router({
     .mutation(async ({ ctx, input }) => {
       const savedSearch = await findSavedSearchByBrief(ctx.user.id, input.brief);
       if (savedSearch) {
-        return {
-          monitorId: savedSearch.id,
-          criteria: null,
-          sync: null,
-          reused: true as const,
-          syncError: null,
-          sourceStatus: "healthy" as const,
-          sourceLabel: "Saved result set",
-          humanReviewOnly: true,
-        };
+        const existingPosts = await db.listPostsForUser(ctx.user.id, savedSearch.id);
+        if (existingPosts.length > 0) {
+          return {
+            monitorId: savedSearch.id,
+            criteria: null,
+            sync: null,
+            reused: true as const,
+            syncError: null,
+            sourceStatus: "healthy" as const,
+            sourceLabel: "Saved result set",
+            humanReviewOnly: true,
+          };
+        }
+        // A saved brief with zero stored results is useless to reopen silently - re-run it as
+        // a fresh collection instead, regenerating criteria in case ranking/query logic has
+        // improved since this monitor was first created.
+        await requireAvailableSourceBudget(ctx.user.id);
+        const refreshedCriteria = await suggestCriteria(input.brief);
+        const refreshedXQuery = requireServiceRequestQuery(refreshedCriteria.xQuery);
+        await db.updateMonitorCriteria(savedSearch.id, ctx.user.id, {
+          xQuery: refreshedXQuery,
+          includeTerms: refreshedCriteria.includeTerms,
+          excludeTerms: refreshedCriteria.excludeTerms,
+          categories: savedSearch.categories,
+        });
+        const refreshedMonitor = await db.getMonitorForUser(savedSearch.id, ctx.user.id);
+        if (!refreshedMonitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Faro could not refresh this saved brief." });
+        try {
+          const sync = await syncMonitorRecord(refreshedMonitor);
+          return { monitorId: savedSearch.id, criteria: refreshedCriteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, humanReviewOnly: true };
+        } catch (error) {
+          const sourceState = classifySyncFailure(error);
+          return { monitorId: savedSearch.id, criteria: refreshedCriteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, humanReviewOnly: true };
+        }
       }
       requireBuyerServiceScope(input.brief);
       await requireAvailableSourceBudget(ctx.user.id);
