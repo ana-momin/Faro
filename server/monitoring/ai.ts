@@ -92,12 +92,17 @@ async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
             role: "system",
             content:
               "You extract search terms for a social-listening tool that finds X (Twitter) posts from BUYERS actively asking someone else to deliver real work: AI agents, automation, software/app development, product or QA testing, content, or video. " +
+              "includeTerms become an X search query, so EVERY term must be something a real person would plausibly type verbatim in a tweet - not a phrase assembled by chopping up the brief. " +
+              "Prefer short, common, single words (\"automation\", \"chatbot\", \"onboarding\") over invented multi-word phrases: a multi-word term must match EXACTLY as written, so unnatural combinations (\"automation for\", \"need automation\") will never match real tweets and are worse than useless. " +
               "Never propose terms that would mostly surface people offering their own services, job/employment listings, co-founder searches, courses, or generic topic chatter. " +
-              'Respond with ONLY a JSON object shaped exactly like {"includeTerms": string[], "excludeTerms": string[], "categories": string[], "rationale": string}. No markdown, no extra keys.',
+              'Respond with ONLY a JSON object shaped exactly like {"includeTerms": string[], "excludeTerms": string[], "categories": string[], "rationale": string}. No markdown, no extra keys.\n\n' +
+              'Example - brief: "Find operators who need someone to automate repetitive business workflows." ' +
+              '→ good includeTerms: ["automation", "automate", "workflow", "business process", "operations"]. ' +
+              '→ bad includeTerms (never do this): ["need automation", "automation for", "automate workflows", "build a bot"].',
           },
           {
             role: "user",
-            content: `Buyer-service search brief: "${goal}"\n\nReturn 3-8 short includeTerms describing the deliverable being requested, 3-8 excludeTerms that filter out noise (e.g. job, hiring, salary, course), up to 3 short categories, and a one-sentence rationale.`,
+            content: `Buyer-service search brief: "${goal}"\n\nReturn 3-8 includeTerms (mostly single words, at most 1-2 short natural multi-word terms) describing the deliverable being requested, 3-8 excludeTerms that filter out noise (e.g. job, hiring, salary, course), up to 3 short categories, and a one-sentence rationale.`,
           },
         ],
         response_format: { type: "json_object" },

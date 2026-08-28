@@ -25,7 +25,7 @@ describe("deterministic query suggestion", () => {
     expect(suggestion.xQuery).toContain("-is:retweet");
     expect(suggestion.includeTerms).toContain("custom ai workflow");
     expect(suggestion.includeTerms).toContain("automation");
-    expect(suggestion.xQuery).toContain('(\"custom ai workflow\" OR \"ai workflow\" OR automation');
+    expect(suggestion.xQuery).toContain('(automation OR automate OR "custom ai workflow"');
     expect(suggestion.xQuery).toContain("-co-founder");
   });
 

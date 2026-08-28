@@ -98,7 +98,10 @@ export function expandServiceDiscoveryTerms(goal: string, terms: string[]) {
   if (/content|social|post|posting|distribution|creator/.test(normalized)) expansions.push("social media content", "content creation", "content posting", "creator", "distribution");
   if (/developer|development|software|app|website|integration|api/.test(normalized)) expansions.push("software development", "app development", "web development", "api integration", "developer");
   if (/research|design|prototype|product/.test(normalized)) expansions.push("product research", "product design", "prototype", "user research", "product testing");
-  return discoveryTerms([...terms, ...expansions]);
+  // Curated expansions are known-good search vocabulary; put them ahead of caller-supplied terms
+  // (which may come from an LLM and can include awkward multi-word phrasing) so they aren't
+  // crowded out of discoveryTerms' slice(0, 8) before preferBroadTermsFirst even gets a look.
+  return discoveryTerms([...expansions, ...terms]);
 }
 
 // Short phrase fragments deliberately replace long exact multi-word phrases here: X's search
@@ -121,8 +124,19 @@ export type CoverageQueryFamily = {
   priority: number;
 };
 
+/**
+ * A single-word term matches broadly (X search treats it as a standalone token match anywhere
+ * in the tweet); a multi-word term gets quoted and must match that exact consecutive wording,
+ * so it only ever finds tweets phrased that precisely. Putting single-word terms first here
+ * means the top-N cutoff below keeps the reliably-matching terms even when an upstream source
+ * (an LLM, or a goal-driven expansion) also proposed several riskier multi-word phrases.
+ */
+function preferBroadTermsFirst(terms: string[]) {
+  return [...terms].sort((left, right) => Number(/\s/.test(left)) - Number(/\s/.test(right)));
+}
+
 function buildBoundedDemandQuery(includeTerms: string[], excludeTerms: string[], buyerSignals: string) {
-  const topics = discoveryTerms(includeTerms).slice(0, 5);
+  const topics = preferBroadTermsFirst(discoveryTerms(includeTerms)).slice(0, 5);
   const topicClause = topics.length > 1 ? `(${topics.map(quoteTerm).join(" OR ")})` : quoteTerm(topics[0] ?? "automation");
   const exclusions = uniqueTerms([...OBSERVED_PROVIDER_NOISE_TERMS, ...excludeTerms]).slice(0, 12).map(term => `-${quoteTerm(term)}`).join(" ");
   const query = [topicClause, buyerSignals, exclusions, "-is:retweet"].filter(Boolean).join(" ");
