@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="client/public/favicon.svg" width="72" height="72" alt="Faro AI logo" />
+  <img src="client/public/faro-mascot.png" width="96" height="96" alt="Faro AI mascot" />
 </p>
 
 <h1 align="center">Faro AI</h1>
@@ -7,69 +7,82 @@
 <p align="center"><strong>Human-led social listening for buyer-side service requests on X.</strong></p>
 
 <p align="center">
+  <a href="https://faro-ai-staging.vercel.app/"><strong>Live app</strong></a> ·
   <a href="#client-workflow">Workflow</a> ·
   <a href="#client-provider-setup">Provider setup</a> ·
   <a href="#project-documentation">Documentation</a> ·
   <a href="#development">Development</a> ·
-  <a href="#production-deployment">Deployment</a>
+  <a href="#deployment">Deployment</a>
 </p>
 
-Faro AI finds public X posts from people who are actively seeking practical help with AI agents, automation, development, product testing, AI video, content, and related delivery work. It is designed to surface **buyer-side demand**, not service offers, jobs, promotions, networking, or generic discussion.
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-6b4f3f">
+  <img alt="Stack" src="https://img.shields.io/badge/stack-React%20%C2%B7%20tRPC%20%C2%B7%20Postgres-6b4f3f">
+</p>
 
-> **Human-control boundary:** Faro never sends messages, replies, follows, likes, or posts on X. It provides evidence and ranking for a human reviewer to decide what happens next.
+Faro AI monitors public X (Twitter) posts in real time and surfaces the ones written by people who are actively **asking for help** — a founder who needs an AI agent built, a team that needs workflow automation, a business looking for testing, development, content, or video support. Instead of scrolling X manually, a client types a plain-language brief and Faro returns a short, reviewable list of genuine buyer requests.
+
+It is built to find **demand**, not noise: service offers, job postings, promotions, networking, and generic AI chatter are filtered out.
+
+> **Human-control boundary.** Faro never sends messages, replies, follows, likes, or posts on X. It indexes and ranks public posts for a person to review; every outreach decision stays manual.
 
 ## Project documentation
 
-The current independent Vercel + Neon implementation and its protected staging workflow are documented in [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md). Read it before making a code, deployment, credential, database, or provider-collection change.
-
-For a short, non-technical explanation of the product, client journey, cost boundaries, and current readiness, read [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md).
+| Doc | What it covers |
+| --- | --- |
+| [`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md) | The current architecture, product rules, and safe working sequence — read this first before making a code, deployment, credential, or database change. |
+| [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md) | A short, non-technical explanation of the product, client journey, and cost model. |
+| [`docs/VERCEL_NEON_STAGING.md`](./docs/VERCEL_NEON_STAGING.md) | The Vercel + Neon deployment runbook: environment variables, build pipeline, and verification record. |
+| [`docs/PROVIDER_REFERENCE.md`](./docs/PROVIDER_REFERENCE.md) | TwitterAPI.io and Official X API endpoint contracts and pricing links. |
+| [`docs/SUBMISSION_DEMO.md`](./docs/SUBMISSION_DEMO.md) | A guided walkthrough of the product for a first-time reviewer. |
 
 ## Client workflow
 
 | Step | What happens | Provider usage |
 | --- | --- | --- |
-| **Provider** | A client connects their own TwitterAPI.io key or Official X API bearer token in **Profile → Provider**. | No request is made when saving a key. |
-| **Search** | The client writes a buyer-intent brief or uses a ready-made suggestion. Faro creates a saved monitor and collects one fresh batch. | **At most one provider request.** |
-| **Feed** | Faro shows the first ten qualified requests and keeps earlier qualified posts stored for review. | Viewing saved results uses **no** provider request. |
-| **Refresh** | The client deliberately collects the next cursor/query-family batch. | **At most one provider request.** |
-| **Review** | The client opens full X-post context, saves a private bookmark or note, and keeps or dismisses the signal. | No provider request and no external action. |
+| **Sign in** | A device passkey (Windows Hello, Google Password Manager, phone, etc.) creates a private workspace. No password to manage. | — |
+| **Provider** | The client connects their own TwitterAPI.io key or Official X API bearer token in **Settings → Provider**. | No request is made when saving a key. |
+| **Search** | The client writes a plain-language buyer-intent brief, or picks a ready-made suggestion. An LLM turns it into search terms; Faro collects one bounded fresh batch and ranks buyer-side candidates. | **At most one provider request.** |
+| **Feed** | Faro shows up to ten qualified requests, with earlier qualified posts kept for review. | No provider request. |
+| **Load more** | The client deliberately continues the next cursor/query-family batch. | **At most one provider request.** |
+| **Review** | The client opens full X-post context, saves a private bookmark or note, and keeps or dismisses the signal. | No provider request, no external action. |
 
-Faro rotates through persisted discovery-query cursors so sequential batches broaden coverage while preserving earlier qualified results. Automatic source collection is **off by default**. Each client has an adjustable daily request limit in Profile, tracked independently from other accounts.
+Automatic background collection is **off by default**. Each client has an adjustable daily request limit tracked independently of other accounts, and entering the exact same brief twice reopens the saved result set instead of spending another provider call.
 
 ## Client provider setup
 
-Faro stores exactly one active provider connection for each account. The key is encrypted with AES-256-GCM before it is stored, and the browser receives only a masked final-four-character hint after setup. Full credentials are never rendered back into the UI or committed to the repository.
+Faro stores exactly one active provider connection per account. The credential is encrypted with AES-256-GCM before it touches the database, and the browser only ever receives a masked final-four-character hint after setup — never the credential itself.
 
-| Provider | When to use it | Client account links |
+| Provider | When to use it | Links |
 | --- | --- | --- |
-| **TwitterAPI.io** | A third-party X data provider using its own account, credits, and advanced-search endpoint. | [Pricing](https://twitterapi.io/pricing) · [Dashboard / key setup](https://twitterapi.io/dashboard) · [Advanced Search docs](https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search) |
-| **Official X API** | The direct X developer platform with the client’s own bearer token and account entitlements. | [Pricing and credits](https://docs.x.com/x-api/getting-started/pricing) · [Developer Console](https://developer.x.com/) |
+| **TwitterAPI.io** | A third-party X data provider using its own account, credits, and advanced-search endpoint. | [Pricing](https://twitterapi.io/pricing) · [Dashboard](https://twitterapi.io/dashboard) · [API docs](https://docs.twitterapi.io/api-reference/endpoint/tweet_advanced_search) |
+| **Official X API** | The direct X developer platform with the client's own bearer token and account entitlements. | [Pricing](https://docs.x.com/x-api/getting-started/pricing) · [Developer Console](https://developer.x.com/) |
 
-Provider rates, limits, account entitlements, and endpoint costs are controlled by the provider and may change. Faro therefore promises only its own deterministic guardrails—**one provider request per client-initiated collection batch**—rather than a fixed cash or credit cost.
+Provider rates, limits, and entitlements are controlled by the provider and can change, so Faro never promises a fixed cash cost — only its own deterministic guardrail: **one provider request per client-initiated collection batch**.
 
 ## Core capabilities
 
 | Area | Capability |
 | --- | --- |
-| **Natural-language query understanding** | A search brief such as "founders looking for a provider to build AI agents" is turned into search terms and an X query by an LLM (with an automatic deterministic fallback if no LLM key is configured). See [`server/monitoring/ai.ts`](./server/monitoring/ai.ts). |
-| **Buyer-only ranking** | LLM-assisted per-post intent classification plus a deterministic scoring layer — request-intent signals, delivery-scope evidence, personalized preference boosts, duplicate grouping, and promotional/noise suppression. |
-| **Social Feed** | Full X-style cards with author context, category, confidence, why-it-matched evidence, direct X links, compact feedback controls, and private saved posts. |
-| **Search workspace** | Centered LLM-style command bar, full-line suggestion prompts, keyword mode, in-bar progress, and top-ten qualified results. |
-| **Monitor manager** | Rename, pause/resume, or delete saved searches from Profile. |
-| **Client credit protection** | Encrypted client-owned data-provider setup, strict batch caps, client-scoped daily request allowance, and no background collection by default. |
-| **Safe review** | Keep/Dismiss and private notes guide later Faro ranking while never automating outreach or other X actions. |
+| **Natural-language search** | A brief like *"founders looking for a provider to build AI agents"* is turned into search terms and an X query by an LLM, with an automatic deterministic fallback if no LLM key is configured. See [`server/monitoring/ai.ts`](./server/monitoring/ai.ts). |
+| **Buyer-only ranking** | LLM-assisted per-post intent classification plus a deterministic scoring layer: request-intent signals, delivery-scope evidence, personalized preference boosts, duplicate grouping, and promotional/noise suppression. See [`server/monitoring/ranking.ts`](./server/monitoring/ranking.ts). |
+| **Social feed** | Full X-style cards — author, category, confidence, why-it-matched evidence, a direct X link — with compact keep/dismiss controls and private saved posts. |
+| **Search workspace** | A centered, LLM-style command bar with full-line suggestion prompts, in-progress status, and up to ten qualified results per run. |
+| **Saved-search manager** | Rename, pause/resume, or delete saved searches without spending a provider call. |
+| **Client credit protection** | Encrypted client-owned provider credentials, strict per-batch page caps, a client-scoped daily request allowance, and no background collection by default. |
+| **Passkey authentication** | Passwordless sign-in via SimpleWebAuthn, backed by a signed, httpOnly session cookie. |
 
 ## Architecture
 
 ```text
 client/     React 19 + Vite + Tailwind interface
-server/     Express + tRPC, collection policy, intent/ranking, encrypted provider settings
-drizzle/    MySQL-compatible schema and ordered migrations
-docs/       Provider, collection, verification, and deployment documentation
-shared/     Typed utilities and shared constants
+server/     Express + tRPC API, collection policy, intent/ranking, encrypted provider settings
+drizzle/    PostgreSQL schema (renderSchema.ts) and ordered Neon migrations
+docs/       Product, deployment, and provider-API reference documentation
+shared/     Types and constants shared between client and server
 ```
 
-The application uses React 19, TypeScript, Vite, Tailwind CSS, Express, tRPC, Drizzle ORM, and MySQL-compatible storage. Provider calls remain server-side; no provider credential is exposed in the browser.
+React 19, TypeScript, Vite, and Tailwind CSS on the frontend; Express and tRPC on the backend; Drizzle ORM against Neon PostgreSQL for storage. Provider calls and LLM calls are both server-side only — no provider credential or LLM key is ever exposed to the browser.
 
 ## Development
 
@@ -77,8 +90,7 @@ The application uses React 19, TypeScript, Vite, Tailwind CSS, Express, tRPC, Dr
 
 - Node.js 22 or later
 - pnpm 10 or later
-- A MySQL-compatible database
-- Authentication configuration for the chosen runtime
+- A PostgreSQL database (Neon works out of the box; any Postgres instance is fine for local dev)
 
 ### Install and run
 
@@ -87,19 +99,28 @@ pnpm install
 pnpm dev
 ```
 
+### Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` / `DATABASE_URL_UNPOOLED` | Yes | PostgreSQL connection strings. |
+| `SESSION_SECRET` | Yes | Signs the device-passkey session cookie (32+ characters). |
+| `CREDENTIAL_ENCRYPTION_SECRET` | Yes | AES-256-GCM key for encrypting client provider credentials (32+ characters, different from `SESSION_SECRET`). |
+| `BUILT_IN_FORGE_API_URL` / `BUILT_IN_FORGE_API_KEY` | Optional | Base URL and key for an OpenAI-chat-completions-compatible LLM endpoint (e.g. Groq). Without it, Faro automatically falls back to its deterministic rule-based query and ranking logic — the app never fails without it. |
+| `FARO_LLM_MODEL` | Optional | Overrides the default LLM model id (`qwen/qwen3.8-27b`). |
+| `PASSKEY_RP_ID` / `PASSKEY_ORIGIN` | Optional | Pins the passkey relying-party ID/origin; otherwise derived from the request. |
+
 ### Database migrations
 
-The migrations in `drizzle/` are ordered and must be applied before running a version that depends on them.
-
 ```bash
-# Generate a migration only after changing drizzle/schema.ts
+# Generate a migration after changing drizzle/renderSchema.ts
 pnpm drizzle-kit generate
 
-# Apply existing migrations to the configured database
+# Apply migrations to the configured database
 pnpm drizzle-kit migrate
 ```
 
-The current schema includes `provider_connections`, which stores an encrypted client-owned credential and its request-limit preference. Do not insert plaintext provider keys directly into this table.
+The schema includes `provider_connections`, which stores an encrypted client-owned credential and its request-limit preference. Never insert a plaintext provider key directly into this table.
 
 ### Quality checks
 
@@ -109,41 +130,31 @@ pnpm vitest run --exclude server/twitterApiIo.credentials.test.ts --exclude serv
 pnpm build
 ```
 
-Credential endpoint probes are intentionally excluded from routine offline validation because they contact a provider account. Treat any live provider test as a deliberate client-authorized operation with an explicit cap.
+The two excluded tests are live-credential smoke tests that contact a real provider account; they're gated behind `RUN_LIVE_PROVIDER_CREDENTIAL_TESTS=1` and should only run as a deliberate, client-authorized check.
 
-## Production deployment
+## Deployment
 
-### Recommended launch path
+Faro runs on **Vercel Functions + Neon PostgreSQL**, deployed from the `main` branch. The build pipeline runs the database migration, then bundles the serverless function and the client:
 
-The current project is production-ready for its managed deployment: it includes the full Express/tRPC backend, MySQL-compatible database, session authentication, secure secret management, encrypted client provider credentials, and published migrations. A custom domain can be attached in the hosting settings.
+```bash
+pnpm db:migrate && pnpm build:serverless && pnpm build:client
+```
 
-### Authentication decision
+`api/*.ts` are the serverless entry points; they import a generated `api/_faroApp.mjs` bundle (built from `server/app.ts`, git-ignored, produced fresh on every deploy). The canonical health check is `GET /healthz`.
 
-**Do not remove authentication for this multi-client product.** Faro stores private bookmarks, notes, monitors, and encrypted provider credentials. Removing login would make client isolation and credential ownership unsafe. The current managed OAuth integration is appropriate for this deployment path and does not require Faro to purchase a separate identity API.
-
-If Faro moves to another host, its present login system is not portable as-is: `server/_core/oauth.ts` exchanges tokens through the managed OAuth service. A third-party deployment must replace that integration with a production identity provider or an owned authentication implementation before launch. This is a planned migration, not a one-click host change.
-
-### External-hosting assessment
-
-| Target | Current suitability | What would be required |
-| --- | --- | --- |
-| **Managed Faro deployment** | **Recommended now.** The existing backend, database, session flow, storage, and scheduled-work integration are already wired together. | Configure a custom domain if desired; keep secrets managed by the host. |
-| **Vercel** | **Not a direct deploy today.** Faro is an Express server, not a serverless function layout, and relies on managed OAuth/runtime integrations. | Convert Express/tRPC endpoints to Vercel functions, provision MySQL and object storage, replace managed OAuth, and rework any scheduled tasks. |
-| **Google Cloud Run** | **The more natural external target** for this Express application, but still a migration. | Deploy the Node server container, use Cloud SQL or compatible MySQL, configure object storage, replace OAuth, add a secret manager, configure HTTPS/domain, and migrate scheduled jobs. |
-
-For launch, keep the managed deployment. Move to Cloud Run only when you intentionally want to own the full cloud stack and have completed the authentication, storage, secret-management, and database migration work. Do not treat a Vercel or Google Cloud deployment as equivalent until that migration is implemented and tested.
+See [`docs/VERCEL_NEON_STAGING.md`](./docs/VERCEL_NEON_STAGING.md) for the full environment-variable table, verification record, and rollout history.
 
 ## Security and privacy
 
-- Provider credentials are accepted only through authenticated server procedures and encrypted at rest with AES-256-GCM.
-- The client interface only receives a masked credential hint after a key is saved.
-- Provider calls are client-scoped, deliberately bounded, and are never made during normal UI rendering.
-- Public X posts are treated as signals; a human reviewer makes all business decisions and external actions.
-- Keep `DATABASE_URL`, `JWT_SECRET`, OAuth settings, provider keys, and managed-runtime secrets in a secure host secret manager. Never commit them.
+- Provider credentials and LLM keys are read only from server-side environment configuration and are never sent to the browser.
+- Client provider credentials are encrypted at rest with AES-256-GCM; the UI only ever sees a masked hint after saving.
+- Provider and LLM calls are client-scoped, deliberately bounded, and never made during normal page rendering — only in direct response to a user action.
+- Public X posts are treated as signals; a human reviewer makes every outreach decision.
+- Keep `DATABASE_URL`, `SESSION_SECRET`, `CREDENTIAL_ENCRYPTION_SECRET`, `BUILT_IN_FORGE_API_KEY`, and provider keys in your host's secret manager. Never commit them — `.env*` is git-ignored.
 
 ## Repository hygiene
 
-The repository deliberately excludes dependency folders, build output, local environment files, logs, runtime artifacts, and generated preview files. Before opening a pull request or deploying a code change, run the quality checks above and review every database migration.
+The repository excludes dependency folders, build output, local environment files, logs, and generated artifacts. Before opening a pull request, run the quality checks above and review any database migration by hand.
 
 ## License
 

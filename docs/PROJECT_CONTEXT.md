@@ -53,6 +53,7 @@ Exact X post IDs are suppressed across a user’s saved searches. Active Search 
 | **Provider adapters** | `server/monitoring/xClient.ts` | It normalizes TwitterAPI.io and Official X API responses. Do not place credentials in client code. |
 | **Query breadth** | `server/monitoring/query.ts` | Query families must retain buyer-intent phrasing and source-query validation. |
 | **Buyer qualification** | `server/monitoring/ranking.ts` | It is intentionally strict against service offers, employment, promotions, and generic discussion. |
+| **Natural-language / LLM layer** | `server/monitoring/ai.ts` | Calls an OpenAI-compatible LLM (`BUILT_IN_FORGE_API_URL`/`_KEY`) for brief-to-query extraction and per-post intent classification, with an automatic deterministic fallback (`server/monitoring/query.ts` / `ranking.ts`) when no key is configured or a call fails. Never let an LLM-proposed exclude term into the hard-veto list without checking it can't match genuine buyer phrasing. |
 | **Persistence** | `server/db.ts`, `drizzle/renderSchema.ts` | Monitor, cursor state, hidden-post, saved-post, and encrypted connection changes require a schema-first review. |
 | **Passkeys** | `server/routers/localAuth.ts`, `client/src/pages/Onboarding.tsx` | The canonical RP ID and HTTPS origin must remain correct; do not create a user’s passkey during testing. |
 
