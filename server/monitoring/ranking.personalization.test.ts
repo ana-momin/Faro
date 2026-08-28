@@ -121,18 +121,33 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
   });
 
-  it("rejects networking language that asks for a person but not a delivered service", () => {
-    const result = rankOpportunity({
+  it("rejects networking language at low model confidence, but trusts a genuinely high-confidence call on the same kind of topically-relevant text", () => {
+    const uncertain = rankOpportunity({
       ...profile,
       body: "Looking for someone with the technical fluency to understand AI workflows and automation and explore what is possible.",
       postedAt: new Date(),
       engagement: {},
-      aiConfidence: 0.88,
+      aiConfidence: 0.5,
+      aiLabel: "Potentially relevant",
+    });
+    expect(uncertain.score).toBe(0);
+    expect(uncertain.components.map(component => component.label)).toContain("No clear service-seeking intent");
+
+    // A fixed delivery-verb list used to be required even on top of a high-confidence model
+    // confirmation, which blocked genuine noun-phrased buyer asks (see the ranking.ts comment
+    // on semanticBuyerConfirmation - confirmed live at a 36-candidate batch scoring 0 saved).
+    // The real classification prompt (server/monitoring/ai.ts) already instructs against
+    // exploratory/networking language, so a genuinely high-confidence "Active help-seeking"
+    // call on topically-relevant text is now trusted rather than re-litigated here.
+    const confident = rankOpportunity({
+      ...profile,
+      body: "Looking for someone with the technical fluency to understand AI workflows and automation and explore what is possible.",
+      postedAt: new Date(),
+      engagement: {},
+      aiConfidence: 0.95,
       aiLabel: "Active help-seeking",
     });
-
-    expect(result.score).toBe(0);
-    expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
+    expect(confident.score).toBeGreaterThan(0);
   });
 
   it("rejects community-building posts that invite peers rather than seek a provider", () => {
@@ -149,7 +164,7 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("Non-service context");
   });
 
-  it("ranks a genuine provider request above a topic-only discussion", () => {
+  it("ranks a genuine provider request above an off-topic post even if the model mislabels it", () => {
     const providerRequest = rankOpportunity({
       ...profile,
       body: "Our operations team needs a freelancer to automate client intake with custom AI workflows. Budget is approved and we need help this month.",
@@ -158,9 +173,14 @@ describe("Faro personalized relevance scoring", () => {
       aiConfidence: 0.9,
       aiLabel: "Active help-seeking",
     });
-    const topicOnly = rankOpportunity({
+    // Topic relevance (hasRelevantNeed) stays a hard requirement no matter how confident the
+    // model claims to be - this is the real remaining guard against a wrong/hallucinated call,
+    // now that a fixed delivery-verb list is no longer also required (see below: that
+    // requirement blocked genuine noun-phrased asks like "a good AI agent service" and was
+    // measured live at a 36-candidate batch scoring 0 saved).
+    const offTopic = rankOpportunity({
       ...profile,
-      body: "Custom AI workflows are changing how small businesses think about client intake.",
+      body: "My cat knocked a plant off the balcony again this morning, what a menace.",
       postedAt: new Date(),
       engagement: { like_count: 500 },
       aiConfidence: 0.99,
@@ -168,7 +188,7 @@ describe("Faro personalized relevance scoring", () => {
     });
 
     expect(providerRequest.score).toBeGreaterThanOrEqual(80);
-    expect(topicOnly.score).toBe(0);
+    expect(offTopic.score).toBe(0);
   });
 
   it("rejects a person offering the monitored service instead of asking for it", () => {
@@ -227,19 +247,34 @@ describe("Faro personalized relevance scoring", () => {
     expect(result.components.map(component => component.label)).toContain("Model-confirmed service request");
   });
 
-  it("rejects generic commentary about people needing AI help without a buyer asking for a provider", () => {
-    const result = rankOpportunity({
+  it("rejects generic commentary at low model confidence, and still requires topic relevance regardless of confidence", () => {
+    const generic = rankOpportunity({
       includeTerms: ["AI", "automation"],
       excludeTerms: [],
       goal: "Find buyers looking for AI automation help",
       body: "People need help using AI properly, and every brand should consider automation this year.",
       postedAt: new Date(),
       engagement: {},
-      aiLabel: "Active help-seeking",
-      aiConfidence: 0.96,
+      aiLabel: "Potentially relevant",
+      aiConfidence: 0.4,
     });
-    expect(result.score).toBe(0);
-    expect(result.components.map(component => component.label)).toContain("No clear service-seeking intent");
+    expect(generic.score).toBe(0);
+    expect(generic.components.map(component => component.label)).toContain("No clear service-seeking intent");
+
+    // Even at max confidence, a claim with zero topic overlap (hasRelevantNeed) is still
+    // rejected - this is the guard that actually matters now; see the sibling off-topic test
+    // above and the ranking.ts comment on semanticBuyerConfirmation for the full reasoning.
+    const offTopic = rankOpportunity({
+      includeTerms: ["AI", "automation"],
+      excludeTerms: [],
+      goal: "Find buyers looking for AI automation help",
+      body: "My favorite pasta recipe just needs a bit more garlic and it's perfect.",
+      postedAt: new Date(),
+      engagement: {},
+      aiLabel: "Active help-seeking",
+      aiConfidence: 0.99,
+    });
+    expect(offTopic.score).toBe(0);
   });
 
   it("accepts a concrete first-person request for help automating a real workflow", () => {

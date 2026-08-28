@@ -37,7 +37,10 @@ describe("client-owned provider setup", () => {
   it("keeps active navigation alignment explicit and lets a saved provider update its limit without replacing the key", () => {
     expect(sidebarSource).toContain('!h-10 !w-full !justify-start !gap-3 !px-3');
     expect(sidebarSource).toContain('!h-11 !w-11 !justify-center !px-0');
-    expect(sidebarSource).toContain('data-[active=true]:-translate-x-1');
+    // The collapsed active nav item no longer gets a manual -translate-x-1 nudge: that shifted
+    // the whole button (icon included) 4px off from its unselected siblings instead of fixing
+    // whatever it was originally compensating for, and was reported as visible misalignment.
+    expect(sidebarSource).not.toContain('-translate-x-1');
     expect(providerSource).toContain("updateProviderDailyLimit");
     expect(providerSource).toContain("Save limit");
     expect(providerSource).toContain("Changing the daily limit never needs the key again.");
@@ -71,7 +74,10 @@ describe("client-owned provider setup", () => {
     expect(sidebarSource).toContain("Open Profile");
     expect(sidebarSource).toContain('const collapsed = state === "collapsed"');
     expect(sidebarSource).toContain("!h-11 !w-11 !justify-center !px-0");
-    expect(sidebarSource).toContain('className="h-8 w-8 rounded-xl');
+    // The minimize control and the feedback trigger above it now share the exact same
+    // collapsed/expanded size logic so the two icons line up pixel-for-pixel.
+    expect(sidebarSource).toContain('${collapsed ? "h-11 w-11" : "h-9 w-9"}');
+    expect(sidebarSource).toContain("<DevFeedbackTrigger collapsed={collapsed} />");
     expect(profileSource).not.toContain('setTab(');
     expect(settingsSource).not.toContain("Manage saved searches");
     expect(settingsSource).not.toContain("<details");

@@ -81,12 +81,19 @@ function serviceIntentAssessment(body: string, includeTerms: string[], goal?: st
   const serviceOffer = hasAny(body, SERVICE_OFFER_PATTERNS) || selfDescribedDelivery || QUESTION_LED_PROVIDER_OFFER_PATTERN.test(body) || /\bwhat i do\b|\bwhat we do\b/.test(body);
   const jobSeeking = JOB_SEEKER_PATTERN.test(body);
   const hasRelevantNeed = concepts.length > 0 || goalMatches > 0;
-  const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.8;
+  // 0.85, not 0.8: a slightly higher bar than the LLM's own default gate, since this
+  // confirmation is trusted on its own (see semanticBuyerConfirmation below).
+  const modelConfirmedServiceNeed = aiLabel === "Active help-seeking" && aiConfidence >= 0.85;
   const concreteBuyerRequest = directBuyerRequest && (!/need(?:s)? help with/.test(body) || concreteHelpRequest);
-  // deliveryScope stays required here even for a model-confirmed label: it's the backstop
-  // against a topic-only post (or a wrong/hallucinated model call) being scored as a buyer
-  // request just because it mentions a monitored concept.
-  const semanticBuyerConfirmation = modelConfirmedServiceNeed && hasRelevantNeed && deliveryScope;
+  // deliveryScope only matches a fixed list of action verbs (build/automate/develop/...), so a
+  // request phrased as a noun - "does anyone have a good AI agent SERVICE they'd recommend" -
+  // never matches it even though it's a genuine ask. Requiring it here on top of a high-
+  // confidence model confirmation measurably threw away real buyer posts (confirmed live: a
+  // 36-candidate batch scored 0 saved, all blocked at this line) for the sake of guarding
+  // against a hypothetically wrong LLM call - a risk the classification prompt's own explicit
+  // exclusions (server/monitoring/ai.ts) already cover, and human review is the final backstop
+  // regardless. Trust the model confirmation on its own once confidence is high enough.
+  const semanticBuyerConfirmation = modelConfirmedServiceNeed && hasRelevantNeed;
   const serviceSeeking = !nonServiceContext && !jobSeeking && !serviceOffer && hasRelevantNeed && (concreteBuyerRequest && (requestHasLocalScope || SPECIALIST_REQUEST_SCOPE_PATTERN.test(body)) || semanticBuyerConfirmation);
 
   return { concepts, goalMatches, directRequest, directBuyerRequest, concreteHelpRequest, concreteBuyerRequest, deliveryScope, providerRequest, requestHasLocalScope, buyerContext, nonServiceContext, promotionalContext, serviceOffer, jobSeeking, modelConfirmedServiceNeed, semanticBuyerConfirmation, serviceSeeking };
