@@ -231,7 +231,7 @@ export const monitoringRouter = router({
           return { monitorId: savedSearch.id, criteria: refreshedCriteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, humanReviewOnly: true };
         } catch (error) {
           const sourceState = classifySyncFailure(error);
-          return { monitorId: savedSearch.id, criteria: refreshedCriteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, humanReviewOnly: true };
+          return { monitorId: savedSearch.id, criteria: refreshedCriteria, sync: null, syncError: sourceState.message, sourceStatus: sourceState.status, sourceLabel: sourceState.label, humanReviewOnly: true };
         }
       }
       requireBuyerServiceScope(input.brief);
@@ -256,7 +256,7 @@ export const monitoringRouter = router({
         return { monitorId, criteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, monitorCapacity, humanReviewOnly: true };
       } catch (error) {
         const sourceState = classifySyncFailure(error);
-        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, monitorCapacity, humanReviewOnly: true };
+        return { monitorId, criteria, sync: null, syncError: sourceState.message, sourceStatus: sourceState.status, sourceLabel: sourceState.label, monitorCapacity, humanReviewOnly: true };
       }
     }),
 
@@ -284,7 +284,7 @@ export const monitoringRouter = router({
         return { monitorId, criteria, sync, syncError: null, sourceStatus: "healthy" as const, sourceLabel: sync.source, monitorCapacity, humanReviewOnly: true };
       } catch (error) {
         const sourceState = classifySyncFailure(error);
-        return { monitorId, criteria, sync: null, syncError: error instanceof Error ? error.message : "Source sync needs attention.", sourceStatus: sourceState.status, sourceLabel: sourceState.label, monitorCapacity, humanReviewOnly: true };
+        return { monitorId, criteria, sync: null, syncError: sourceState.message, sourceStatus: sourceState.status, sourceLabel: sourceState.label, monitorCapacity, humanReviewOnly: true };
       }
     }),
 
@@ -343,7 +343,7 @@ export const monitoringRouter = router({
       try {
         return await syncMonitorRecord(monitor);
       } catch (error) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "X synchronization failed." });
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: classifySyncFailure(error).message });
       }
     }),
 
@@ -367,7 +367,7 @@ export const monitoringRouter = router({
       try {
         return { monitorId: monitor.id, ...(await syncMonitorRecord(monitor, { mode: "continue" })) };
       } catch (error) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "X synchronization failed." });
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: classifySyncFailure(error).message });
       }
     }),
 

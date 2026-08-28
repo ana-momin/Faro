@@ -138,8 +138,27 @@ describe("ingestion resilience", () => {
   });
 
   it("reports payment and rate-limit states without misrepresenting the source", () => {
-    expect(classifySyncFailure(new XApiError(402, "payment required"))).toEqual({ status: "payment_required", label: "X API credit required" });
-    expect(classifySyncFailure(new XApiError(429, "rate limited"))).toEqual({ status: "rate_limited", label: "X API rate limit active" });
+    expect(classifySyncFailure(new XApiError(402, "payment required"))).toMatchObject({ status: "payment_required", label: "X API credit required" });
+    expect(classifySyncFailure(new XApiError(429, "rate limited"))).toMatchObject({ status: "rate_limited", label: "X API rate limit active" });
     expect(recentSearchStatus(true)).toEqual({ source: "recent_search", latencyLabel: "Recent Search fallback; stream rule configured" });
+  });
+
+  it("never surfaces a raw provider error body, and catches a credit issue even when the provider used the wrong HTTP status for it", () => {
+    const rawBody = 'TwitterAPI.io: {"error":"Unauthorized","message":"Credits is not enough.Please recharge"}';
+    const result = classifySyncFailure(new XApiError(401, rawBody));
+    expect(result.status).toBe("payment_required");
+    expect(result.message).not.toContain("{");
+    expect(result.message).not.toContain("Unauthorized");
+    expect(result.message.toLowerCase()).toContain("credit");
+
+    const genericAuthFailure = classifySyncFailure(new XApiError(401, "TwitterAPI.io: invalid key"));
+    expect(genericAuthFailure.status).toBe("unauthorized");
+    expect(genericAuthFailure.message).not.toContain("invalid key");
+
+    const rateLimit = classifySyncFailure(new XApiError(429, "TwitterAPI.io: too many requests"));
+    expect(rateLimit.message).not.toContain("too many requests");
+
+    const unknownFailure = classifySyncFailure(new Error("ECONNRESET"));
+    expect(unknownFailure.message).not.toContain("ECONNRESET");
   });
 });

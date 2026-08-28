@@ -82,12 +82,12 @@ describe("monitoring.agentStart", () => {
     mocks.createMonitor.mockResolvedValueOnce(43);
     mocks.getMonitorForUser.mockResolvedValueOnce({ id: 43 });
     mocks.syncMonitorRecord.mockRejectedValueOnce(new Error("source unavailable"));
-    mocks.classifySyncFailure.mockReturnValueOnce({ status: "error", label: "Sync needs attention" });
+    mocks.classifySyncFailure.mockReturnValueOnce({ status: "error", label: "Sync needs attention", message: "Faro could not complete this search right now. Please try again." });
 
     const caller = monitoringRouter.createCaller({ user } as any);
     const result = await caller.agentStart({ brief: "Operators who need a provider for AI video production" });
 
-    expect(result).toMatchObject({ monitorId: 43, humanReviewOnly: true, sync: null, syncError: "source unavailable", sourceStatus: "error" });
+    expect(result).toMatchObject({ monitorId: 43, humanReviewOnly: true, sync: null, syncError: "Faro could not complete this search right now. Please try again.", sourceStatus: "error" });
   });
 
   it("protects provider cost by refusing another active monitor at the configured capacity", async () => {

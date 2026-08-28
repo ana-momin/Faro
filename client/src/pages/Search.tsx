@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,7 +74,8 @@ export default function Search() {
     },
     onError: error => toast.error(error.message, { position: "bottom-right" }),
   });
-  const deleteHistoryEntry = (monitorId: number, label: string) => { if (window.confirm(`Delete "${label}" and its saved results?`)) deleteSearch.mutate({ monitorId }); };
+  const [confirmDeleteHistory, setConfirmDeleteHistory] = useState<{ monitorId: number; label: string } | null>(null);
+  const deleteHistoryEntry = (monitorId: number, label: string) => setConfirmDeleteHistory({ monitorId, label });
 
   useEffect(() => {
     if (!firstBatch) return;
@@ -168,7 +170,8 @@ export default function Search() {
       {budgetExhausted ? <div className="mx-auto -mt-8 max-w-4xl rounded-2xl border border-[#edcaba] bg-[#fff4ed] px-4 py-3 text-left text-[11px] leading-5 text-[#96553e]">Today’s configured provider-call limit is reached. Faro will not start another source search until you increase it in <button type="button" onClick={() => setLocation("/settings?section=provider")} className="font-extrabold underline underline-offset-2">Settings → Provider</button> or the daily window resets.</div> : null}
       {phase !== "idle" && !pending ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onOpen={() => setLocation("/")} /> : null}
       <section className="mt-8 border-t border-[#eadfd2] pt-6">{showResultSet && resultSet ? <SearchResultsWithPaging key={resultSet.monitorId} resultSet={resultSet} loading={overview.isFetching} canContinue={Boolean(continuation.data?.available) && !budgetExhausted} budgetExhausted={budgetExhausted} loadingMore={continueSearch.isPending} onContinue={() => continueSearch.mutate({ monitorId: resultSet.monitorId })} onTimeFilterChange={setTimeFilter} onOpenFeed={() => setLocation("/")} onOpen={setSelectedItem} /> : <div className="grid min-h-48 place-items-center rounded-[24px] border border-dashed border-[#ead9c4] bg-[#fffdfa] px-6 text-center text-[11px] leading-5 text-[#9a7c68]">Run a new search or select a saved search to reopen its qualified results.</div>}</section>
-      <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending || removeFromFeed.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} onRemove={() => { if (selectedItem && window.confirm("Remove this stored post from your Feed? It will stay hidden from your future stored result views.")) removeFromFeed.mutate({ postId: selectedItem.post.id }); }} />
+      <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending || removeFromFeed.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} onRemove={() => { if (selectedItem) removeFromFeed.mutate({ postId: selectedItem.post.id }); }} />
+      <ConfirmDialog open={Boolean(confirmDeleteHistory)} onOpenChange={open => { if (!open) setConfirmDeleteHistory(null); }} title="Delete this saved search?" description={confirmDeleteHistory ? `"${confirmDeleteHistory.label}" and its saved results will be permanently removed. This can't be undone.` : ""} confirmLabel="Delete" pending={deleteSearch.isPending} onConfirm={() => confirmDeleteHistory && deleteSearch.mutate({ monitorId: confirmDeleteHistory.monitorId })} />
     </div>
   </div>;
 }

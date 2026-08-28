@@ -24,6 +24,8 @@ describe("Faro Feed post removal", () => {
     expect(homeSource).toContain("Remove this stored post from your Feed?");
     expect(homeSource).toContain("trpc.monitoring.removeFromFeed.useMutation");
     expect(searchSource).toContain("trpc.monitoring.removeFromFeed.useMutation");
-    expect(searchSource).toContain("Remove this stored post from your Feed?");
+    // Search reuses the same shared PostDetailDialog (and its confirm dialog) rather than
+    // duplicating the confirmation text, so the same wording is guaranteed by construction.
+    expect(searchSource).toContain('import { PostDetailDialog, RequestCard } from "./Home"');
   });
 });

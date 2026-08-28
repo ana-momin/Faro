@@ -211,13 +211,30 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
   };
 }
 
+/**
+ * Turns a provider failure into a clean, human-readable outcome. Provider APIs return their own
+ * raw error bodies (e.g. TwitterAPI.io: {"error":"Unauthorized","message":"Credits is not
+ * enough.Please recharge"}), and providers aren't consistent about which HTTP status they use for
+ * a billing problem - TwitterAPI.io has been observed returning 401 rather than 402 for this - so
+ * this also pattern-matches the message text. The `message` field here, never error.message
+ * directly, is what should ever reach a client-facing syncError.
+ */
 export function classifySyncFailure(error: unknown) {
   if (error instanceof XApiError) {
     const provider = error.message.startsWith("TwitterAPI.io:") ? "TwitterAPI.io" : "X API";
-    if (error.status === 402) return { status: "payment_required" as const, label: `${provider} credit required` };
-    if (error.status === 429) return { status: "rate_limited" as const, label: `${provider} rate limit active` };
+    const looksLikeCreditIssue = /credit|recharge|insufficient|quota|balance/i.test(error.message);
+    if (error.status === 402 || (error.status === 401 && looksLikeCreditIssue)) {
+      return { status: "payment_required" as const, label: `${provider} credit required`, message: `${provider} account is out of credits. Add credits in your provider dashboard, then try again.` };
+    }
+    if (error.status === 429) {
+      return { status: "rate_limited" as const, label: `${provider} rate limit active`, message: `${provider} is rate-limiting requests right now. Wait a moment and try again.` };
+    }
+    if (error.status === 401 || error.status === 403) {
+      return { status: "unauthorized" as const, label: `${provider} key invalid`, message: `${provider} rejected your saved key. Check or replace it in Settings → Provider.` };
+    }
+    return { status: "error" as const, label: "Sync needs attention", message: `${provider} could not complete this request right now. Please try again shortly.` };
   }
-  return { status: "error" as const, label: "Sync needs attention" };
+  return { status: "error" as const, label: "Sync needs attention", message: "Faro could not complete this search right now. Please try again." };
 }
 
 export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: MonitorSyncOptions) {
@@ -385,6 +402,10 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     };
   } catch (error) {
     const state = classifySyncFailure(error);
+    // The DB status columns predate the "unauthorized" classification (a plain varchar with no
+    // DB-level constraint, but not worth widening for what's otherwise an internal audit field);
+    // fold it into "error" there while the richer status still reaches the client via sourceState.
+    const dbStatus = state.status === "unauthorized" ? "error" : state.status;
     const failedPage = pageFailureMetadata(error);
     if (failedPage) {
       await db.recordMonitorSyncRun({
@@ -393,7 +414,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
         queryHash: failedPage.queryHash,
         pageNumber: failedPage.pageNumber,
         source: error instanceof XApiError && error.message.startsWith("TwitterAPI.io:") ? "twitterapi_io" : "recent_search",
-        status: state.status === "error" ? "error" : state.status,
+        status: dbStatus,
         rawReceived: 0,
         deduplicatedPosts: 0,
         buyerCandidates: 0,
@@ -405,7 +426,7 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     }
     await db.recordSync(monitor.id, {
       source: "recent_search",
-      status: state.status,
+      status: dbStatus,
       latencyLabel: state.label,
       newestPostId: previous?.newestPostId ?? null,
       nextToken: previous?.nextToken ?? null,
@@ -502,7 +523,7 @@ export async function startFilteredStreamWorker() {
       const active = await db.listActiveMonitors();
       await Promise.all(active.map(monitor => db.recordSync(monitor.id, {
         source: "filtered_stream",
-        status: state.status,
+        status: state.status === "unauthorized" ? "error" : state.status,
         latencyLabel: state.label,
         newestPostId: null,
         nextToken: null,
