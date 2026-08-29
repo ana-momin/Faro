@@ -211,7 +211,9 @@ export function deterministicIntent(body: string, includeTerms: string[], goal =
       ? Math.min(0.48, 0.14 + assessment.concepts.length * 0.08 + assessment.goalMatches * 0.04)
       : 0.08;
   return {
-    label: isActive ? "Active help-seeking" : isRelevant ? "Potentially relevant" : "Low-intent mention",
+    // `as const` keeps this a literal union rather than widening to string, so callers can treat
+    // a deterministic verdict and a model verdict as the same PostIntent shape.
+    label: isActive ? ("Active help-seeking" as const) : isRelevant ? ("Potentially relevant" as const) : ("Low-intent mention" as const),
     confidence: Math.max(0.05, Math.round(confidence * 100) / 100),
     rationale: isActive
       ? "The post expresses a concrete need for a person, provider, or expert to deliver a relevant service."

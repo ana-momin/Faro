@@ -25,8 +25,23 @@ export type MonitorIntentContext = {
 };
 
 const LLM_MODEL = process.env.FARO_LLM_MODEL?.trim() || "qwen/qwen3.8-27b";
-const LLM_TIMEOUT_MS = 8_000;
-const MAX_CONCURRENT_LLM_CALLS = 4;
+const LLM_TIMEOUT_MS = 12_000;
+const LLM_BATCH_TIMEOUT_MS = 15_000;
+// Whole-run ceiling for classifying one sync's candidates. A sync also has to fetch provider pages
+// (paced ~5.2s apart) and write results, all inside the serverless function limit, so classification
+// gets a bounded slice rather than an open-ended one: once it is spent, the posts still waiting are
+// scored deterministically instead of the request dying at the platform timeout with nothing saved.
+const INTENT_CLASSIFICATION_BUDGET_MS = 25_000;
+// Deliberately low. The bottleneck is the provider's rate limit, not local parallelism: at 4
+// concurrent batched requests the API returned enough 429s that retry backoff made a full sync
+// slower AND cost some chunks their model verdict entirely. Fewer, larger, calmer requests
+// classify the same posts faster and more reliably.
+const MAX_CONCURRENT_LLM_CALLS = 2;
+// Classifying posts one-per-request meant a 37-candidate batch fired 37 separate calls; batching
+// turns that into a handful, which keeps the whole sync inside the serverless function budget.
+// Kept bounded so one malformed or rate-limited response only costs this many posts a model
+// verdict (they fall back to deterministic individually, never the whole run).
+const INTENT_BATCH_SIZE = 12;
 
 // Only words that plausibly describe employment/promo noise, never delivery-work vocabulary.
 const SAFE_NOISE_EXCLUDE_TERM = /^[a-z0-9][a-z0-9 -]{1,30}$/i;
@@ -74,6 +89,26 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
+/**
+ * Runs one LLM request under both the concurrency cap and a request timeout.
+ *
+ * The timeout deliberately starts INSIDE the slot. Wrapping the other way around -
+ * withTimeout(withLLMSlot(run)) - charges time spent waiting in the concurrency queue against the
+ * request's own budget, so once a sync had more candidates than MAX_CONCURRENT_LLM_CALLS, the
+ * posts at the back of the queue "timed out" before their request was ever sent. Every one of
+ * those then silently fell back to the strict deterministic classifier, which is why a 37-candidate
+ * batch could save a single post: the model never actually saw most of them.
+ */
+function withLLMRequest<T>(run: () => Promise<T>, timeoutMs: number | (() => number) = LLM_TIMEOUT_MS): Promise<T> {
+  return withLLMSlot(() => {
+    // Resolved here, inside the slot, so a caller can budget against time remaining at the moment
+    // the request starts rather than the moment it was queued.
+    const budget = typeof timeoutMs === "function" ? timeoutMs() : timeoutMs;
+    if (budget <= 1_000) throw new Error("LLM time budget exhausted before the request could start");
+    return withTimeout(run(), budget);
+  });
+}
+
 function firstMessageText(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -97,8 +132,7 @@ const suggestionSchema = z.object({
 });
 
 async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
-  const response = await withTimeout(
-    withLLMSlot(() =>
+  const response = await withLLMRequest(() =>
       invokeLLM({
         model: LLM_MODEL,
         messages: [
@@ -124,8 +158,6 @@ async function llmSuggestCriteria(goal: string): Promise<SuggestedCriteria> {
         response_format: { type: "json_object" },
         max_tokens: 400,
       }),
-    ),
-    LLM_TIMEOUT_MS,
   );
   const raw = firstMessageText(response.choices[0]?.message?.content);
   const parsed = suggestionSchema.parse(JSON.parse(raw));
@@ -169,58 +201,112 @@ export async function suggestCriteria(goal: string): Promise<SuggestedCriteria> 
 
 const INTENT_LABELS = ["Active help-seeking", "Potentially relevant", "Low-intent mention"] as const;
 
-const intentSchema = z.object({
-  label: z.enum(INTENT_LABELS),
-  confidence: z.number().transform(value => Math.max(0, Math.min(1, value))),
-  rationale: z.string().trim().transform(value => value.slice(0, 300)).default(""),
+export type PostIntent = {
+  label: (typeof INTENT_LABELS)[number];
+  confidence: number;
+  rationale: string;
+  model: string;
+  fallback: boolean;
+};
+
+const INTENT_CLASSIFIER_RULES =
+  "You classify public X (Twitter) posts for a buyer-side social-listening tool. Faro only wants posts where the author, their team, or their company has a SPECIFIC, PERSONAL need and is asking someone else to deliver real work FOR THEM: build, automate, develop, test, design, edit, or otherwise provide a service. " +
+  "Exclude: the author offering their own services, a job/employment listing, a co-founder search, a course, or generic topic discussion. " +
+  "Also exclude promotional or marketing content, INCLUDING a rhetorical question addressed to a broad audience that the author then answers themselves (e.g. \"who can build with X? Anyone can!\") - that is advertising a product/tool to everyone, not a personal request for someone to do work for the author.\n\n" +
+  'Example - NOT active help-seeking (promotional rhetorical question, not a personal request): "WHO CAN BUILD WITH [tool]? The answer is simple: almost anyone willing to experiment. You could be a beginner discovering AI for the first time..." ' +
+  'Example - IS active help-seeking (a specific personal ask): "We need a contract developer to integrate an AI workflow into our product this month, budget approved."';
+
+const batchIntentSchema = z.object({
+  results: z
+    .array(
+      z.object({
+        index: z.number().int(),
+        label: z.enum(INTENT_LABELS),
+        confidence: z.number().transform(value => Math.max(0, Math.min(1, value))),
+        rationale: z.string().trim().transform(value => value.slice(0, 300)).default(""),
+      }),
+    )
+    .default([]),
 });
 
-async function llmClassifyPostIntent(body: string, monitor: MonitorIntentContext) {
-  const response = await withTimeout(
-    withLLMSlot(() =>
+function deterministicIntentResult(body: string, monitor: MonitorIntentContext): PostIntent {
+  return { ...deterministicIntent(body, monitor.includeTerms, monitor.goal), model: DISCLOSED_MODEL, fallback: true };
+}
+
+/** Classifies one chunk of posts in a single request; indexes in the reply are 1-based. */
+async function llmClassifyBatch(bodies: string[], monitor: MonitorIntentContext, deadline: number): Promise<Array<PostIntent | undefined>> {
+  const numbered = bodies.map((body, index) => `Post ${index + 1}:\n"""${body.slice(0, 600)}"""`).join("\n\n");
+  // The remaining budget is read inside the concurrency slot, i.e. when this request actually
+  // starts rather than when it was queued, so a chunk waiting its turn is never charged for time
+  // it spent waiting - and never starts a request it has no time left to finish.
+  const response = await withLLMRequest(
+    () =>
       invokeLLM({
         model: LLM_MODEL,
         messages: [
           {
             role: "system",
             content:
-              "You classify a public X (Twitter) post for a buyer-side social-listening tool. Faro only wants posts where the author, their team, or their company has a SPECIFIC, PERSONAL need and is asking someone else to deliver real work FOR THEM: build, automate, develop, test, design, edit, or otherwise provide a service. " +
-              "Exclude: the author offering their own services, a job/employment listing, a co-founder search, a course, or generic topic discussion. " +
-              "Also exclude promotional or marketing content, INCLUDING a rhetorical question addressed to a broad audience that the author then answers themselves (e.g. \"who can build with X? Anyone can!\") - that is advertising a product/tool to everyone, not a personal request for someone to do work for the author. " +
-              'Respond with ONLY a JSON object shaped exactly like {"label": "Active help-seeking" | "Potentially relevant" | "Low-intent mention", "confidence": number between 0 and 1, "rationale": string}. No markdown, no extra keys.\n\n' +
-              'Example - NOT active help-seeking (promotional rhetorical question, not a personal request): "WHO CAN BUILD WITH [tool]? The answer is simple: almost anyone willing to experiment. You could be a beginner discovering AI for the first time..." ' +
-              'Example - IS active help-seeking (a specific personal ask): "We need a contract developer to integrate an AI workflow into our product this month, budget approved."',
+              INTENT_CLASSIFIER_RULES +
+              '\n\nYou are given several numbered posts. Classify EACH one independently. Respond with ONLY a JSON object shaped exactly like {"results": [{"index": 1, "label": "Active help-seeking" | "Potentially relevant" | "Low-intent mention", "confidence": number between 0 and 1, "rationale": string}]}. ' +
+              'Include exactly one result per post, and set "index" to that post\'s number. Keep each rationale to one short sentence. No markdown, no extra keys.',
           },
           {
             role: "user",
-            content: `Monitoring goal: "${monitor.goal}"\nMonitored topics: ${monitor.includeTerms.join(", ") || "none"}\n\nPost:\n"""${body.slice(0, 600)}"""\n\nClassify this post.`,
+            content: `Monitoring goal: "${monitor.goal}"\nMonitored topics: ${monitor.includeTerms.join(", ") || "none"}\n\n${numbered}\n\nClassify all ${bodies.length} post(s) above and return exactly ${bodies.length} result object(s).`,
           },
         ],
         response_format: { type: "json_object" },
-        max_tokens: 200,
+        max_tokens: Math.min(4_000, 260 * bodies.length + 200),
       }),
-    ),
-    LLM_TIMEOUT_MS,
+    () => Math.min(LLM_BATCH_TIMEOUT_MS, deadline - Date.now()),
   );
   const raw = firstMessageText(response.choices[0]?.message?.content);
-  const parsed = intentSchema.parse(JSON.parse(raw));
-  return {
-    label: parsed.label,
-    confidence: Math.max(0.05, Math.round(parsed.confidence * 100) / 100),
-    rationale: parsed.rationale || "LLM-assessed buyer intent.",
-    model: LLM_DISCLOSED_MODEL,
-    fallback: false,
-  };
+  const parsed = batchIntentSchema.parse(JSON.parse(raw));
+  const byIndex = new Map(parsed.results.map(result => [result.index, result]));
+  return bodies.map((_, index) => {
+    const result = byIndex.get(index + 1);
+    if (!result) return undefined;
+    return {
+      label: result.label,
+      confidence: Math.max(0.05, Math.round(result.confidence * 100) / 100),
+      rationale: result.rationale || "LLM-assessed buyer intent.",
+      model: LLM_DISCLOSED_MODEL,
+      fallback: false,
+    };
+  });
 }
 
-export async function classifyPostIntent(body: string, monitor: MonitorIntentContext) {
-  if (llmEnabled()) {
-    try {
-      return await llmClassifyPostIntent(body, monitor);
-    } catch (error) {
-      console.warn("[Faro ai] classifyPostIntent LLM call failed; using deterministic fallback", error);
-    }
+/**
+ * Classifies every candidate post for one sync. Posts are sent in small batched requests rather
+ * than one request each, and any post the model does not return a usable verdict for falls back to
+ * the deterministic classifier individually - a single bad chunk never costs the whole run.
+ */
+export async function classifyPostIntents(bodies: string[], monitor: MonitorIntentContext, options: { budgetMs?: number } = {}): Promise<PostIntent[]> {
+  if (!bodies.length) return [];
+  if (!llmEnabled()) return bodies.map(body => deterministicIntentResult(body, monitor));
+
+  const deadline = Date.now() + Math.max(0, options.budgetMs ?? INTENT_CLASSIFICATION_BUDGET_MS);
+  const chunks: string[][] = [];
+  for (let start = 0; start < bodies.length; start += INTENT_BATCH_SIZE) {
+    chunks.push(bodies.slice(start, start + INTENT_BATCH_SIZE));
   }
-  const result = deterministicIntent(body, monitor.includeTerms, monitor.goal);
-  return { ...result, model: DISCLOSED_MODEL, fallback: true };
+  const classified = await Promise.all(
+    chunks.map(async chunk => {
+      try {
+        return await llmClassifyBatch(chunk, monitor, deadline);
+      } catch (error) {
+        console.warn("[Faro ai] batched classifyPostIntents call failed; using deterministic fallback for this chunk", error);
+        return chunk.map(() => undefined);
+      }
+    }),
+  );
+  return chunks.flatMap((chunk, chunkIndex) =>
+    chunk.map((body, offset) => classified[chunkIndex]?.[offset] ?? deterministicIntentResult(body, monitor)),
+  );
+}
+
+export async function classifyPostIntent(body: string, monitor: MonitorIntentContext): Promise<PostIntent> {
+  const [intent] = await classifyPostIntents([body], monitor);
+  return intent ?? deterministicIntentResult(body, monitor);
 }

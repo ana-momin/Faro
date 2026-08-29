@@ -1,12 +1,17 @@
 import type { MonitoringCriterion } from "../../drizzle/renderSchema";
 import * as db from "../db";
-import { classifyPostIntent } from "./ai";
+import { classifyPostIntent, type PostIntent } from "./ai";
 import { rankOpportunity } from "./ranking";
 import type { XApiPost, XApiUser } from "./xClient";
 
-export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost: XApiPost, users: Map<string, XApiUser>) {
+/**
+ * `precomputedIntent` lets a sync classify all of its candidates in a few batched model requests
+ * up front (see classifyPostIntents) instead of one request per post. Callers that only ever
+ * handle a single post - the filtered-stream worker - can omit it and classify inline.
+ */
+export async function persistNormalizedPost(monitor: MonitoringCriterion, xPost: XApiPost, users: Map<string, XApiUser>, precomputedIntent?: PostIntent) {
   const author = xPost.author_id ? users.get(xPost.author_id) : undefined;
-  const intent = await classifyPostIntent(xPost.text, {
+  const intent = precomputedIntent ?? await classifyPostIntent(xPost.text, {
     goal: monitor.goal,
     includeTerms: monitor.includeTerms,
     excludeTerms: monitor.excludeTerms,

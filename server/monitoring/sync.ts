@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import * as db from "../db";
 import type { MonitorQueryState } from "../../drizzle/renderSchema";
-import { isLlmConfigured } from "./ai";
+import { classifyPostIntents, isLlmConfigured } from "./ai";
 import { persistNormalizedPost } from "./ingest";
 import { notifyPreferredHighConfidenceSignals } from "./alerts";
 import { collectionPolicy, type CollectionPolicy } from "./policy";
@@ -326,7 +326,18 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
       const existingMonitorIds = ownerMonitorIdsByPostId.get(post.id);
       return !existingMonitorIds || existingMonitorIds.has(monitor.id);
     });
-    const settled = await Promise.allSettled(persistableCandidates.map(({ post }) => persistNormalizedPost(monitor, post, users)));
+    // Classify every candidate in a few batched model requests before persisting, rather than
+    // letting each persist call fire its own request and queue behind the concurrency cap.
+    // Whatever is left of a ~45s working window after the paced provider fetches, so the run still
+    // has room to persist results and respond before the platform's function timeout.
+    const classificationBudgetMs = Math.max(5_000, 45_000 - (Date.now() - start));
+    const intents = await classifyPostIntents(persistableCandidates.map(({ post }) => post.text), {
+      goal: monitor.goal,
+      includeTerms: monitor.includeTerms,
+      excludeTerms: monitor.excludeTerms,
+      categories: monitor.categories,
+    }, { budgetMs: classificationBudgetMs });
+    const settled = await Promise.allSettled(persistableCandidates.map(({ post }, index) => persistNormalizedPost(monitor, post, users, intents[index])));
     const rejected = settled.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
     const persistedByPage = new Map<CoveragePage, number>();
     settled.forEach((outcome, index) => {
