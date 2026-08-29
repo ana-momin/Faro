@@ -11,10 +11,17 @@ const NAMED_PROVIDER = /\b(freelancer|agency|consultant|expert|specialist|develo
 export function isConcreteBuyerRequest(post: FeedPost) {
   if (!post.body) return false;
   if (/\b(?:looking for|seeking|open to)\b.{0,45}\b(?:role|position|employment|job|work)\b/i.test(post.body)) return false;
-  const buyerAsk = CONCRETE_BUYER_REQUEST.test(post.body) || OPENING_BUYER_REQUEST.test(post.body);
   const intent = (post as FeedPost & { aiIntent?: { label?: string; confidence?: number } }).aiIntent;
   const semanticBuyer = intent?.label === "Active help-seeking" && (intent.confidence ?? 0) >= 0.8;
-  return DELIVERY_SCOPE.test(post.body) && (buyerAsk || semanticBuyer);
+  // A post the server already classified with the LLM and scored above the save threshold is
+  // trusted here as-is. Re-testing it against DELIVERY_SCOPE - a fixed list of action verbs -
+  // silently hid genuine saved results from the feed whenever the ask was phrased as a noun
+  // ("does anyone know a good AI agent service"), which is the same over-strict requirement that
+  // was removed from the server's ranking for exactly this reason. Without a model verdict
+  // (older stored rows), fall back to the regex evidence as before.
+  if (semanticBuyer) return true;
+  const buyerAsk = CONCRETE_BUYER_REQUEST.test(post.body) || OPENING_BUYER_REQUEST.test(post.body);
+  return DELIVERY_SCOPE.test(post.body) && buyerAsk;
 }
 
 export function getQualifiedPosts<T extends FeedItem>(items: T[], activeMonitorId?: number, fallbackToAll = true) {

@@ -4,6 +4,47 @@ import { filterFeedByTime, getAllQualifiedPosts, getDiscoverPreview, getMatchRea
 const item = (id: number, monitorId: number, score: number, source = "twitterapi.io", body = "Looking to hire someone to automate our sales workflow") => ({ post: { id, source, ruleScore: score, body, reviewStatus: "pending" as const }, monitor: { id: monitorId } });
 
 describe("Faro Discover feed selection", () => {
+  it("shows a model-confirmed buyer request the server already saved, even when phrased as a noun", () => {
+    // The feed used to re-test every saved post against a fixed list of action verbs, so a request
+    // worded as a noun ("a good AI agent service") was collected and scored by the server but then
+    // silently hidden from the feed. The server's LLM verdict is authoritative here.
+    const nounPhrased = {
+      post: {
+        id: 77,
+        xPostId: "noun-phrased",
+        source: "twitterapi.io",
+        ruleScore: 88,
+        reviewStatus: "pending" as const,
+        body: "Does anyone know a good AI agent service they would recommend for our support inbox?",
+        postedAt: new Date(),
+        aiIntent: { label: "Active help-seeking", confidence: 0.95 },
+      },
+      monitor: { id: 10 },
+    };
+
+    expect(isConcreteBuyerRequest(nounPhrased.post)).toBe(true);
+    expect(getAllQualifiedPosts([nounPhrased]).map(row => row.post.id)).toEqual([77]);
+  });
+
+  it("still rejects a low-confidence post that shows no buyer phrasing of its own", () => {
+    const chatter = {
+      post: {
+        id: 78,
+        xPostId: "chatter",
+        source: "twitterapi.io",
+        ruleScore: 88,
+        reviewStatus: "pending" as const,
+        body: "AI agents are going to reshape customer support this year.",
+        postedAt: new Date(),
+        aiIntent: { label: "Potentially relevant", confidence: 0.4 },
+      },
+      monitor: { id: 10 },
+    };
+
+    expect(isConcreteBuyerRequest(chatter.post)).toBe(false);
+    expect(getAllQualifiedPosts([chatter])).toEqual([]);
+  });
+
   it("keeps Discover focused on qualified posts from the active brief when they exist", () => {
     const rows = [item(1, 10, 89), item(2, 11, 92), item(3, 10, 48), item(4, 10, 82, "demo")];
     expect(getQualifiedPosts(rows, 10).map(row => row.post.id)).toEqual([1]);
