@@ -26,22 +26,31 @@ export type MonitorIntentContext = {
 
 const LLM_MODEL = process.env.FARO_LLM_MODEL?.trim() || "qwen/qwen3.8-27b";
 const LLM_TIMEOUT_MS = 12_000;
-const LLM_BATCH_TIMEOUT_MS = 20_000;
+const LLM_BATCH_TIMEOUT_MS = 12_000;
 // Whole-run ceiling for classifying one sync's candidates. A sync also has to fetch provider pages
 // (paced ~5.2s apart) and write results, all inside the serverless function limit, so classification
 // gets a bounded slice rather than an open-ended one: once it is spent, the posts still waiting are
 // scored deterministically instead of the request dying at the platform timeout with nothing saved.
 const INTENT_CLASSIFICATION_BUDGET_MS = 25_000;
-// Deliberately low. The bottleneck is the provider's rate limit, not local parallelism: at 4
-// concurrent batched requests the API returned enough 429s that retry backoff made a full sync
-// slower AND cost some chunks their model verdict entirely. Fewer, larger, calmer requests
-// classify the same posts faster and more reliably.
-const MAX_CONCURRENT_LLM_CALLS = 2;
-// Classifying posts one-per-request meant a 37-candidate batch fired 37 separate calls; batching
-// turns that into a handful, which keeps the whole sync inside the serverless function budget.
-// Kept bounded so one malformed or rate-limited response only costs this many posts a model
-// verdict (they fall back to deterministic individually, never the whole run).
-const INTENT_BATCH_SIZE = 12;
+// The binding constraint is the model provider's TOKENS-per-minute quota, measured at 8,000/min on
+// this account (x-ratelimit-limit-tokens). Every constant below is sized to keep one search inside
+// that budget, because exceeding it produced 429s that exhausted all retries and silently dropped
+// whole batches to the deterministic classifier - which is what "49 candidates, 0 saved" actually
+// was. Rough per-search cost now: ~60 tokens/post of input, one ~350-token system prompt per
+// request, and ~45 tokens/post reserved for output.
+//
+// Serialized: concurrent requests spend the same per-minute token budget in a burst, which is
+// exactly what trips the limit. One at a time keeps usage smooth and still finishes in seconds.
+const MAX_CONCURRENT_LLM_CALLS = 1;
+// Larger batches mean the (fixed) system prompt is paid for fewer times per search.
+const INTENT_BATCH_SIZE = 20;
+// Hard ceiling on how many posts a single search sends to the model, so an unusually large
+// candidate set degrades to deterministic scoring for the tail instead of blowing the whole
+// token budget and losing verdicts for every post including the good ones.
+const MAX_LLM_CLASSIFIED_POSTS = 60;
+// X posts are ~280 characters; this keeps essentially all of a normal post while cutting the
+// input tokens a long post would otherwise spend.
+const CLASSIFIED_POST_CHARS = 240;
 
 // Only words that plausibly describe employment/promo noise, never delivery-work vocabulary.
 const SAFE_NOISE_EXCLUDE_TERM = /^[a-z0-9][a-z0-9 -]{1,30}$/i;
@@ -209,25 +218,46 @@ export type PostIntent = {
   fallback: boolean;
 };
 
+// Kept deliberately compact: this is re-sent with every batch, so each token here is paid for once
+// per request against the per-minute quota.
 const INTENT_CLASSIFIER_RULES =
-  "You classify public X (Twitter) posts for a buyer-side social-listening tool. Faro only wants posts where the author, their team, or their company has a SPECIFIC, PERSONAL need and is asking someone else to deliver real work FOR THEM: build, automate, develop, test, design, edit, or otherwise provide a service. " +
-  "Exclude: the author offering their own services, a job/employment listing, a co-founder search, a course, or generic topic discussion. " +
-  "Also exclude promotional or marketing content, INCLUDING a rhetorical question addressed to a broad audience that the author then answers themselves (e.g. \"who can build with X? Anyone can!\") - that is advertising a product/tool to everyone, not a personal request for someone to do work for the author.\n\n" +
-  'Example - NOT active help-seeking (promotional rhetorical question, not a personal request): "WHO CAN BUILD WITH [tool]? The answer is simple: almost anyone willing to experiment. You could be a beginner discovering AI for the first time..." ' +
-  'Example - IS active help-seeking (a specific personal ask): "We need a contract developer to integrate an AI workflow into our product this month, budget approved."';
+  "You classify public X (Twitter) posts for a buyer-side social-listening tool. Mark a post \"Active help-seeking\" ONLY when the author, their team, or their company has a specific personal need and is asking someone else to do real work FOR THEM (build, automate, develop, test, design, edit, or otherwise provide a service). " +
+  "Everything else is \"Potentially relevant\" or \"Low-intent mention\": the author offering their own services, job listings, co-founder searches, courses, promotion, and general topic discussion. " +
+  "A rhetorical question aimed at a broad audience that the author answers themselves (\"who can build with X? Anyone can!\") is promotion, not a request.\n" +
+  'YES: "We need a contract developer to integrate an AI workflow this month, budget approved." NO: "I build AI agents - DM me."';
 
-const batchIntentSchema = z.object({
-  results: z
-    .array(
-      z.object({
-        index: z.number().int(),
-        label: z.enum(INTENT_LABELS),
-        confidence: z.number().transform(value => Math.max(0, Math.min(1, value))),
-        rationale: z.string().trim().transform(value => value.slice(0, 300)).default(""),
-      }),
-    )
-    .default([]),
+const batchResultSchema = z.object({
+  index: z.number().int(),
+  label: z.enum(INTENT_LABELS),
+  confidence: z.number().transform(value => Math.max(0, Math.min(1, value))),
+  rationale: z.string().trim().transform(value => value.slice(0, 300)).default(""),
 });
+
+const batchIntentSchema = z.object({ results: z.array(batchResultSchema).default([]) });
+
+/**
+ * Parses a batch reply, salvaging individual result objects if the response as a whole will not
+ * parse. A reply can be cut off mid-object when the model runs out of its (deliberately tight)
+ * output allowance; without this, one truncated character would cost every post in the batch its
+ * verdict rather than just the few the model never got to.
+ */
+function parseBatchResults(raw: string): Array<z.infer<typeof batchResultSchema>> {
+  try {
+    return batchIntentSchema.parse(JSON.parse(raw)).results;
+  } catch {
+    const salvaged: Array<z.infer<typeof batchResultSchema>> = [];
+    for (const match of raw.match(/\{[^{}]*\}/g) ?? []) {
+      try {
+        const parsed = batchResultSchema.safeParse(JSON.parse(match));
+        if (parsed.success) salvaged.push(parsed.data);
+      } catch {
+        // Not a complete object; skip it.
+      }
+    }
+    if (!salvaged.length) throw new Error("batch response contained no parsable results");
+    return salvaged;
+  }
+}
 
 function deterministicIntentResult(body: string, monitor: MonitorIntentContext): PostIntent {
   return { ...deterministicIntent(body, monitor.includeTerms, monitor.goal), model: DISCLOSED_MODEL, fallback: true };
@@ -235,7 +265,7 @@ function deterministicIntentResult(body: string, monitor: MonitorIntentContext):
 
 /** Classifies one chunk of posts in a single request; indexes in the reply are 1-based. */
 async function llmClassifyBatch(bodies: string[], monitor: MonitorIntentContext, deadline: number): Promise<Array<PostIntent | undefined>> {
-  const numbered = bodies.map((body, index) => `Post ${index + 1}:\n"""${body.slice(0, 600)}"""`).join("\n\n");
+  const numbered = bodies.map((body, index) => `Post ${index + 1}:\n"""${body.slice(0, CLASSIFIED_POST_CHARS)}"""`).join("\n\n");
   // The remaining budget is read inside the concurrency slot, i.e. when this request actually
   // starts rather than when it was queued, so a chunk waiting its turn is never charged for time
   // it spent waiting - and never starts a request it has no time left to finish.
@@ -249,7 +279,7 @@ async function llmClassifyBatch(bodies: string[], monitor: MonitorIntentContext,
             content:
               INTENT_CLASSIFIER_RULES +
               '\n\nYou are given several numbered posts. Classify EACH one independently. Respond with ONLY a JSON object shaped exactly like {"results": [{"index": 1, "label": "Active help-seeking" | "Potentially relevant" | "Low-intent mention", "confidence": number between 0 and 1, "rationale": string}]}. ' +
-              'Include exactly one result per post, and set "index" to that post\'s number. Keep each rationale to one short sentence. No markdown, no extra keys.',
+              'Include exactly one result per post, and set "index" to that post\'s number. Each rationale must be at most 10 words. No markdown, no extra keys.',
           },
           {
             role: "user",
@@ -257,13 +287,16 @@ async function llmClassifyBatch(bodies: string[], monitor: MonitorIntentContext,
           },
         ],
         response_format: { type: "json_object" },
-        max_tokens: Math.min(4_000, 260 * bodies.length + 200),
+        // Reserved output counts against the per-minute token quota, so this is sized to what a
+        // short verdict per post actually needs (index + label + confidence + a <=10 word
+        // rationale is ~26 tokens) rather than a generous round number, with a little headroom so
+        // the JSON is never truncated mid-object.
+        max_tokens: Math.min(1_400, 42 * bodies.length + 200),
       }),
     () => Math.min(LLM_BATCH_TIMEOUT_MS, deadline - Date.now()),
   );
   const raw = firstMessageText(response.choices[0]?.message?.content);
-  const parsed = batchIntentSchema.parse(JSON.parse(raw));
-  const byIndex = new Map(parsed.results.map(result => [result.index, result]));
+  const byIndex = new Map(parseBatchResults(raw).map(result => [result.index, result]));
   return bodies.map((_, index) => {
     const result = byIndex.get(index + 1);
     if (!result) return undefined;
@@ -287,9 +320,14 @@ export async function classifyPostIntents(bodies: string[], monitor: MonitorInte
   if (!llmEnabled()) return bodies.map(body => deterministicIntentResult(body, monitor));
 
   const deadline = Date.now() + Math.max(0, options.budgetMs ?? INTENT_CLASSIFICATION_BUDGET_MS);
+  const modelBodies = bodies.slice(0, MAX_LLM_CLASSIFIED_POSTS);
+  const overflowBodies = bodies.slice(MAX_LLM_CLASSIFIED_POSTS);
+  if (overflowBodies.length) {
+    console.warn(`[Faro ai] ${overflowBodies.length} candidate(s) beyond the per-search model budget were scored deterministically`);
+  }
   const chunks: string[][] = [];
-  for (let start = 0; start < bodies.length; start += INTENT_BATCH_SIZE) {
-    chunks.push(bodies.slice(start, start + INTENT_BATCH_SIZE));
+  for (let start = 0; start < modelBodies.length; start += INTENT_BATCH_SIZE) {
+    chunks.push(modelBodies.slice(start, start + INTENT_BATCH_SIZE));
   }
   const classified = await Promise.all(
     chunks.map(async chunk => {
@@ -301,9 +339,12 @@ export async function classifyPostIntents(bodies: string[], monitor: MonitorInte
       }
     }),
   );
-  return chunks.flatMap((chunk, chunkIndex) =>
-    chunk.map((body, offset) => classified[chunkIndex]?.[offset] ?? deterministicIntentResult(body, monitor)),
-  );
+  return [
+    ...chunks.flatMap((chunk, chunkIndex) =>
+      chunk.map((body, offset) => classified[chunkIndex]?.[offset] ?? deterministicIntentResult(body, monitor)),
+    ),
+    ...overflowBodies.map(body => deterministicIntentResult(body, monitor)),
+  ];
 }
 
 export async function classifyPostIntent(body: string, monitor: MonitorIntentContext): Promise<PostIntent> {

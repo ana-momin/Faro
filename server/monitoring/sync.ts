@@ -158,6 +158,14 @@ export async function fetchCreditAwarePosts(monitor: Monitor, context: FetchCove
           durationMs: Date.now() - startedAt,
         };
       }
+      // A rate limit or exhausted credit part-way through a cycle used to throw away every page
+      // already collected, turning a partial success into "Source needs attention" with nothing
+      // saved. Keep what was already fetched and stop the cycle instead; the remaining families
+      // still hold their cursors, so the next run (or "Load more") resumes where this left off.
+      if (pages.length && error instanceof XApiError && (error.status === 429 || error.status === 402)) {
+        console.warn(`[Faro sync] provider stopped the cycle after ${pages.length} page(s); keeping partial results`, error.message);
+        break;
+      }
       throw error;
     }
     const localUnique = dedupePosts(result.posts);
