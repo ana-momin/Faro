@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { AuthSplash, hasSignedInBefore, markSignedInOnThisDevice } from "@/components/AuthSplash";
 import { DevFeedbackTrigger } from "@/components/DevFeedback";
 import FaroLogo from "@/components/FaroLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +11,7 @@ import { useWarmProfileImage } from "@/hooks/useWarmProfileImage";
 import { PRODUCT_INTRO_PATH } from "@/lib/productIntro";
 import { FARO_SHARED_PROFILE_IMAGE } from "@/lib/sharedProfileImage";
 import { CircleUserRound, Compass, LogOut, MoreHorizontal, Search, Settings2, UserRound } from "lucide-react";
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
@@ -25,7 +26,14 @@ const DEFAULT_WIDTH = 248;
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
   useWarmProfileImage(FARO_SHARED_PROFILE_IMAGE);
-  if (loading) return <DashboardLayoutSkeleton />;
+  const signedIn = Boolean(user?.name?.trim());
+  useEffect(() => {
+    if (signedIn) markSignedInOnThisDevice();
+  }, [signedIn]);
+  // Match the loading state to where this visitor is actually about to land: a returning user gets
+  // the workspace skeleton, while a first-time visitor gets a neutral branded hold instead of a
+  // fake dashboard that flips to a passkey prompt a moment later.
+  if (loading) return hasSignedInBefore() ? <DashboardLayoutSkeleton /> : <AuthSplash />;
   if (!user || !user.name?.trim()) return <Onboarding profileRequired={Boolean(user)} />;
   return <SidebarProvider style={{ "--sidebar-width": `${DEFAULT_WIDTH}px`, "--sidebar-width-icon": "4.5rem" } as CSSProperties}><DashboardLayoutContent>{children}</DashboardLayoutContent></SidebarProvider>;
 }
