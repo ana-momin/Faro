@@ -8,7 +8,7 @@ Faro AI is a private, client-oriented social-listening web application. It finds
 
 | Item | Current value |
 | --- | --- |
-| **Canonical staging app** | [https://faro-ai-staging.vercel.app/](https://faro-ai-staging.vercel.app/) |
+| **Canonical staging app** | [https://tryfaro.vercel.app/](https://tryfaro.vercel.app/) |
 | **GitHub repository** | `ana-momin/Faro` |
 | **Active deployment branch** | `vercel-neon-staging` |
 | **Protected fallback branch** | `main` — do not modify or merge into it without an explicit request |

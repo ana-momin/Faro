@@ -7,7 +7,7 @@
 <p align="center"><strong>Human-led social listening for buyer-side service requests on X.</strong></p>
 
 <p align="center">
-  <a href="https://faro-ai-staging.vercel.app/"><strong>Live app</strong></a> ·
+  <a href="https://tryfaro.vercel.app/"><strong>Live app</strong></a> ·
   <a href="#client-workflow">Workflow</a> ·
   <a href="#client-provider-setup">Provider setup</a> ·
   <a href="#project-documentation">Documentation</a> ·

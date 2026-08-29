@@ -52,7 +52,7 @@ This means some searches will return fewer than ten posts. Result volume depends
 
 ## Where It Runs
 
-Faro AI is currently an independently hosted **staging web app** at [faro-ai-staging.vercel.app](https://faro-ai-staging.vercel.app/). It runs on Vercel with a Neon PostgreSQL database. The product is deployed from the isolated Git branch `vercel-neon-staging`; GitHub `main` remains unchanged as a separate fallback.
+Faro AI is hosted at [tryfaro.vercel.app](https://tryfaro.vercel.app/), with [faro-ai-staging.vercel.app](https://faro-ai-staging.vercel.app/) kept as a secondary address pointing at the same deployment. It runs on Vercel with a Neon PostgreSQL database, deployed from `main` — the single active branch.
 
 | Part of the product | Plain-language role |
 | --- | --- |
