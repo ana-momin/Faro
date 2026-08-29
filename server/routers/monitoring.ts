@@ -195,12 +195,15 @@ export const monitoringRouter = router({
     .mutation(({ input }) => suggestCriteria(input.goal)),
 
   agentStart: protectedProcedure
-    .input(z.object({ brief: z.string().trim().min(12).max(800) }))
+    // forceFresh lets the client re-run a brief it has already saved. Without it, re-running a
+    // saved brief could only ever reopen the stored results, so there was no way to pull posts
+    // published since the last run - the search simply looked stuck to the user.
+    .input(z.object({ brief: z.string().trim().min(12).max(800), forceFresh: z.boolean().optional() }))
     .mutation(async ({ ctx, input }) => {
       const savedSearch = await findSavedSearchByBrief(ctx.user.id, input.brief);
       if (savedSearch) {
         const existingPosts = await db.listPostsForUser(ctx.user.id, savedSearch.id);
-        if (existingPosts.length > 0) {
+        if (existingPosts.length > 0 && !input.forceFresh) {
           return {
             monitorId: savedSearch.id,
             criteria: null,
@@ -212,9 +215,9 @@ export const monitoringRouter = router({
             humanReviewOnly: true,
           };
         }
-        // A saved brief with zero stored results is useless to reopen silently - re-run it as
-        // a fresh collection instead, regenerating criteria in case ranking/query logic has
-        // improved since this monitor was first created.
+        // Either the saved brief has no stored results (useless to reopen silently) or the client
+        // explicitly asked for a fresh run - collect again, regenerating criteria in case the
+        // ranking/query logic has improved since this monitor was first created.
         await requireAvailableSourceBudget(ctx.user.id);
         const refreshedCriteria = await suggestCriteria(input.brief);
         const refreshedXQuery = requireServiceRequestQuery(refreshedCriteria.xQuery);

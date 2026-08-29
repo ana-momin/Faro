@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { filterFeedByTime, getQualifiedPosts, type FeedTimeFilter } from "@/lib/discoverFeed";
-import { getSearchLifecycleDetails, type SearchLifecycle } from "@/lib/discoverSearch";
+import { getSearchLifecycleDetails, getSearchOutcome, type SearchLifecycle, type SearchOutcomeActionId } from "@/lib/discoverSearch";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, BadgeCheck, Bot, ChevronDown, Clapperboard, Code2, FlaskConical, History, Loader2, Megaphone, Radar, Send, Trash2, WandSparkles, Workflow, type LucideIcon } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -163,6 +163,29 @@ export default function Search() {
     agent.mutate({ brief });
   };
   const chooseTask = (value: string) => { setBrief(value); setPhase("idle"); setResult(null); setHistoryMonitorId(null); };
+  const runBrief = (text: string, forceFresh = false) => {
+    if (text.trim().length < 12) return;
+    setResult(null);
+    setHistoryMonitorId(null);
+    setRunError(null);
+    setElapsedSeconds(0);
+    setPhase("brief");
+    agent.mutate({ brief: text, forceFresh });
+  };
+  const handleOutcomeAction = (action: SearchOutcomeActionId) => {
+    if (action === "feed") return setLocation("/");
+    if (action === "review") return document.querySelector("#search-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (action === "loadMore") return void (activeResultMonitorId && continueSearch.mutate({ monitorId: activeResultMonitorId }));
+    if (action === "refine") {
+      document.querySelector("#search-command")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => document.querySelector<HTMLTextAreaElement>("#search-command textarea")?.focus(), 320);
+      return;
+    }
+    // runFresh / retry: re-run the brief that produced this outcome, forcing a new collection even
+    // when it is already saved, so "Search for new posts" cannot just reopen the same stored set.
+    const text = brief.trim() || resultSet?.goal || "";
+    runBrief(text, action === "runFresh");
+  };
   const state = getSearchLifecycleDetails(phase, elapsedSeconds);
   const ready = brief.trim().length >= 12;
   const budgetExhausted = Boolean(providerSetup.data?.configured && providerSetup.data.remainingCalls <= 0);
@@ -185,7 +208,7 @@ export default function Search() {
         <form id="search-command" onSubmit={submit} className="mt-8 w-full text-left"><div className="overflow-hidden rounded-[14px] border border-[#d9c4af] bg-white shadow-[0_18px_42px_rgba(94,53,30,0.11)]">{pending ? <CommandProgress state={state} /> : <><label className="sr-only">Describe the buyer request Faro should find</label><Textarea value={brief} onChange={event => setBrief(event.target.value)} className="min-h-32 resize-none border-0 bg-transparent px-4 py-4 text-sm leading-6 shadow-none placeholder:text-[#b39a88] focus-visible:ring-0" placeholder="Find people looking for help with…" /></>}<div className="flex items-center justify-between border-t border-[#f1e3d7] px-3 py-2"><DropdownMenu modal={false}><DropdownMenuTrigger asChild><button type="button" className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#eadfd2] bg-[#fffaf5] px-2.5 text-[10px] font-extrabold text-[#8f604a] transition hover:bg-[#fff0e3]">Suggestions <ChevronDown className="h-3.5 w-3.5" /></button></DropdownMenuTrigger><DropdownMenuContent side="bottom" sideOffset={8} align="start" avoidCollisions={false} className="max-h-72 w-[min(360px,calc(100vw-2rem))] overflow-y-auto rounded-xl border-[#ead9c4] bg-[#fffdfa] p-1.5 shadow-[0_16px_35px_rgba(94,53,30,0.14)]">{suggestions.map(item => <DropdownMenuItem key={item.label} onSelect={() => chooseTask(item.value)} className="cursor-pointer items-start gap-2 rounded-lg px-2.5 py-2.5 text-[#674633] focus:bg-[#fff0e3] focus:text-[#674633]"><item.Icon className="mt-0.5 h-3.5 w-3.5 text-[#b56649]" /><span><span className="block text-[10px] font-extrabold">{item.label}</span><span className="mt-0.5 block text-[10px] leading-4 text-[#9a7b68]">{item.value}</span></span></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu><Button type="submit" disabled={!ready || pending} className="h-10 rounded-xl bg-[#b85f45] px-4 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(157,76,53,0.22)] hover:bg-[#9f4d36]">{pending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching</> : <><Send className="mr-2 h-3.5 w-3.5" />{firstBatch ? "Run first batch" : "Run Faro"}</>}</Button></div></div></form>
       </section>
       {budgetExhausted ? <div className="mx-auto -mt-8 max-w-4xl rounded-2xl border border-[#edcaba] bg-[#fff4ed] px-4 py-3 text-left text-[11px] leading-5 text-[#96553e]">Today’s configured provider-call limit is reached. Faro will not start another source search until you increase it in <button type="button" onClick={() => setLocation("/settings?section=provider")} className="font-extrabold underline underline-offset-2">Settings → Provider</button> or the daily window resets.</div> : null}
-      {phase !== "idle" && !pending ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onOpen={() => setLocation("/")} /> : null}
+      {phase !== "idle" && !pending ? <SearchState phase={phase} state={state} result={result} errorDetail={runError} onAction={handleOutcomeAction} /> : null}
       <section className="mt-8 border-t border-[#eadfd2] pt-6">{showResultSet && resultSet ? <SearchResultsWithPaging key={resultSet.monitorId} resultSet={resultSet} loading={overview.isFetching} canContinue={Boolean(continuation.data?.available) && !budgetExhausted} budgetExhausted={budgetExhausted} loadingMore={continueSearch.isPending} onContinue={() => continueSearch.mutate({ monitorId: resultSet.monitorId })} onTimeFilterChange={setTimeFilter} onOpenFeed={() => setLocation("/")} onOpen={setSelectedItem} /> : <div className="grid min-h-48 place-items-center rounded-[24px] border border-dashed border-[#ead9c4] bg-[#fffdfa] px-6 text-center text-[11px] leading-5 text-[#9a7c68]">Run a new search or select a saved search to reopen its qualified results.</div>}</section>
       <PostDetailDialog item={selectedItem} open={Boolean(selectedItem)} pending={review.isPending || save.isPending || removeFromFeed.isPending} onOpenChange={open => { if (!open) setSelectedItem(null); }} onReview={decision => selectedItem && review.mutate({ postId: selectedItem.post.id, decision })} onSave={() => selectedItem && save.mutate({ postId: selectedItem.post.id, saved: true })} onRemove={() => { if (selectedItem) removeFromFeed.mutate({ postId: selectedItem.post.id }); }} />
       <ConfirmDialog open={Boolean(confirmDeleteHistory)} onOpenChange={open => { if (!open) setConfirmDeleteHistory(null); }} title="Delete this saved search?" description={confirmDeleteHistory ? `"${confirmDeleteHistory.label}" and its saved results will be permanently removed. This can't be undone.` : ""} confirmLabel="Delete" pending={deleteSearch.isPending} onConfirm={() => confirmDeleteHistory && deleteSearch.mutate({ monitorId: confirmDeleteHistory.monitorId })} />
@@ -195,7 +218,36 @@ export default function Search() {
 
 function CommandProgress({ state }: { state: ReturnType<typeof getSearchLifecycleDetails> }) { return <div className="px-4 py-5"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#b85f45]" /><span className="truncate text-sm font-extrabold text-[#694432]">{state.label}</span></div><span className="text-[10px] font-extrabold text-[#a45a43]">{state.progress}%</span></div><p className="mt-2 text-[11px] leading-5 text-[#967a68]">{state.detail}</p><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#f2dfc8]"><div className="h-full rounded-full bg-[#b85f45] transition-all duration-700" style={{ width: `${state.progress}%` }} /></div></div>; }
 
-function SearchState({ phase, state, result, errorDetail, onOpen }: { phase: SearchLifecycle; state: ReturnType<typeof getSearchLifecycleDetails>; result: SearchResult | null; errorDetail: string | null; onOpen: () => void }) { const alert = phase === "attention"; const done = phase === "complete" || phase === "empty" || alert; const metrics = result?.retrieval; const detail = alert ? errorDetail || result?.syncError || state.detail : result?.reused ? "This saved brief is already open below. Its existing qualified results were reopened without another provider call." : metrics ? metrics.persisted ? `${metrics.persisted} qualified request${metrics.persisted === 1 ? "" : "s"} saved.` : "No buyer-service requests were saved for this brief. Faro looks for people asking for help with services such as AI agents, automation, testing, development, or content work." : state.detail; return <section className={`mx-auto mt-2 max-w-4xl overflow-hidden rounded-[22px] border p-4 sm:p-5 ${alert ? "border-[#edcaba] bg-[#fff4ed]" : done ? "border-[#cae4d1] bg-[#f7fcf7]" : "border-[#ead9c4] bg-white"}`}><div className="flex items-start justify-between gap-4"><div className="flex min-w-0 items-start gap-3"><span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${alert ? "bg-[#f8ded2] text-[#a55136]" : done ? "bg-[#e1f0e4] text-[#397657]" : "bg-[#f7e3d1] text-[#9b593f]"}`}>{alert ? <Radar className="h-3.5 w-3.5" /> : done ? <BadgeCheck className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}</span><div><p className={`text-xs font-extrabold ${alert ? "text-[#a55136]" : done ? "text-[#397657]" : "text-[#704635]"}`}>{state.label}</p><p className="mt-1 text-[11px] leading-5 text-[#987c69]">{detail}</p></div></div><span className="text-[10px] font-extrabold text-[#a45a43]">{state.progress}%</span></div><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#f2dfc8]"><div className={`h-full rounded-full transition-all duration-700 ${alert ? "bg-[#c46b4d]" : done ? "bg-[#5a9a70]" : "bg-[#b85f45]"}`} style={{ width: `${state.progress}%` }} /></div>{metrics && done && !alert ? <div className="mt-4 flex flex-wrap gap-2"><Metric label="Pages" value={`${metrics.pagesChecked}/${metrics.pageBudget}`} /><Metric label="Queries" value={`${metrics.queryFamilies}/${metrics.queryFamilyBudget}`} /><Metric label="Posts seen" value={String(metrics.rawReceived)} /><Metric label="Candidates" value={String(metrics.buyerCandidates)} /><Metric label="Saved" value={String(metrics.persisted)} /></div> : null}{done && !alert ? <Button onClick={onOpen} variant="outline" className="mt-4 h-9 rounded-xl border-[#cce1d1] bg-white text-xs font-bold text-[#40745a] hover:bg-[#fafffa]">Open Feed <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Button> : null}</section>; }
+function SearchState({ phase, state, result, errorDetail, onAction }: { phase: SearchLifecycle; state: ReturnType<typeof getSearchLifecycleDetails>; result: SearchResult | null; errorDetail: string | null; onAction: (id: SearchOutcomeActionId) => void }) {
+  const metrics = result?.retrieval;
+  const outcome = getSearchOutcome({
+    reused: Boolean(result?.reused),
+    saved: metrics?.persisted ?? 0,
+    candidates: metrics?.buyerCandidates ?? 0,
+    postsSeen: metrics?.rawReceived ?? 0,
+    pagesChecked: metrics?.pagesChecked ?? 0,
+    pageBudget: metrics?.pageBudget ?? 0,
+    hasMore: Boolean(result?.hasMore),
+    errorDetail: phase === "attention" ? errorDetail || result?.syncError || state.detail : result?.syncError ?? null,
+  });
+  const warning = outcome.tone === "warning";
+  const success = outcome.tone === "success";
+  const shell = warning ? "border-[#edcaba] bg-[#fff4ed]" : success ? "border-[#cae4d1] bg-[#f7fcf7]" : "border-[#ead9c4] bg-white";
+  const badge = warning ? "bg-[#f8ded2] text-[#a55136]" : success ? "bg-[#e1f0e4] text-[#397657]" : "bg-[#f7e3d1] text-[#9b593f]";
+  const heading = warning ? "text-[#a55136]" : success ? "text-[#397657]" : "text-[#704635]";
+  return <section className={`mx-auto mt-2 max-w-4xl overflow-hidden rounded-[22px] border p-4 sm:p-5 ${shell}`}>
+    <div className="flex items-start gap-3">
+      <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${badge}`}>{success ? <BadgeCheck className="h-3.5 w-3.5" /> : <Radar className="h-3.5 w-3.5" />}</span>
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-extrabold tracking-[-0.02em] ${heading}`}>{outcome.title}</p>
+        <p className="mt-1 text-[11px] leading-5 text-[#7d6555]">{outcome.detail}</p>
+        {outcome.hint ? <p className="mt-1.5 text-[10px] leading-4 text-[#a08a78]">{outcome.hint}</p> : null}
+      </div>
+    </div>
+    {metrics && !warning ? <div className="mt-4 flex flex-wrap gap-2"><Metric label="Posts read" value={String(metrics.rawReceived)} /><Metric label="Topic matches" value={String(metrics.buyerCandidates)} /><Metric label="Buyer requests" value={String(metrics.persisted)} /><Metric label="Pages" value={`${metrics.pagesChecked}/${metrics.pageBudget}`} /></div> : null}
+    <div className="mt-4 flex flex-wrap gap-2">{outcome.actions.map(action => <Button key={action.id} onClick={() => onAction(action.id)} variant={action.primary ? "default" : "outline"} className={action.primary ? "h-9 rounded-xl bg-[#b85f45] px-3.5 text-xs font-extrabold text-white hover:bg-[#9f4d36]" : "h-9 rounded-xl border-[#ddcab5] bg-white px-3.5 text-xs font-bold text-[#7c5340] hover:bg-[#fff6ec]"}>{action.label}{action.primary ? <ArrowRight className="ml-1.5 h-3.5 w-3.5" /> : null}</Button>)}</div>
+  </section>;
+}
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-[#eadfd2] bg-white px-3 py-2"><p className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-[#a78a76]">{label}</p><p className="mt-0.5 text-xs font-extrabold text-[#604132]">{value}</p></div>; }
 
 /** A short keyword label instead of the full saved brief sentence, e.g. "Automation · Workflow · AI Agent". */
