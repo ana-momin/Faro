@@ -31,7 +31,10 @@ export default function ProductIntro() {
   const reduceMotion = useReducedMotion();
   const fadeUp = reduceMotion ? {} : { opacity: 1, y: 0 };
 
-  return <main className="relative h-dvh snap-y snap-mandatory overflow-y-auto scroll-smooth text-[#35241a]">
+  // snap-proximity, not snap-mandatory: mandatory snapping fights every wheel/trackpad gesture and
+  // is what made this feel jerky. Proximity still settles each section into place but lets a scroll
+  // travel naturally first. `overscroll-contain` stops the snap from bouncing the page behind it.
+  return <main className="relative h-dvh snap-y snap-proximity overflow-y-auto overscroll-contain scroll-smooth text-[#35241a]">
     <nav className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-5 sm:px-8">
       <button onClick={() => setLocation("/")} className="pointer-events-auto rounded-xl outline-none transition hover:scale-[1.03] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#bb654a]" aria-label="Open Faro AI workspace">
         <FaroLogo className="[&>span:first-child]:h-9 [&>span:first-child]:w-9 [&>span:first-child]:rounded-xl [&>span:last-child]:text-[19px]" />
@@ -39,7 +42,7 @@ export default function ProductIntro() {
       <Button onClick={() => setLocation("/")} variant="outline" className="group pointer-events-auto h-9 rounded-xl border-[#e5d3bd] bg-white/85 px-4 text-xs font-bold text-[#7c4d38] backdrop-blur transition hover:border-[#d9a97f] hover:bg-white">Open Feed <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></Button>
     </nav>
 
-    <section className="relative flex h-dvh snap-start snap-always flex-col items-center justify-center overflow-hidden bg-[#fffaf2] px-6 sm:px-8">
+    <section className="relative flex h-dvh snap-start flex-col items-center justify-center overflow-hidden bg-[#fffaf2] px-6 sm:px-8">
       <div className="pointer-events-none absolute inset-0 opacity-[0.035] mix-blend-multiply" style={{ backgroundImage: NOISE_TEXTURE }} />
       <div className="pointer-events-none absolute -top-40 right-[-12rem] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(184,95,69,0.16),transparent_68%)] blur-2xl" />
       <div className="pointer-events-none absolute left-[-14rem] bottom-[-8rem] h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle,rgba(95,154,113,0.14),transparent_68%)] blur-2xl" />
@@ -67,7 +70,7 @@ export default function ProductIntro() {
       </motion.button>
     </section>
 
-    <section id="how-it-works" className="relative flex h-dvh snap-start snap-always flex-col items-center justify-center overflow-hidden bg-[#fffdf9] px-6 sm:px-8">
+    <section id="how-it-works" className="relative flex h-dvh snap-start flex-col items-center justify-center overflow-hidden bg-[#fffdf9] px-6 sm:px-8">
       <div className="pointer-events-none absolute right-[-10rem] top-1/3 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle,rgba(201,146,69,0.1),transparent_70%)] blur-2xl" />
       <div className="relative mx-auto w-full max-w-5xl">
         <div className="text-center"><p className="text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#a25d47]">Keep it simple</p><h2 className="mt-3 text-3xl font-extrabold tracking-[-0.065em] sm:text-4xl">A quiet path to the right request.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#887365]">Three deliberate steps, no background scraping, no surprises.</p></div>
@@ -83,7 +86,7 @@ export default function ProductIntro() {
       </div>
     </section>
 
-    <section className="relative flex h-dvh snap-start snap-always flex-col items-center justify-center overflow-hidden bg-[#38261d] px-6 text-white sm:px-8">
+    <section className="relative flex h-dvh snap-start flex-col items-center justify-center overflow-hidden bg-[#38261d] px-6 text-white sm:px-8">
       <div className="pointer-events-none absolute -left-24 top-[-6rem] h-[26rem] w-[26rem] rounded-full bg-[#d17452]/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 bottom-[-8rem] h-[24rem] w-[24rem] rounded-full bg-[#6a8f77]/20 blur-3xl" />
       <div className="relative mx-auto w-full max-w-3xl text-center">

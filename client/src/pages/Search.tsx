@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { filterFeedByTime, getQualifiedPosts, type FeedTimeFilter } from "@/lib/discoverFeed";
 import { getSearchLifecycleDetails, getSearchOutcome, type SearchLifecycle, type SearchOutcomeActionId } from "@/lib/discoverSearch";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, BadgeCheck, Bot, ChevronDown, Clapperboard, Code2, FlaskConical, History, Loader2, Megaphone, Radar, Send, Trash2, WandSparkles, Workflow, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bot, ChevronDown, Code2, FlaskConical, History, Loader2, Megaphone, Radar, Send, Trash2, WandSparkles, Workflow, type LucideIcon } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -15,7 +15,6 @@ import { PostDetailDialog, RequestCard } from "./Home";
 const suggestions: Array<{ label: string; value: string; Icon: LucideIcon }> = [
   { label: "AI agents", value: "Find founders and teams looking for a provider to build or implement AI agents.", Icon: Bot },
   { label: "Automation", value: "Find operators who need someone to automate repetitive business workflows.", Icon: Workflow },
-  { label: "AI video", value: "Find businesses seeking help with practical AI video production or video automation.", Icon: Clapperboard },
   { label: "Product testing", value: "Find product teams looking for an outside specialist to test and validate an AI-enabled feature before launch.", Icon: FlaskConical },
   { label: "Dev build", value: "Find teams looking for a contract developer to build or integrate an AI-enabled product workflow.", Icon: Code2 },
   { label: "Content", value: "Find businesses seeking someone to create, publish, or automate practical AI-powered social content.", Icon: Megaphone },
@@ -258,12 +257,16 @@ function historySearchLabel(monitor: any): string {
 }
 
 function SearchHistoryList({ rows, selectedMonitorId, onOpen, onDelete }: { rows: any[]; selectedMonitorId: number | null | undefined; onOpen: (monitorId: number) => void; onDelete: (monitorId: number, label: string) => void }) {
-  return rows.length ? <div className="flex-1 space-y-1 overflow-y-auto pr-0.5">{rows.map(({ monitor }) => { const selected = monitor.id === selectedMonitorId; const label = historySearchLabel(monitor); return <div key={monitor.id} className={`flex items-center gap-0.5 rounded-2xl transition ${selected ? "bg-[#f8e8d9]" : "hover:bg-[#fff8f1]"}`}><button type="button" onClick={() => onOpen(monitor.id)} className={`min-w-0 flex-1 rounded-2xl px-3 py-2.5 text-left ${selected ? "text-[#874a35]" : "text-[#755e4e]"}`} aria-current={selected ? "page" : undefined}><span className="block truncate text-[10px] font-extrabold leading-4">{label}</span></button><button type="button" onClick={() => onDelete(monitor.id, label)} aria-label={`Delete saved search: ${label}`} title="Delete saved search" className="mr-1.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#c08a76] transition hover:bg-[#fbe7dd] hover:text-[#a14941]"><Trash2 className="h-3.5 w-3.5" /></button></div>; })}</div> : <p className="px-2.5 py-6 text-center text-[10px] leading-5 text-[#9a7c68]">Your completed searches will appear here.</p>;
+  // The delete control stays hidden until the row is hovered or focused, so a list of saved
+  // searches reads as a calm list of names rather than a column of trash icons.
+  return rows.length ? <div className="flex-1 space-y-0.5 overflow-y-auto pr-0.5">{rows.map(({ monitor }) => { const selected = monitor.id === selectedMonitorId; const label = historySearchLabel(monitor); return <div key={monitor.id} className={`group/row relative flex items-center rounded-xl transition ${selected ? "bg-[#f8e8d9]" : "hover:bg-[#fdf6ee]"}`}><button type="button" onClick={() => onOpen(monitor.id)} className={`min-w-0 flex-1 rounded-xl py-1.5 pl-2.5 pr-8 text-left ${selected ? "text-[#874a35]" : "text-[#6f5a4b]"}`} aria-current={selected ? "page" : undefined}><span className="block truncate text-[11px] font-semibold leading-5">{label}</span></button><button type="button" onClick={() => onDelete(monitor.id, label)} aria-label={`Delete saved search: ${label}`} title="Delete saved search" className="absolute right-1 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-[#bb9382] opacity-0 transition hover:bg-[#fbe7dd] hover:text-[#a14941] focus-visible:opacity-100 group-hover/row:opacity-100"><Trash2 className="h-3 w-3" /></button></div>; })}</div> : <p className="px-2.5 py-8 text-center text-[10px] leading-5 text-[#a89383]">Your searches appear here once you run one.</p>;
 }
 
 /** Desktop-only persistent rail, docked immediately beside the primary sidebar so it's visible without scrolling past the search form. */
 function SearchHistoryRail({ rows, selectedMonitorId, onOpen, onDelete }: { rows: any[]; selectedMonitorId: number | null | undefined; onOpen: (monitorId: number) => void; onDelete: (monitorId: number, label: string) => void }) {
-  return <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-64 shrink-0 flex-col rounded-[24px] border border-[#eadfd2] bg-white p-2.5 shadow-[0_10px_24px_rgba(99,59,31,0.04)] lg:flex"><div className="flex items-center gap-1.5 px-2.5 pb-2 pt-1"><History className="h-3.5 w-3.5 text-[#a25d47]" /><p className="text-[9px] font-extrabold uppercase tracking-[0.15em] text-[#a25d47]">Search history</p></div><p className="px-2.5 text-[10px] leading-4 text-[#9a7c68]">Reopen a saved result set without another provider call.</p><div className="mt-2 flex flex-1 flex-col overflow-hidden"><SearchHistoryList rows={rows} selectedMonitorId={selectedMonitorId} onOpen={onOpen} onDelete={onDelete} /></div></aside>;
+  // Narrower and lighter than the main sidebar: this is a secondary index, so it reads as a quiet
+  // list rather than a second heavy panel competing with the search form beside it.
+  return <aside className="sticky top-5 hidden h-[calc(100vh-2.5rem)] w-52 shrink-0 flex-col rounded-2xl border border-[#f0e6da] bg-[#fffdfa] p-2 lg:flex"><div className="flex items-center gap-1.5 px-2 pb-1.5 pt-1"><History className="h-3 w-3 text-[#b58a72]" /><p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-[#b58a72]">History</p><span className="ml-auto text-[9px] font-bold text-[#c2ab99]">{rows.length || ""}</span></div><div className="flex flex-1 flex-col overflow-hidden"><SearchHistoryList rows={rows} selectedMonitorId={selectedMonitorId} onOpen={onOpen} onDelete={onDelete} /></div></aside>;
 }
 
 /** Compact trigger + sheet for narrower viewports, where the persistent rail is hidden. */

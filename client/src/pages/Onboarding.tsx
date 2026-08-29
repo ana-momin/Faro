@@ -68,6 +68,12 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
 
   const completeProfile = async () => {
     if (!name.trim()) return;
+    // Validated before the request so a malformed address gets a specific, fixable message rather
+    // than the server's generic "could not save your profile" - the user cannot act on that.
+    if (emailError) {
+      toast.error(emailError);
+      return;
+    }
     try {
       setWorking(true);
       await profileComplete.mutateAsync({ name: name.trim(), email: email.trim() });
@@ -81,6 +87,10 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
   };
 
   const isProfile = mode === "profile";
+  // Email is optional here, so an empty field is valid; only a filled-in malformed one is an error.
+  const emailError = email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())
+    ? "That email address does not look right. Check for a missing @ or domain, or leave it blank."
+    : null;
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-[#f8f4ed] p-3 sm:p-5 md:p-6">
@@ -123,7 +133,8 @@ export default function Onboarding({ profileRequired = false }: { profileRequire
                 <h2 className="mt-4 text-2xl font-extrabold tracking-[-0.055em] text-[#312018]">Complete your profile.</h2>
                 <p className="mt-2 text-sm leading-6 text-[#806c5e]">Add your name to enter your desk.</p>
                 <label className="mt-5 block text-xs font-bold text-[#65483a]">Name<Input value={name} onChange={event => setName(event.target.value)} placeholder="Your name" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="name" autoFocus /></label>
-                <label className="mt-3 block text-xs font-bold text-[#65483a]">Email <span className="font-medium text-[#ae9788]">optional</span><Input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" className="mt-2 h-11 rounded-xl border-[#e7d7c7] bg-white" autoComplete="email" /></label>
+                <label className="mt-3 block text-xs font-bold text-[#65483a]">Email <span className="font-medium text-[#ae9788]">optional</span><Input value={email} onChange={event => setEmail(event.target.value)} type="email" placeholder="you@example.com" aria-invalid={Boolean(emailError)} className={`mt-2 h-11 rounded-xl bg-white ${emailError ? "border-[#d9a094] focus-visible:ring-[#d9a094]" : "border-[#e7d7c7]"}`} autoComplete="email" /></label>
+                {emailError ? <p className="mt-1.5 text-[11px] font-semibold leading-4 text-[#b0503f]">{emailError}</p> : null}
                 <Button onClick={completeProfile} disabled={working || !name.trim()} size="lg" className="mt-5 h-11 w-full rounded-xl bg-[#b85e43] hover:bg-[#9e4f39]">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enter Faro"}</Button>
               </>}
             </div>
