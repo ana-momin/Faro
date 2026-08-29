@@ -26,7 +26,7 @@ export type MonitorIntentContext = {
 
 const LLM_MODEL = process.env.FARO_LLM_MODEL?.trim() || "qwen/qwen3.8-27b";
 const LLM_TIMEOUT_MS = 12_000;
-const LLM_BATCH_TIMEOUT_MS = 15_000;
+const LLM_BATCH_TIMEOUT_MS = 20_000;
 // Whole-run ceiling for classifying one sync's candidates. A sync also has to fetch provider pages
 // (paced ~5.2s apart) and write results, all inside the serverless function limit, so classification
 // gets a bounded slice rather than an open-ended one: once it is spent, the posts still waiting are

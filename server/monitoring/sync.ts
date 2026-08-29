@@ -67,6 +67,11 @@ function queryHash(query: string) {
   return createHash("sha256").update(query).digest("hex");
 }
 
+/** The bar a stored post must clear to be shown as a qualified buyer request. */
+function qualifiesAsBuyerSignal(persisted: { score: number; label: string }) {
+  return persisted.score >= 50 && persisted.label === "Active help-seeking";
+}
+
 function legacyDirectDemandState(monitor: Monitor, states: MonitorQueryState[]) {
   const legacyHash = queryHash(monitor.xQuery);
   return states.find(state => state.familyId === "direct_demand" && state.queryHash === legacyHash && Boolean(state.nextToken));
@@ -342,12 +347,18 @@ export async function syncMonitorRecord(monitor: Monitor, policyOverrides?: Moni
     const persistedByPage = new Map<CoveragePage, number>();
     settled.forEach((outcome, index) => {
       const entry = persistableCandidates[index];
-      if (entry && outcome.status === "fulfilled" && outcome.value.isNew && outcome.value.score >= 50 && outcome.value.label === "Active help-seeking") {
+      if (entry && outcome.status === "fulfilled" && qualifiesAsBuyerSignal(outcome.value)) {
         persistedByPage.set(entry.page, (persistedByPage.get(entry.page) ?? 0) + 1);
       }
     });
-    const persistedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" && outcome.value.isNew && outcome.value.score >= 50 && outcome.value.label === "Active help-seeking" ? [outcome.value] : []);
-    const inserted = persistedSignals.length;
+    // Counted by whether the post QUALIFIES, not by whether its database row happened to be new.
+    // Provider "Latest" search has no since_id for TwitterAPI.io, so re-running a brief re-reads
+    // the same recent posts; keying this on isNew meant a re-run reported "0 saved" even when it
+    // had just re-scored a batch of genuine buyer requests that are sitting in the user's feed.
+    // Alerts still fire only for genuinely new rows so a re-run cannot re-notify.
+    const qualifiedSignals = settled.flatMap(outcome => outcome.status === "fulfilled" && qualifiesAsBuyerSignal(outcome.value) ? [outcome.value] : []);
+    const persistedSignals = qualifiedSignals.filter(signal => signal.isNew);
+    const inserted = qualifiedSignals.length;
     try {
       await notifyPreferredHighConfidenceSignals(monitor, persistedSignals);
     } catch (error) {
